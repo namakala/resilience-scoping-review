@@ -1,0 +1,20 @@
+# Blacklist everything
+*
+
+# Whitelist directory contents
+!*/
+
+# Track specific filetypes
+!*R
+!*py
+!*sql
+!*sh
+!*md
+!*lock
+!LICENSE
+!*ignore
+!*profile
+!README*
+!*bib
+!*yml
+!*.tex
