@@ -1,0 +1,18 @@
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{typearea}
+\floatplacement{figure}{htbp}
+\floatplacement{table}{htbp}
+\AtBeginDocument{%
+  \storeareas\normalpapersize
+}
+\BeforeRestoreareas{\cleardoublepage}
+\newcommand*\uselandscape{%
+  \cleardoublepage
+  \KOMAoptions{paper=landscape}%
+  \recalctypearea
+  \areaset{1.2\textwidth}{1.2\textheight}%
+}

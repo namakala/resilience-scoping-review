@@ -1,0 +1,13 @@
+knitr:
+  opts_chunk:
+    echo: false
+    eval: true
+    error: false
+    message: false
+    warning: false
+    fig.width: 10
+    fig.height: 8
+    out.width: "100%"
+    comment: "|"
+
+bibliography: ref.bib

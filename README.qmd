@@ -1,0 +1,62 @@
+---
+format: gfm
+knitr:
+  opts_chunk:
+    echo: false
+    comments: "|"
+---
+
+```{r init}
+
+pkgs <- c("targets", "magrittr")
+pkgs_load <- sapply(pkgs, library, character.only = TRUE)
+
+```
+
+# Getting started
+
+Most of the works in this repository, especially the `R` scripts, should be directly reproducible. You'll need [`git`](https://git-scm.com/downloads), [`R`](https://www.r-project.org/), [`quarto`](https://quarto.org/docs/download/), and more conveniently [RStudio IDE](https://posit.co/downloads/) installed and running well in your system. You simply need to fork/clone this repository using RStudio by following [this tutorial, start right away from `Step 2`](https://book.cds101.com/using-rstudio-server-to-clone-a-github-repo-as-a-new-project.html#step---2). Using terminal in linux/MacOS, you can issue the following command:
+
+```{.bash}
+quarto tools install tinytex
+```
+
+This command will install `tinytex` in your path, which is required to compile quarto documents as latex/pdf.  Afterwards, in your RStudio command line, you can copy paste the following code to setup your working directory:
+
+```{.r}
+install.packages("renv") # Only need to run this step if `renv` is not installed
+```
+
+This step will install `renv` package, which will help you set up the `R` environment. Please note that `renv` helps tracking, versioning, and updating packages I used throughout the analysis.
+
+```{.r}
+renv::restore()
+```
+
+This step will read `renv.lock` file and install required packages to your local machine. When all packages loaded properly (make sure there's no error at all), you *have to* restart your R session. At this point, you need to export the data as `data.csv` and place it within the `data/raw` directory. The directory structure *must* look like this:
+
+```{.bash}
+data
+├── ...
+├── raw
+│   └── data.csv
+└── ...
+```
+
+Then, you should be able to proceed with:
+
+```{.r}
+targets::tar_make()
+```
+
+This step will read `_targets.R` file, where I systematically draft all of the analysis steps. Once it's done running, you will find the rendered document (either in `html` or `pdf`) inside the `draft` directory.
+
+# What's this all about?
+
+This is the functional pipeline for conducting statistical analysis. The complete flow can be viewed in the following `mermaid` diagram:
+
+```{r, results = "asis"}
+
+cat("```mermaid", tar_mermaid(), "```", sep = "\n")
+
+```

@@ -1,0 +1,12 @@
+project:
+  output-dir: _render/report
+
+book:
+  title: "Book Title"
+  subtitle: "Book Subtitle"
+  author: "Author Name"
+  chapters:
+    - index.qmd
+
+in:
+  report: true

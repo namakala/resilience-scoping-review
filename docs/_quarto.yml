@@ -1,0 +1,22 @@
+project:
+  type: book
+
+profile:
+  default: report
+
+execute:
+  freeze: false
+
+format:
+  pdf:
+    geometry:
+      - top=2cm
+      - bottom=2cm
+      - left=2cm
+      - right=2cm
+    include-in-header:
+      file: _header.tex
+
+metadata-files:
+  - _author.yml
+  - _knitr-bib.yml
