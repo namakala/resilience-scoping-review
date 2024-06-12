@@ -19,17 +19,26 @@ tar_option_set(
 
 seed <- 1810
 
-# Set paths for the raw data
-raws <- lsData(pattern = "*csv")
 
 # Set the analysis pipeline
 list(
 
   # List data files
-  tar_target(fpath, raws[["data"]], format = "file"),
+  tar_target(fpath, "data/raw/articles.ris", format = "file"),
 
   # Read the data frame
   tar_target(tbl, readData(fpath)),
+
+  # Deduplicate the data frame
+  tar_target(tbl_dup, dedup(tbl, get_dup = TRUE)),
+  tar_target(tbl_dedup, dedup(tbl)),
+
+  # Write deduplicated data frame as a RIS file
+  tar_target(
+    dat_dedup,
+    writeData(tbl_dedup, file = "data/processed/articles.ris"),
+    format = "file"
+  ),
 
   # Generate documentation
   tar_quarto(readme, "README.qmd", priority = 0)
