@@ -22,6 +22,7 @@ Provide decorators and context managers for robust error handling: `@retry` (exp
 - `@circuit_breaker(failure_threshold=5, reset_timeout=60)` opens circuit after N failures; blocks calls for reset period
 - `with graceful_shutdown():` catches SIGINT/SIGTERM, runs cleanup callbacks, exits cleanly
 - Unit tests using `unittest.mock` simulate failures and verify retry/circuit behavior
+- Implementation split into focused modules: `exceptions.py`, `retry.py`, `circuit_breaker.py`, and `graceful_shutdown.py` for maintainability
 
 ---
 
@@ -33,7 +34,7 @@ Provide decorators and context managers for robust error handling: `@retry` (exp
 
 ## Implementation Notes
 
-- Module: `src/python/utils/error_handling.py`
+- Module structure: `src/python/utils/` (split into specialized modules)
 - Retry exceptions: `TimeoutError`, `ConnectionError`, `GroqAPIError` (configurable)
 - Circuit breaker state: closed → open → half-open → closed
 - Cleanup callbacks: close file handles, save state, close DB connections
