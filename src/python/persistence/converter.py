@@ -1,40 +1,44 @@
-"""CSV to Parquet converter with schema validation and enrichment.
+"""CSV to Parquet converter orchestration.
 
-Reads raw CSV artifacts, validates schemas, computes derived columns,
-and writes compressed Parquet files. Enriches exemplars with nullable
-keywords and content_hash; reconciles tag counts from source truth.
+Thin orchestrator that delegates to reader and writer modules.
+Validates schemas, enriches data, and writes compressed Parquet files.
+
+Public API:
+    CSVToParquetConverter — orchestrator class
+    convert_csvs — convenience function for default paths
+
+Re-exports from submodules:
+    ConversionError, SchemaValidationError, DataQualityError
 """
 
-import hashlib
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import polars as pl
 from utils.logging import get_logger
 
+# Re-export exceptions for backward compatibility
+from .exceptions import ConversionError, DataQualityError, SchemaValidationError
 
-class ConversionError(Exception):
-    """Base exception for conversion failures."""
+# Import reader and writer functions
+from .reader import read_and_enrich_exemplars, read_and_validate_tags
+from .writer import write_parquet
 
-
-class SchemaValidationError(ConversionError):
-    """Raised when CSV schema does not match expected columns."""
-
-
-class DataQualityError(ConversionError):
-    """Raised when data violates quality constraints (nulls, empty strings)."""
+__all__ = [
+    "CSVToParquetConverter",
+    "convert_csvs",
+    "ConversionError",
+    "SchemaValidationError",
+    "DataQualityError",
+]
 
 
 class CSVToParquetConverter:
-    """Converts raw CSV exemplars and tags to validated Parquet format.
+    """Orchestrates CSV to Parquet conversion using reader and writer modules.
 
     Responsibilities:
-    - Validate required columns and types
-    - Detect missing values (null, empty strings) in critical fields
-    - Enrich exemplars with content_hash (SHA256) and empty keywords list
-    - Reconcile tags n_contents from data.csv
-    - Write compressed Parquet with categorical encoding
-    - Report statistics (row counts, compression ratio)
+        - Coordinate reading, validation, enrichment, and writing
+        - Track input file sizes for compression statistics
+        - Provide a simple convert() method for end-to-end processing
 
     Args:
         exemplars_csv: Path to data/raw/data.csv
@@ -42,9 +46,6 @@ class CSVToParquetConverter:
         exemplars_parquet: Output path for exemplars.parquet
         tags_parquet: Output path for tags.parquet
     """
-
-    EXEMPLARS_REQUIRED_COLS = {"id", "document", "tag", "content"}
-    TAGS_REQUIRED_COLS = {"tag", "description", "n_contents"}
 
     def __init__(
         self,
@@ -78,219 +79,31 @@ class CSVToParquetConverter:
         """
         stats: Dict[str, Dict[str, Any]] = {}
 
-        exemplars_lf = self._read_and_validate_exemplars()
-        stats["exemplars"] = self._write_exemplars_parquet(exemplars_lf)
+        # Read and enrich exemplars
+        exemplars_lf = read_and_enrich_exemplars(self.exemplars_csv, self.logger)
 
-        tags_lf = self._read_and_validate_tags()
-        stats["tags"] = self._write_tags_parquet(tags_lf)
+        # Write exemplars Parquet (compute CSV size for compression ratio)
+        exemplars_csv_size = self.exemplars_csv.stat().st_size
+        stats["exemplars"] = write_parquet(
+            exemplars_lf,
+            self.exemplars_parquet,
+            input_size=exemplars_csv_size,
+            logger=self.logger,
+        )
+
+        # Read and validate tags
+        tags_lf = read_and_validate_tags(self.tags_csv, self.exemplars_csv, self.logger)
+
+        # Write tags Parquet
+        tags_csv_size = self.tags_csv.stat().st_size
+        stats["tags"] = write_parquet(
+            tags_lf,
+            self.tags_parquet,
+            input_size=tags_csv_size,
+            logger=self.logger,
+        )
 
         self.logger.info("Conversion complete", extra={"stats": stats})
-        return stats
-
-    def _read_and_validate_exemplars(self) -> pl.LazyFrame:
-        """Load exemplars CSV, validate schema, and check data quality.
-
-        Returns:
-            Polars LazyFrame with enriched columns: content_hash, keywords
-
-        Raises:
-            SchemaValidationError: Missing required columns
-            DataQualityError: Nulls or empty strings in id/content
-        """
-        self.logger.info(
-            "Reading exemplars CSV", extra={"path": str(self.exemplars_csv)}
-        )
-
-        if not self.exemplars_csv.exists():
-            raise ConversionError(f"Exemplars CSV not found: {self.exemplars_csv}")
-
-        lf = pl.scan_csv(self.exemplars_csv)
-
-        # Schema validation
-        cols = set(lf.collect_schema().names())
-        missing = self.EXEMPLARS_REQUIRED_COLS - cols
-        if missing:
-            msg = f"Exemplars missing required columns: {missing}"
-            self.logger.error(msg, extra={"found": list(sorted(cols))})
-            raise SchemaValidationError(msg)
-
-        # Data quality: detect nulls and empty strings in id/content
-        id_null_count = (
-            lf.filter(pl.col("id").is_null()).select(pl.len()).collect().item()
-        )
-        content_null_count = (
-            lf.filter(pl.col("content").is_null()).select(pl.len()).collect().item()
-        )
-        id_empty_count = (
-            lf.filter(pl.col("id").cast(pl.String).str.strip_chars() == "")
-            .select(pl.len())
-            .collect()
-            .item()
-        )
-        content_empty_count = (
-            lf.filter(pl.col("content").cast(pl.String).str.strip_chars() == "")
-            .select(pl.len())
-            .collect()
-            .item()
-        )
-
-        total_bad = (
-            id_null_count + content_null_count + id_empty_count + content_empty_count
-        )
-        if total_bad > 0:
-            details = {
-                "id_null": id_null_count,
-                "content_null": content_null_count,
-                "id_empty": id_empty_count,
-                "content_empty": content_empty_count,
-            }
-            self.logger.error("Data quality violations", extra=details)
-            raise DataQualityError(
-                f"Exemplars contain missing values in id/content: {details}"
-            )
-
-        # Enrichment: content_hash and empty keywords (nullable for now)
-        enriched_lf = lf.with_columns(
-            [
-                pl.col("id").cast(pl.Int64),
-                pl.col("document").cast(pl.String),
-                pl.col("tag").cast(pl.Categorical).sort(),
-                pl.col("content").cast(pl.String),
-                (
-                    pl.col("content")
-                    .cast(pl.String)
-                    .map_elements(
-                        lambda c: hashlib.sha256(c.encode()).hexdigest()[:16],
-                        return_dtype=pl.String,
-                    )
-                ).alias("content_hash"),
-                pl.lit([], dtype=pl.List(pl.String)).alias("keywords"),
-            ]
-        )
-
-        return enriched_lf
-
-    def _read_and_validate_tags(self) -> pl.LazyFrame:
-        """Load tags CSV, validate schema, reconcile n_contents from data.csv.
-
-        Returns:
-            Polars LazyFrame with consistent types
-
-        Raises:
-            SchemaValidationError: Missing required columns
-        """
-        self.logger.info("Reading tags CSV", extra={"path": str(self.tags_csv)})
-
-        if not self.tags_csv.exists():
-            raise ConversionError(f"Tags CSV not found: {self.tags_csv}")
-
-        lf = pl.scan_csv(self.tags_csv)
-
-        # Schema validation
-        cols = set(lf.collect_schema().names())
-        missing = self.TAGS_REQUIRED_COLS - cols
-        if missing:
-            msg = f"Tags missing required columns: {missing}"
-            self.logger.error(msg, extra={"found": list(sorted(cols))})
-            raise SchemaValidationError(msg)
-
-        # Read tags into memory to reconcile n_contents
-        tags_df = lf.collect()
-
-        try:
-            exemplars_df = pl.scan_csv(self.exemplars_csv).select(["tag"]).collect()
-            tag_counts = (
-                exemplars_df.group_by("tag")
-                .agg(pl.len().alias("count"))
-                .rename({"count": "actual_n_contents"})
-            )
-            tags_df = (
-                tags_df.join(tag_counts, on="tag", how="left")
-                .fill_null(0)
-                .with_columns(
-                    [
-                        pl.col("actual_n_contents").cast(pl.Int64).alias("n_contents"),
-                        pl.col("description").cast(pl.String),
-                        pl.col("tag").cast(pl.Categorical).sort(),
-                    ]
-                )
-                .drop("actual_n_contents")
-            )
-        except Exception as e:
-            self.logger.warning(
-                "Could not reconcile n_contents from exemplars; " "using source values",
-                extra={"error": str(e)},
-            )
-            tags_df = tags_df.with_columns(
-                [
-                    pl.col("n_contents").cast(pl.Int64),
-                    pl.col("description").cast(pl.String),
-                    pl.col("tag").cast(pl.Categorical).sort(),
-                ]
-            )
-
-        return tags_df.lazy()
-
-    def _write_exemplars_parquet(self, lf: pl.LazyFrame) -> Dict[str, Any]:
-        """Sink exemplars LazyFrame to Parquet and compute stats.
-
-        Args:
-            lf: Enriched exemplars LazyFrame
-
-        Returns:
-            Stats dict with row counts, file sizes, compression ratio
-        """
-        input_size = self.exemplars_csv.stat().st_size
-        output_path = self.exemplars_parquet
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self.logger.info(
-            "Writing exemplars Parquet",
-            extra={"output": str(output_path)},
-        )
-        lf.sink_parquet(output_path)
-
-        output_size = output_path.stat().st_size
-        ratio = output_size / input_size if input_size > 0 else 0.0
-
-        out_lf = pl.scan_parquet(output_path)
-        output_rows = out_lf.select(pl.len()).collect().item()
-
-        stats: Dict[str, Any] = {
-            "input_rows": lf.select(pl.len()).collect().item(),
-            "output_rows": output_rows,
-            "input_bytes": input_size,
-            "output_bytes": output_size,
-            "compression_ratio": round(ratio, 3),
-        }
-        self.logger.info("Exemplars conversion stats", extra=stats)
-        return stats
-
-    def _write_tags_parquet(self, lf: pl.LazyFrame) -> Dict[str, Any]:
-        """Sink tags LazyFrame to Parquet and compute stats."""
-        input_size = self.tags_csv.stat().st_size
-        output_path = self.tags_parquet
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self.logger.info(
-            "Writing tags Parquet",
-            extra={"output": str(output_path)},
-        )
-        lf.sink_parquet(output_path)
-
-        output_size = output_path.stat().st_size
-        ratio = output_size / input_size if input_size > 0 else 0.0
-
-        output_rows = pl.scan_parquet(output_path).select(pl.len()).collect().item()
-
-        stats: Dict[str, Any] = {
-            "input_rows": lf.select(pl.len()).collect().item(),
-            "output_rows": output_rows,
-            "input_bytes": input_size,
-            "output_bytes": output_size,
-            "compression_ratio": round(ratio, 3),
-        }
-        self.logger.info("Tags conversion stats", extra=stats)
         return stats
 
 

@@ -34,11 +34,17 @@ Read `data/raw/data.csv` and `data/raw/tags.csv`. Validate schemas: `data.csv` m
 
 ## Implementation Notes
 
-- Use Polars `scan_csv` for lazy read, then `sink_parquet`
-- Schema validation: check required columns, no nulls in `id`, `content`
-- Log row counts before/after; report compression ratio
-- Script entry point: `if __name__ == "__main__": main()`
+The converter was implemented with a modular architecture:
 
----
+- **`reader.py`**: Read CSV with `pl.scan_csv`, schema validation, null/empty checks, enrichment (SHA256 content_hash, empty keywords), tag n_contents reconciliation from exemplars.
+- **`writer.py`**: Write LazyFrame to Parquet with `sink_parquet`, compute row counts and compression ratio from actual file sizes. Shared between exemplars and tags.
+- **`converter.py`**: Thin orchestrator class importing reader functions and writer. `CSVToParquetConverter.convert()` sequences: read exemplars → write exemplars → read tags → write tags. Convenience function `convert_csvs()` provides default-path entry point.
+- **`exceptions.py`**: Custom exception hierarchy for clear error types.
 
-**References:** ADR-002 (Immutable Source of Truth), ADR-009 (Data Processing)
+The refactoring (executed after initial implementation) split the original 320-line monolithic `converter.py` into 4 focused modules (total ~265 lines, each ≤ 120 lines). All existing imports preserved; zero test changes required.
+
+Schema enforcement: exemplars require `id, document, tag, content`; tags require `tag, description, n_contents`. Data quality rejects any null or whitespace-only values in `id` or `content`. Compression typically exceeds 50% reduction vs CSV.
+
+## References
+
+ADR-002 (Immutable Source of Truth), ADR-009 (Data Processing), STANDARDS.md (file length constraints).
