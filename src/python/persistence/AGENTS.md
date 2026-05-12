@@ -71,6 +71,7 @@ The persistence layer is organized into focused modules:
 - **`writer.py`** — Parquet serialization: write LazyFrames to Parquet, compute compression statistics.
 - **`exceptions.py`** — Exception hierarchy: `ConversionError`, `SchemaValidationError`, `DataQualityError`.
 - **`duckdb_connection.py`** — Connection lifecycle: `get_connection()`, schema version getter/setter, DEFAULT_DB_PATH, SCHEMA_VERSION.
-- **`duckdb_schema.py`** — Table DDL definitions: `_create_nodes_table()`, `_create_edges_table()`, `_create_traversal_cache_table()`, `_create_session_state_table()`, `_create_user_actions_table()`, `_ensure_sequences()`.
+- **`duckdb_schema.py`** — Table DDL definitions: `_create_nodes_table()`, `_create_edges_table()`, `_create_traversal_cache_table()`, `_create_session_state_table()`, `_create_user_actions_table()`, `_create_embedding_cache_table()`, `_ensure_sequences()`.
 - **`duckdb_migrations.py`** — Migration engine: `migrate_schema()`, `_apply_migration()`, version progression logic.
 - **`duckdb_init.py`** — Orchestrator: `initialize_database()`, `init_or_migrate()`. Coordinates connection, migrations, and schema creation.
+- **`embedding_cache.py`** — CRUD operations for the embedding cache: `get_embedding()`, `put_embedding()`, `invalidate_entity()`, `invalidate_by_content_hash()`, `get_cache_stats()`, `compute_model_hash()`. Handles NumPy serialization and content-hash invalidation.

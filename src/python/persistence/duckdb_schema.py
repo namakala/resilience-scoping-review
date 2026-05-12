@@ -101,3 +101,32 @@ def _create_user_actions_table(con: duckdb.DuckDBPyConnection) -> None:
         logger.warning(
             "Could not create index on user_actions.timestamp", extra={"error": str(e)}
         )
+
+
+def _create_embedding_cache_table(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the embedding_cache table for cached embeddings
+    with content-hash invalidation."""
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS embedding_cache (
+            entity_id VARCHAR NOT NULL,
+            entity_type VARCHAR NOT NULL,  -- exemplar|keyword|code|theme|interpretation
+            embedding BLOB NOT NULL,  -- serialized float32 array
+            model_hash VARCHAR NOT NULL,
+            content_hash VARCHAR NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (entity_id, entity_type)
+        );
+    """
+    )
+    # Create index on content_hash for cache invalidation scans (non-unique)
+    try:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS "
+            "idx_embedding_cache_content_hash ON embedding_cache(content_hash);"
+        )
+    except Exception as e:
+        logger.warning(
+            "Could not create index on embedding_cache.content_hash",
+            extra={"error": str(e)},
+        )

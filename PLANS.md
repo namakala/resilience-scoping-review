@@ -15,8 +15,8 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/05-csv-to-parquet-converter.md (implemented: CSVToParquetConverter class, schema validation, n_contents reconciliation, nullable keywords/content_hash enrichment; 8 tests pass)
 - [x] @docs/plan/06-artifact-loaders.md (commit e3beaa9)
 - [x] @docs/plan/07-duckdb-schema-init.md
-- [ ] @docs/plan/08-embedding-cache-schema.md
-- [ ] @docs/plan/09-bm25-index-serialization.md
+ - [x] @docs/plan/08-embedding-cache-schema.md (implemented: DuckDB table, CRUD ops, serialization, index; 15 tests)
+ - [ ] @docs/plan/09-bm25-index-serialization.md
 - [ ] @docs/plan/10-session-state-manager.md
 
 ## Phase 2 — Graph Module (11–16)
