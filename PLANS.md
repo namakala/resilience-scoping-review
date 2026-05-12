@@ -5,7 +5,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 ## Phase 0 — Foundation (00–04)
 
 - [x] @docs/plan/00-environment-provisioning.md (verified: env works, imports OK, R 4.3.1)
-- [ ] @docs/plan/01-project-scaffolding.md
+- [x] @docs/plan/01-project-scaffolding.md (dirs: tests/{unit,integration,fixtures}, data/output; 7x src/python/*/__init__.py; analyze.py stub; .gitignore updated)
 - [~] @docs/plan/02-pre-commit-config.md (config present, missing exclude: ^tests/fixtures/)
 - [ ] @docs/plan/03-logging-framework.md
 - [ ] @docs/plan/04-error-handling-utilities.md
@@ -123,6 +123,6 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - `[ ]` — Not started
 - `[x]` — Implemented and tested
-- `~` — In progress (optional)
+- `[~]` — In progress (optional)
 
 **Total features:** 71

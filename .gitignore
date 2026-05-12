@@ -24,3 +24,10 @@
 !*bib
 !*yml
 !*.tex
+
+# Output data (generated)
+data/output/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
