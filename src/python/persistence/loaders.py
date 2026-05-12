@@ -12,10 +12,15 @@ from pathlib import Path
 import polars as pl
 from utils.logging import get_logger
 
-# Paths (configurable for testing, default to project layout)
-EXEMPLARS_PARQUET = Path("data/processed/exemplars.parquet")
-TAGS_PARQUET = Path("data/processed/tags.parquet")
-KEYWORDS_PARQUET = Path("data/processed/keywords.parquet")
+# Base processed data directory (configurable via PROCESSED_DATA_PATH)
+_PROCESSED_DATA_PATH = Path(
+    __import__("os").getenv("PROCESSED_DATA_PATH", "data/processed")
+)
+
+# File paths constructed under the base directory
+EXEMPLARS_PARQUET = _PROCESSED_DATA_PATH / "exemplars.parquet"
+TAGS_PARQUET = _PROCESSED_DATA_PATH / "tags.parquet"
+KEYWORDS_PARQUET = _PROCESSED_DATA_PATH / "keywords.parquet"
 
 logger = get_logger(__name__)
 
@@ -171,9 +176,30 @@ def clear_cache() -> None:
     logger.info("Loader caches cleared")
 
 
+def configure_paths(processed_data_path: Path | str) -> None:
+    """Reconfigure processed data directory at runtime (useful for tests).
+
+    Updates the module-level _PROCESSED_DATA_PATH and recomputes
+    EXEMPLARS_PARQUET, TAGS_PARQUET, KEYWORDS_PARQUET.
+
+    Args:
+        processed_data_path: New base directory for processed artifacts.
+    """
+    global _PROCESSED_DATA_PATH, EXEMPLARS_PARQUET, TAGS_PARQUET, KEYWORDS_PARQUET
+    _PROCESSED_DATA_PATH = Path(processed_data_path)
+    EXEMPLARS_PARQUET = _PROCESSED_DATA_PATH / "exemplars.parquet"
+    TAGS_PARQUET = _PROCESSED_DATA_PATH / "tags.parquet"
+    KEYWORDS_PARQUET = _PROCESSED_DATA_PATH / "keywords.parquet"
+    logger.info(
+        "Persistence paths reconfigured",
+        extra={"processed_data_path": str(_PROCESSED_DATA_PATH)},
+    )
+
+
 __all__ = [
     "load_exemplars",
     "load_tags",
     "load_keywords",
     "clear_cache",
+    "configure_paths",
 ]

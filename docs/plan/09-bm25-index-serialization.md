@@ -14,8 +14,8 @@ phase: 1
 ## Implementation Summary
 
 - **Module**: `src/python/semantic/bm25_index.py` (~330 lines)
-- **Tests**: `tests/unit/semantic/bm25_index_test.py` (12 tests, all passing)
-- **Configuration**: Environment variables `BM25_INDEX_PATH` and `BM25_TOKENIZER_CONFIG`
+- **Tests**: `tests/unit/semantic/bm25_index_test.py` (17 tests, all passing)
+- **Configuration**: Environment variables `PROCESSED_DATA_PATH` (base directory) and `BM25_TOKENIZER_CONFIG`
 - **Serializer**: Pickle protocol 5 (`pickle.HIGHEST_PROTOCOL` in Python 3.11)
 - **Tokenizer**: Configurable pipeline via comma-separated toggles:
   `lowercase`, `strip_punctuation`, `split_by_space`, `remove_stopword`
@@ -23,7 +23,7 @@ phase: 1
 - **Stopwords**: Minimal built-in English stopword list (~150 words); no external deps.
 - **Corpus hash**: Per-exemplar sorted keywords concatenated → SHA256[:16]
 - **Normalization**: Min-max to [0, 1]. All-equal scores → zeros.
-- **Storage target**: `data/processed/bm25_index.pkl` by default (configurable).
+- **Storage path**: `PROCESSED_DATA_PATH / "bm25_index.pkl"` (default directory: `data/processed`). Filename `bm25_index.pkl` is hardcoded; directory configurable.
 - **Build API**: `build_index(force_rebuild=False)` — explicit build step.
 - **Load API**: `load_bm25(path=None)` — returns cached dict with keys `metadata`, `corpus`, `bm25_object`, `entity_map`.
 - **Query API**: `get_scores(query) → Dict[exemplar_id, float]`, `get_top_n(query, n=50) → List[Tuple[exemplar_id, score]]`.

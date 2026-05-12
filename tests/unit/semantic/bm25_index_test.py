@@ -30,26 +30,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "pyt
 import numpy as np
 import polars as pl
 
-# Set BM25_INDEX_PATH to a temp location before importing module
+# Set PROCESSED_DATA_PATH to a temp location before importing module
 TEST_DIR = Path(tempfile.mkdtemp())
-os.environ["BM25_INDEX_PATH"] = str(TEST_DIR / "bm25_index.pkl")
+os.environ["PROCESSED_DATA_PATH"] = str(TEST_DIR)
 
 from persistence.loaders import clear_cache as clear_loader_cache
-from persistence.loaders import load_keywords
-from semantic.bm25_index import (
-    _TOKENIZER,
-    BM25IndexError,
-    IndexCorruptedError,
-    _build_tokenizer,
-    _parse_tokenizer_config,
-    build_index,
-    clear_cache,
-    get_index_info,
-    get_scores,
-    get_top_n,
-    load_bm25,
-    save_bm25,
-)
+from persistence.loaders import configure_paths, load_keywords
+from semantic.api import get_index_info, get_scores, get_top_n
+from semantic.cache import clear_cache
+from semantic.exceptions import BM25IndexError, IndexCorruptedError
+from semantic.index_builder import build_index
+from semantic.persistence import load_bm25, save_bm25
+from semantic.tokenizer import _TOKENIZER, _build_tokenizer, _parse_tokenizer_config
 from utils.logging import get_logger
 
 get_logger(__name__).setLevel(logging.WARNING)
@@ -112,17 +104,24 @@ class TestBM25IndexBuildAndSave(unittest.TestCase):
     """Index construction and persistence tests."""
 
     def setUp(self):
+        # Create a fresh temporary directory for this test
         self.tmpdir = Path(tempfile.mkdtemp())
+        # Set PROCESSED_DATA_PATH environment variable
+        os.environ["PROCESSED_DATA_PATH"] = str(self.tmpdir)
+        # Reconfigure loaders module to use the new path (since it may have been imported earlier)
+        configure_paths(self.tmpdir)
+        # Also configure bm25_index paths? It uses env var at runtime, so fine.
         self.test_path = self.tmpdir / "bm25_index.pkl"
-        os.environ["BM25_INDEX_PATH"] = str(self.test_path)
-        # Clear both BM25 index cache and persistence loader caches
+        # Clear caches
         clear_cache()
         clear_loader_cache()
-
-        # Create data/processed for keywords Parquet
-        (self.tmpdir / "data" / "processed").mkdir(parents=True, exist_ok=True)
-
-        # Switch cwd to temp so persistence.loaders read from correct location
+        # Clean up any existing files (shouldn't be any)
+        if self.test_path.exists():
+            self.test_path.unlink()
+        keywords_path = self.tmpdir / "keywords.parquet"
+        if keywords_path.exists():
+            keywords_path.unlink()
+        # Switch cwd to temp
         self.original_cwd = Path.cwd()
         os.chdir(self.tmpdir)
 
@@ -130,13 +129,19 @@ class TestBM25IndexBuildAndSave(unittest.TestCase):
         import shutil
 
         os.chdir(self.original_cwd)
-        shutil.rmtree(self.tmpdir)
+        # Clean up generated files
+        if self.test_path.exists():
+            self.test_path.unlink()
+        keywords_path = self.tmpdir / "keywords.parquet"
+        if keywords_path.exists():
+            keywords_path.unlink()
+        # Remove the temp directory
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
         clear_cache()
         clear_loader_cache()
 
     def _write_keywords_parquet(self, rows):
         """Helper: write a keywords Parquet with given rows."""
-        # Columnar construction to avoid row-order schema issues
         df = pl.DataFrame(
             {
                 "keyword_id": [r[0] for r in rows],
@@ -151,7 +156,8 @@ class TestBM25IndexBuildAndSave(unittest.TestCase):
                 "frequency": pl.Int32,
             },
         )
-        path = self.tmpdir / "data" / "processed" / "keywords.parquet"
+        # Write to the configured processed data directory
+        path = self.tmpdir / "keywords.parquet"
         df.write_parquet(path, compression="snappy")
         return path
 

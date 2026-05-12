@@ -31,6 +31,11 @@ __all__ = [
     "DataQualityError",
 ]
 
+# Base processed data directory from environment
+_PROCESSED_DATA_PATH = Path(
+    __import__("os").getenv("PROCESSED_DATA_PATH", "data/processed")
+)
+
 
 class CSVToParquetConverter:
     """Orchestrates CSV to Parquet conversion using reader and writer modules.
@@ -118,16 +123,17 @@ def convert_csvs(
     Args:
         exemplars_csv: Override default data/raw/data.csv
         tags_csv: Override default data/raw/tags.csv
-        exemplars_parquet: Override default data/processed/exemplars.parquet
-        tags_parquet: Override default data/processed/tags.parquet
+        exemplars_parquet: Override default processed/exemplars.parquet
+        tags_parquet: Override default processed/tags.parquet
 
     Returns:
         Conversion stats dict
     """
+    processed_base = _PROCESSED_DATA_PATH
     converter = CSVToParquetConverter(
         exemplars_csv=exemplars_csv or Path("data/raw/data.csv"),
         tags_csv=tags_csv or Path("data/raw/tags.csv"),
-        exemplars_parquet=exemplars_parquet or Path("data/processed/exemplars.parquet"),
-        tags_parquet=tags_parquet or Path("data/processed/tags.parquet"),
+        exemplars_parquet=exemplars_parquet or (processed_base / "exemplars.parquet"),
+        tags_parquet=tags_parquet or (processed_base / "tags.parquet"),
     )
     return converter.convert()

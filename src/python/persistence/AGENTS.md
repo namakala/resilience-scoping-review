@@ -56,7 +56,11 @@ Workflow progress in `output/session.duckdb`: current_stage, dirty_flags per tag
 
 ## Directory Layout
 
-Immutable inputs in `data/raw/`: user-provided CSV files. Processed artifacts in `data/processed/`: Parquet caches and DuckDB graph. Session outputs in `data/output/`: state database, results JSON, logs.
+Immutable inputs in `data/raw/`: user-provided CSV files. Processed artifacts in `data/processed/` (configurable via `PROCESSED_DATA_PATH` environment variable): Parquet caches and DuckDB graph. Session outputs in `data/output/`: state database, results JSON, logs.
+
+## Configuration
+
+- **`PROCESSED_DATA_PATH`** — Base directory for all processed artifacts. Default: `data/processed/`. This includes exemplars.parquet, tags.parquet, keywords.parquet, the BM25 index, and any intermediate outputs. Set via environment variable to relocate processed data to alternative storage.
 
 ## Validation
 

@@ -71,7 +71,7 @@ Embedding model fixed at `all-MiniLM-L6-v2` (384 dimensions, CPU-friendly). All 
 
 The BM25 index behavior is configurable via environment variables:
 
-- **`BM25_INDEX_PATH`** — Filesystem path where the serialized BM25 index is stored. Default: `data/processed/bm25_index.pkl`. The path is configurable to support alternative storage locations.
+- **`PROCESSED_DATA_PATH`** — Base directory for processed artifacts (default: `data/processed`). The index file is stored as `bm25_index.pkl` within this directory. This variable is shared across the persistence layer and controls the location of all Parquet caches and the BM25 index.
 
 - **`BM25_TOKENIZER_CONFIG`** — Comma-separated toggles controlling the keyword tokenization pipeline. Order matters; toggles are applied sequentially. Valid toggles:
   - `lowercase` — Convert text to lowercase before further processing.

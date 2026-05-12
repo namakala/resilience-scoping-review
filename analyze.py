@@ -1,8 +1,14 @@
 """Entry point for the thematic analysis pipeline."""
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+
+def _get_processed_base() -> Path:
+    """Get the base processed data directory from environment."""
+    return Path(os.getenv("PROCESSED_DATA_PATH", "data/processed"))
 
 
 def main() -> None:
@@ -32,17 +38,25 @@ def main() -> None:
     convert_parser.add_argument(
         "--exemplars-parquet",
         type=Path,
-        default=Path("data/processed/exemplars.parquet"),
-        help="Output path for exemplars Parquet",
+        default=None,  # Use PROCESSED_DATA_PATH default
+        help=(
+            "Output path for exemplars Parquet "
+            "(default: PROCESSED_DATA_PATH/exemplars.parquet)"
+        ),
     )
     convert_parser.add_argument(
         "--tags-parquet",
         type=Path,
-        default=Path("data/processed/tags.parquet"),
-        help="Output path for tags Parquet",
+        default=None,  # Use PROCESSED_DATA_PATH default
+        help="Output path for tags Parquet (default: PROCESSED_DATA_PATH/tags.parquet)",
     )
 
     args = parser.parse_args()
+
+    # Resolve processed data base directory
+    processed_base = _get_processed_base()
+    exemplars_parquet = args.exemplars_parquet or (processed_base / "exemplars.parquet")
+    tags_parquet = args.tags_parquet or (processed_base / "tags.parquet")
 
     # Add src/python to sys.path for imports
     src_dir = Path(__file__).parent / "src" / "python"
@@ -55,8 +69,8 @@ def main() -> None:
         stats = convert_csvs(
             exemplars_csv=args.exemplars_csv,
             tags_csv=args.tags_csv,
-            exemplars_parquet=args.exemplars_parquet,
-            tags_parquet=args.tags_parquet,
+            exemplars_parquet=exemplars_parquet,
+            tags_parquet=tags_parquet,
         )
         print("\nConversion Summary:")
         for artifact, s in stats.items():
