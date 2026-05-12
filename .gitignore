@@ -24,6 +24,8 @@
 !*bib
 !*yml
 !*.tex
+!.Renviron
+!.pre-commit-config.yaml
 
 # Output data (generated)
 data/output/

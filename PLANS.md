@@ -6,7 +6,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [x] @docs/plan/00-environment-provisioning.md (verified: env works, imports OK, R 4.3.1)
 - [x] @docs/plan/01-project-scaffolding.md (dirs: tests/{unit,integration,fixtures}, data/output; 7x src/python/*/__init__.py; analyze.py stub; .gitignore updated)
-- [~] @docs/plan/02-pre-commit-config.md (config present, missing exclude: ^tests/fixtures/)
+- [x] @docs/plan/02-pre-commit-config.md (hooks: black/isort/mypy/flake8/pytest; fixtures excluded; pytest as local hook)
 - [ ] @docs/plan/03-logging-framework.md
 - [ ] @docs/plan/04-error-handling-utilities.md
 
