@@ -66,8 +66,11 @@ On load: required columns present, no duplicate IDs, parent tags exist in ontolo
 
 The persistence layer is organized into focused modules:
 
-- **`converter.py`** (135 lines) — Orchestrator: `CSVToParquetConverter` class and `convert_csvs` convenience function. Coordinates reading, validation, enrichment, and writing.
-- **`reader.py`** (201 lines) — CSV ingestion: schema validation, data quality checks, content_hash enrichment, tag reconciliation. Pure functions.
-- **`writer.py`** (61 lines) — Parquet serialization: write LazyFrames to Parquet, compute compression statistics.
-- **`exceptions.py`** (17 lines) — Exception hierarchy: `ConversionError`, `SchemaValidationError`, `DataQualityError`.
-- **`duckdb_init.py`** (~356 lines) — DuckDB schema initialization and migration management.
+- **`converter.py`** — Orchestrator: `CSVToParquetConverter` class and `convert_csvs` convenience function. Coordinates reading, validation, enrichment, and writing.
+- **`reader.py`** — CSV ingestion: schema validation, data quality checks, content_hash enrichment, tag reconciliation. Pure functions.
+- **`writer.py`** — Parquet serialization: write LazyFrames to Parquet, compute compression statistics.
+- **`exceptions.py`** — Exception hierarchy: `ConversionError`, `SchemaValidationError`, `DataQualityError`.
+- **`duckdb_connection.py`** — Connection lifecycle: `get_connection()`, schema version getter/setter, DEFAULT_DB_PATH, SCHEMA_VERSION.
+- **`duckdb_schema.py`** — Table DDL definitions: `_create_nodes_table()`, `_create_edges_table()`, `_create_traversal_cache_table()`, `_create_session_state_table()`, `_create_user_actions_table()`, `_ensure_sequences()`.
+- **`duckdb_migrations.py`** — Migration engine: `migrate_schema()`, `_apply_migration()`, version progression logic.
+- **`duckdb_init.py`** — Orchestrator: `initialize_database()`, `init_or_migrate()`. Coordinates connection, migrations, and schema creation.

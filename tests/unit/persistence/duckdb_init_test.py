@@ -374,7 +374,7 @@ class TestMigrationSystem(unittest.TestCase):
         con = get_connection(self.db_path)
         try:
             # Manually apply 0→1
-            from persistence.duckdb_init import _apply_migration
+            from persistence.duckdb_migrations import _apply_migration
 
             _apply_migration(con, 0, 1)
 
