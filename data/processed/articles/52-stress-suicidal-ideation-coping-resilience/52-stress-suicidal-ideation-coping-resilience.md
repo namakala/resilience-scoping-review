@@ -13,10 +13,10 @@ Franca Obiageli Okechukwu1, Kalu T. U. Ogba2*, Juliet I. Nwufo2, Miracle Oluchi 
 
 Background: As a global phenomenon, suicide has generated a lot of concern. Scholars from various felds have conducted extensive research on the prevalence, causes, factors, and/or management or possible solutions to suicidal ideation. Despite the research eforts, suicidal cases worldwide still yell for more empirical attention. No doubt that some of the extant literature have specifcally evidenced the causal links and factors in suicidal ideation. Yet, none had focused on the moderating roles of coping and resilience in an academic population. We therefore, examined the moderating roles of coping and resilience in the relationship between academic stress and suicidal ideation.
 
-Method: We used a cross-sectional design to sample 505 participants (329 males and 176 females) from three southern Nigerian universities. Participants who willingly indicated their participatory consent were administered a paper self-report questionnaire containing the Lakaev Academic Stress Response Scale (LASRS), Scale for Suicidal Ideation 
+Method: We used a cross-sectional design to sample 505 participants (329 males and 176 females) from three southern Nigerian universities. Participants who willingly indicated their participatory consent were administered a paper self-report questionnaire containing the Lakaev Academic Stress Response Scale (LASRS), Scale for Suicidal Ideation
 (SSI), Brief COPE (B-COPE), and Resilience Scale (RS-14). Hierarchical regression analysis was used to test the hypotheses of the study.
 
-Academic stress (r=0.17; p.001) was found to be positively associated with suicidal ideation, whereas resilience (r=−.22; p.001) was found to be negatively associated with suicidal ideation. Suicidal ideation had no signifcant correlation with adaptive coping style, but it did have a signifcant correlation with maladaptive coping (r=.15; p.001). 
+Academic stress (r=0.17; p.001) was found to be positively associated with suicidal ideation, whereas resilience (r=−.22; p.001) was found to be negatively associated with suicidal ideation. Suicidal ideation had no signifcant correlation with adaptive coping style, but it did have a signifcant correlation with maladaptive coping (r=.15; p.001).
 
 The regression-based PROCESS macro showed that academic stress was a signifcant predictor of coping [ΔR2=.03, F (1, 502) = 16.18, p=.01]. Academic stress was positively associated with suicidal ideation at low or moderate levels of adaptive coping styles. At high levels of adaptive coping styles, the association between academic stress and suicidal ideation was not signifcant. However, resilience negatively predicted suicidal ideation [R=.29, (R2=.08), F(1, 499)=19.94, p=.00] with academic stress showing a positive association with suicidal ideation at low and moderate levels of resilience, but for those with high resilience, academic stress was not associated with suicidal ideation.
 
@@ -32,27 +32,27 @@ Full list of author information is available at the end of the article
 
 ## Introduction
 
-Suicide is multifarious and a major concern for public health [58, 74]. It is a diverse, less comprehensible, lifethreatening phenomenon. Tis is because most victims of suicide hide or conceal their intentions [11, 25, 70], and this makes it difcult (if not impossible) for people to have knowledge of or even gain access to a potential suicide victim. As a result, WHO [73] noted that one person dies by suicide every 40seconds despite progress in national prevention strategies. Consequently, it has become the second leading cause of death among youths. Snowdon and Choi [58] observed that reports of suicide are rare in children under the age of 10, but in the developed world, the prevalence begins to increase for youths between 10 and 14years of age and in the 15 to 24year age group [14]. Among their Nigeria counterparts, Adewuya and Oladipo [1] observed that the prevalence is 13–29years, while the Nigeria National Youth Policy [43] discovered that the prevalence is in the 18–35 year age group. Due to cultural and developmental diferences across individuals, there are inconsistencies as to the exact age at which suicidal ideation occurs. Tis could account for why scholars like [1, 4, 41] noted that evidence from 32 low and middle-income countries in sub-Sahara Africa have high suicide rates among adolescents and young people in general (without reference to a particular age bracket). Uganda, Botswana, Kenya, Zambia, and Nigeria have high prevalence of suicidal ideation among young people [55]. Tese youths within "transitory-into-productive" age(s), are seen to be moving from tertiary institutions into the uncertain world of labor markets in the developing (and in some western) worlds. 
+Suicide is multifarious and a major concern for public health [58, 74]. It is a diverse, less comprehensible, lifethreatening phenomenon. Tis is because most victims of suicide hide or conceal their intentions [11, 25, 70], and this makes it difcult (if not impossible) for people to have knowledge of or even gain access to a potential suicide victim. As a result, WHO [73] noted that one person dies by suicide every 40seconds despite progress in national prevention strategies. Consequently, it has become the second leading cause of death among youths. Snowdon and Choi [58] observed that reports of suicide are rare in children under the age of 10, but in the developed world, the prevalence begins to increase for youths between 10 and 14years of age and in the 15 to 24year age group [14]. Among their Nigeria counterparts, Adewuya and Oladipo [1] observed that the prevalence is 13–29years, while the Nigeria National Youth Policy [43] discovered that the prevalence is in the 18–35 year age group. Due to cultural and developmental diferences across individuals, there are inconsistencies as to the exact age at which suicidal ideation occurs. Tis could account for why scholars like [1, 4, 41] noted that evidence from 32 low and middle-income countries in sub-Sahara Africa have high suicide rates among adolescents and young people in general (without reference to a particular age bracket). Uganda, Botswana, Kenya, Zambia, and Nigeria have high prevalence of suicidal ideation among young people [55]. Tese youths within "transitory-into-productive" age(s), are seen to be moving from tertiary institutions into the uncertain world of labor markets in the developing (and in some western) worlds.
 
 Besides, suicide seems to have had multiple underlying causes [9, 67], and therefore requires adopting multiple investigative approach. Hence, our study investigated the moderating impacts of coping and resilience on academic stress and suicidal ideation among students.
 
 Stresses associated with completing tertiary education, as well as concerns about unemployment, poverty, destitution, economic crises, feelings of insecurity, marginalization (including biases), and economic disempowerment [8, 34, 44], are as prevalent in society as the need for adequate coping knowledge [8, 34, 44]. Failure to adequately cope greatly increases the chances of severing youths from the traditional values and moral regulations that seemed to have earlier provided moral foundation and guide, leading to thoughts of suicide. Tis could account for scholars' reports (e.g. [27, 36]) that suicidal thoughts are more common among younger age groups.
 
-Stress is no longer new to people as it has permeated every aspect of humanity. Hence, the present study would emphasize academic stress. Undergraduateship is not devoid of challenges and stressful circumstances. 
+Stress is no longer new to people as it has permeated every aspect of humanity. Hence, the present study would emphasize academic stress. Undergraduateship is not devoid of challenges and stressful circumstances.
 
-Tese circumstances are not limited to adapting to a new academic environment, academic workload, academic performance, attending to lectures, overwork, future employment [22, 49], nor social and fnancial stresses 
-[19]. Whether these stressors are short-term or longterm, they have signifcant impact on undergraduates' coping (either adaptive or maladaptive) capacity [19]. 
+Tese circumstances are not limited to adapting to a new academic environment, academic workload, academic performance, attending to lectures, overwork, future employment [22, 49], nor social and fnancial stresses
+[19]. Whether these stressors are short-term or longterm, they have signifcant impact on undergraduates' coping (either adaptive or maladaptive) capacity [19].
 
 Productive (adaptive) coping protects students from suicide and suicidal ideation [10, 18]; whereas inefective/
 dysfunctional (maladaptive) coping skills among students experiencing persistent academic stress and negative emotions trigger higher risk of suicide. Te relationship between academic stress and suicidal ideation has been well documented in literature (e.g [31, 48, 66]). Generally, the role of stressful life events in suicidal ideation, attempts, and completion has been a key area of study in the epidemiology of mental disorders [35, 69]. Tere is a need to understand the moderating roles of some factors in the observed association [45] between academic stress and suicidal ideation in a bid to advance research knowledge on suicide, intervention, and treatment. Tis is an important contribution that the current study ofers to the body of knowledge. Since stress has been implicated in suicide [31, 48], with no drugs for identifed victims of suicidal ideation, coping is very germane.
 
-Lambert and Lambert [38] noted that coping is a conscious efort to reduce stress, and entailing masterful ways of tolerating, reducing, or minimizing stressful events. Te conceptualization and categorization of different coping styles is inconsistent in literature (cf. [57]). 
+Lambert and Lambert [38] noted that coping is a conscious efort to reduce stress, and entailing masterful ways of tolerating, reducing, or minimizing stressful events. Te conceptualization and categorization of different coping styles is inconsistent in literature (cf. [57]).
 
 Notwithstanding divergent opinions on conceptions of coping, coping has colossal impacts on stress (academic not exempted) and suicidal ideation. For instance, behavioural disengagement and self-blame increase suicidal vulnerability [30], defcient coping and problem solving skills heighten suicidal ideation [59, 62], passive coping (usually fantasizing) fosters suicidal ideation [75], while inefective coping skills and negative emotions trigger higher risk of suicide [15]. Coping skills such as active coping and positive reframing were negatively associated with suicide, whereas coping skills like self-distraction, substance abuse, behavioural disengagement, venting, and self-blame were positively associated with suicide (e.g. [39]).
 
 Besides these direct associations, psychopathological factors, including depression [68], hopelessness [21], and psychological distress [63], have been tested as mediators between life stress and suicidal ideation, with fewer research enquiries involving resilience. Resilience is an individual's tendency to bounce back to a previous state of normal functioning, or simply not showing negative efects after stress and adversity. Wagnild [71] noted that resilience is an ability to recover from stress. As a helpful behavioural disposition, it promotes an individual's healthy survival and soothes the negative outcome of stress. Resilience is important as it ensures healthy social functioning, morale, and somatic health, as well as helps an individual maintain emotional stability in the midst of stress [64]. Hence, understanding resilience appears to provide homeostasis [51] and personal endurance [33]. A study [40] on the relationship between resilience and well-being associated resilience with a positive view of the self. Cleverly and Kidd [16] found youths' perceived resilience related to less suicidal ideation, whereas higher psychological distress was associated with higher suicidal ideation. Furthermore, depression has been linked to suicidal ideation, with anxiety, mental health, resiliency, and daily stress playing important roles [32]. Again, resilience dimensions such as social resources and familial cohesion were strongly and negatively correlated with humiliation, interpersonal sensitivity, and depression in subjects with previous suicidal attempts [52].
 
-To our knowledge, no study has combined coping and resilience as moderators of the relationship between academic stress and suicidal ideation. Rather, extant related literature have either focused on stress (not academic stress) and suicidal ideation [17, 20] or coping and suicidal ideation [10]. Although Zimmerman [76] provided useful theoretical explanations and understandings as to how some 'promotive factors' could interrupt the pathways to mental health difculties among youths, we believe it is necessary to investigate as many of these promotive factors (including coping and resilience) as possible with respect to suicidal ideation. Te present study might support as well as enhance, and further the theoretical explanations of Zimmerman [76]. However, it is important to note that some studies have investigated coping as a moderator in relationship of stress (but not necessarily academic stress) and suicidal ideation (e.g. [17, 20, 68]). We assume that coping styles will have moderating impact on suicidal ideation and academic stress among undergraduates, especially for those who adopt functional or adaptive coping styles, compared to those who do not. In the same vein, we equally propose that resilience will moderate the link between academic stress and suicidal ideation. When confronted with the aforementioned potential stressors, a student who is stressed but adopts dysfunctional or inefective coping styles (blaming oneself for problems, ignoring them, or escaping through fantasizing thoughts) may likely consider suicide as an option to end the perturbation [26]. 
+To our knowledge, no study has combined coping and resilience as moderators of the relationship between academic stress and suicidal ideation. Rather, extant related literature have either focused on stress (not academic stress) and suicidal ideation [17, 20] or coping and suicidal ideation [10]. Although Zimmerman [76] provided useful theoretical explanations and understandings as to how some 'promotive factors' could interrupt the pathways to mental health difculties among youths, we believe it is necessary to investigate as many of these promotive factors (including coping and resilience) as possible with respect to suicidal ideation. Te present study might support as well as enhance, and further the theoretical explanations of Zimmerman [76]. However, it is important to note that some studies have investigated coping as a moderator in relationship of stress (but not necessarily academic stress) and suicidal ideation (e.g. [17, 20, 68]). We assume that coping styles will have moderating impact on suicidal ideation and academic stress among undergraduates, especially for those who adopt functional or adaptive coping styles, compared to those who do not. In the same vein, we equally propose that resilience will moderate the link between academic stress and suicidal ideation. When confronted with the aforementioned potential stressors, a student who is stressed but adopts dysfunctional or inefective coping styles (blaming oneself for problems, ignoring them, or escaping through fantasizing thoughts) may likely consider suicide as an option to end the perturbation [26].
 
 Tose who use efective or functional strategies (positive reevaluation, planning, and seeking help) are less likely to consider suicide [39]. In other words, coping could either increase or decrease the efect of academic stress on suicidal ideation, whereas resilience helps them bounce back after having adaptively coped with academic stress. Terefore, we hypothesized frst, that academic stress would predict suicidal ideation; second, while adaptive coping style would not predict suicidal ideation, maladaptive coping style would; third, adaptive coping style would moderate the association between academic stress and suicidal ideation such that at low or moderate levels of adaptive coping styles, academic stress would be positively associated with suicidal ideation; but at high levels of adaptive coping style, the relationship of academic stress and suicidal ideation would not be signifcant. Finally, resilience would negatively predict suicidal ideation [54] as well as moderate the association between academic stress and suicidal ideation, such that academic stress would show a positive association with suicidal ideation for students at low and moderate levels of resilience, but for those with high resilience, academic stress would not be associated with suicidal ideation.
 
@@ -62,14 +62,14 @@ Te understanding that suicidal ideation may decrease among undergraduates becaus
 
 ## Method Participants And Procedure
 
-Te study adopted a cross sectional design to sample a total of 505 undergraduates from three South-Eastern universities in Nigeria. Tey consisted of 329 (65.1%) 
-males and 176 (34.9%) females who were conveniently sampled at their clustering and administered a self-report battery of measures. Out of the fve federal universities in the Southeast, three universities were randomly selected using a table of random numbers. Te three universities were: the University of Nigeria, Nsukka (UNN), the Alex Ekwueme Federal University, Ndufu Alike Ikwo (AEFUNAI), and the Michael Okpara University of Agriculture. Te University of Nigeria, Nsukka was founded by Nnamdi Azikiwe in 1955 and formally opened in 1960. 
+Te study adopted a cross sectional design to sample a total of 505 undergraduates from three South-Eastern universities in Nigeria. Tey consisted of 329 (65.1%)
+males and 176 (34.9%) females who were conveniently sampled at their clustering and administered a self-report battery of measures. Out of the fve federal universities in the Southeast, three universities were randomly selected using a table of random numbers. Te three universities were: the University of Nigeria, Nsukka (UNN), the Alex Ekwueme Federal University, Ndufu Alike Ikwo (AEFUNAI), and the Michael Okpara University of Agriculture. Te University of Nigeria, Nsukka was founded by Nnamdi Azikiwe in 1955 and formally opened in 1960.
 
-UNN has more than nine faculties, including the faculties of Agriculture, Arts, Biological Sciences, Education, Engineering, Pharmaceutical Sciences, Physical Sciences, Social Sciences, Veterinary Medicine, a School of General Studies, etc. Te Alex Ekwueme Federal University Ndufu Alike Ikwo (AE-FUNAI) is located in Ndufu, Alike Ikwo in Ebonyi State, Nigeria. It was established in 2011. 
+UNN has more than nine faculties, including the faculties of Agriculture, Arts, Biological Sciences, Education, Engineering, Pharmaceutical Sciences, Physical Sciences, Social Sciences, Veterinary Medicine, a School of General Studies, etc. Te Alex Ekwueme Federal University Ndufu Alike Ikwo (AE-FUNAI) is located in Ndufu, Alike Ikwo in Ebonyi State, Nigeria. It was established in 2011.
 
 Courses ofered include: Agriculture, Basic Medical Sciences, Education, Engineering and Technology, Humanities, Management Sciences, Social Sciences, Biological Sciences, Environmental Sciences, College of Medicine, Physical Sciences, Law, etc. Te Michael Okpara University of Agriculture is located in Umudike, Abia State, Nigeria and was established as a specialized university in 1992. Education, Veterinary Medicine, Applied Food Science and Tourism, Agricultural Economics, Rural Sociology, Extension, Animal Science & Animal Production, Physical & Applied Sciences, Natural Resources & Environmental Management, Natural Sciences, Management & Social Sciences, Engineering & Engineering Technology, Crop & Soil Sciences, and Humanities [13].
 
-In terms of setting, these universities were similar. In that, the establishment of a university automatically transforms even the most rural of places into an urban setting. However, these universities difered in terms of courses ofered and socio-economic status. At the selected federal universities, participants were met at their various hostels and lecture quadrangles. Tose who indicated their participatory consent prior to the creation of rapport were administered the self-report battery of measures. Age, sex, ethnic group, marital status, and educational qualifcations were assessed through the self-report battery of measures. Participants were asked to indicate by ticking in the appropriate boxes their age (in years); sex (male and female); ethnic group (Igbo, Hausa, Yoruba, and others); marital status (single and married); and educational qualifcation. Educational qualifcation was removed from the analysis because the participants were still undergraduate students. Te four instruments were prepared in a questionnaire format. A brief statement of consent that sought the participant's consent was attached to the questionnaire. Participants were expected to frst read through the brief consent letter and indicate their participatory consent by ticking on the appropriate boxes. Tose who declined their interest in participation in the consent letter were asked to kindly return the questionnaire. Te questionnaires were administered on a one-on-one basis and retrieved upon completion [29]. In addition to the consent letter, the questionnaires were distributed to students who willingly accepted to take part in the study, with a preceding self-introduction and explanation of the objective of the study. Participants were verbally appreciated. Out of the 530 copies of the questionnaire distributed, 523 were returned (98.7% return rate), while 18 were discarded due to improper completion. To preserve the homogeneity of the sample, all participants were undergraduates, irrespective of other demographic characteristics. 
+In terms of setting, these universities were similar. In that, the establishment of a university automatically transforms even the most rural of places into an urban setting. However, these universities difered in terms of courses ofered and socio-economic status. At the selected federal universities, participants were met at their various hostels and lecture quadrangles. Tose who indicated their participatory consent prior to the creation of rapport were administered the self-report battery of measures. Age, sex, ethnic group, marital status, and educational qualifcations were assessed through the self-report battery of measures. Participants were asked to indicate by ticking in the appropriate boxes their age (in years); sex (male and female); ethnic group (Igbo, Hausa, Yoruba, and others); marital status (single and married); and educational qualifcation. Educational qualifcation was removed from the analysis because the participants were still undergraduate students. Te four instruments were prepared in a questionnaire format. A brief statement of consent that sought the participant's consent was attached to the questionnaire. Participants were expected to frst read through the brief consent letter and indicate their participatory consent by ticking on the appropriate boxes. Tose who declined their interest in participation in the consent letter were asked to kindly return the questionnaire. Te questionnaires were administered on a one-on-one basis and retrieved upon completion [29]. In addition to the consent letter, the questionnaires were distributed to students who willingly accepted to take part in the study, with a preceding self-introduction and explanation of the objective of the study. Participants were verbally appreciated. Out of the 530 copies of the questionnaire distributed, 523 were returned (98.7% return rate), while 18 were discarded due to improper completion. To preserve the homogeneity of the sample, all participants were undergraduates, irrespective of other demographic characteristics.
 
 Our procedures met relevant ethical guidelines and legal requirements in Nigeria to warrant the ethical approval obtained on (November 21, 2019) from the Institutional Review Board, University of Nigeria, Nsukka.
 
@@ -79,16 +79,16 @@ Te LASRS is a 21-item structured scale that measures students' responses to stre
 
 ## Scale For Suicidal Ideation (Ssi [6])
 
-SSI is a 19-item self-report scale designed to quantify the intensity of current conscious suicidal intent, by scaling various dimensions of self-destructive thoughts or wishes. Te items assessed the extent of suicidal thoughts and their characteristics, as well as the respondent's attitude towards them; the extent of the wish to die, the desire to make an actual suicide attempt, and details of plans, if any; internal deterrents to an active attempt; and subjective feelings of control or "courage" regarding a proposed attempt. Each item consisted of three alternative statements graded in intensity from 0 to 2. Suicidal ideation was analysed dimensionally with scores ranging from 0 (low ideation) 
-to 38 (high ideation) [6]. In other words, a positive rating (> 1) on any of the ideation scale's 19 items was considered as a potential indicator of suicide ideation. Out of 29 items, 16 had positive and signifcant item-total correlations, and a Cronbach alpha of .89 was obtained, which indicated the high reliability of the SSI and also supported the validity of this scale [6]. Te validity of SSI was also indicated by the moderate correlations with clinical ratings of suicidal risk and self-harm [7]. 
+SSI is a 19-item self-report scale designed to quantify the intensity of current conscious suicidal intent, by scaling various dimensions of self-destructive thoughts or wishes. Te items assessed the extent of suicidal thoughts and their characteristics, as well as the respondent's attitude towards them; the extent of the wish to die, the desire to make an actual suicide attempt, and details of plans, if any; internal deterrents to an active attempt; and subjective feelings of control or "courage" regarding a proposed attempt. Each item consisted of three alternative statements graded in intensity from 0 to 2. Suicidal ideation was analysed dimensionally with scores ranging from 0 (low ideation)
+to 38 (high ideation) [6]. In other words, a positive rating (> 1) on any of the ideation scale's 19 items was considered as a potential indicator of suicide ideation. Out of 29 items, 16 had positive and signifcant item-total correlations, and a Cronbach alpha of .89 was obtained, which indicated the high reliability of the SSI and also supported the validity of this scale [6]. Te validity of SSI was also indicated by the moderate correlations with clinical ratings of suicidal risk and self-harm [7].
 
 Te scale was pilot tested and the result yielded a Cronbach's alpha of .82.
 
 ## Brief Cope (B‑Cope [12])
 
-Te B-COPE provides researchers a way to quickly assess potentially important coping responses. It consists of 14 sub-scales, each of two items. Terefore, B-COPE has a total of 28 items, which measure 14 conceptually diferentiable coping skills. Some of these skills are known to be generally adaptive (such as active coping, planning, positive reframing, acceptance, humor, religion, emotional support-seeking, and instrumental support-seeking); others are known to be problematic or maladaptive 
-(such as self-distraction, denial, venting, substance use, behavioral disengagement, and self-blame). Te response options ranged from 0 (I haven't been doing this at all) 
-to 3 (I have been doing this a lot). Researchers have variously shown B-COPE to have had good psychometric properties [24, 28]. All dimensions demonstrated good internal consistency (.70) in our pilot testing of the scale, with the exception of religion (=.63) and venting (=.61). 
+Te B-COPE provides researchers a way to quickly assess potentially important coping responses. It consists of 14 sub-scales, each of two items. Terefore, B-COPE has a total of 28 items, which measure 14 conceptually diferentiable coping skills. Some of these skills are known to be generally adaptive (such as active coping, planning, positive reframing, acceptance, humor, religion, emotional support-seeking, and instrumental support-seeking); others are known to be problematic or maladaptive
+(such as self-distraction, denial, venting, substance use, behavioral disengagement, and self-blame). Te response options ranged from 0 (I haven't been doing this at all)
+to 3 (I have been doing this a lot). Researchers have variously shown B-COPE to have had good psychometric properties [24, 28]. All dimensions demonstrated good internal consistency (.70) in our pilot testing of the scale, with the exception of religion (=.63) and venting (=.61).
 
 We re-analyzed the adaptive and maladaptive dimensions, and they both showed high reliability (=.85 and.79, respectively). Higher score on the adaptive dimension indicates higher adaptive measures, while a lower or moderate score on the maladaptive dimension indicates adaptive coping.
 
@@ -100,14 +100,14 @@ RS-14 measures the capacity to withstand life stressors and derive meaning from 
 
 Te research was a survey. A Pearson's Correlation (r) analysis was conducted to examine the relationships between the demographic factors both with themselves and the other independent and dependent variables in the study. Te reason for the choice of correlation is based on Urbina's [65] assertion that correlations play a major role in demonstrating linkages between (a) scores on diferent tests, (b) test scores and non-test (demographic) variables, (c) scores on parts of tests and scores on whole tests, etc. [65]. Demographic variables such as gender were dummy coded before they were included in the correlation analysis. Dummy coding was recommended by experts in statistics as very important in correlation and regression as a "way of representing people using only zeros and ones" [23]. In order to clearly test the hypotheses, the study variables were submitted to a hierarchical regression analysis. Hierarchical regression analysis allows researchers to simultaneously examine the contributions of each of several predictor variables in one study. In the regression analysis, the demographic variable of marital status that was signifcantly correlated with suicidal ideation was frst included in the analysis in order to control for its possible efect. Tis formed Step 1 in the analysis. Tereafter, academic stress was included in the regression to test for its predictive association with suicidal ideation, and this formed Step 2 of the analysis. Afterwards, the adaptive dimension of the coping strategy (which was considered as a separate entity) was included in the analysis, and this formed Step 3. Subsequently, the maladaptive dimension of the coping strategy was added to the analysis and this formed Step 4. Finally, resilience was added to the analysis and that formed Step 5. Tese variables were "entered" "stepby-step" (separately) into the analysis in order to examine the various respective accounts or percentage contributions of each predictor variable in the relationship [50].
 
-Te Hayes regression-based PROCESS macro was used to test for the moderation relationships. Te PROCESS 
-macro was chosen because it ofers the opportunity to determine the interaction efect by generating a series of plots that can be later put together into a diagram or graph. Te diagram further illustrates the conditional efect of X (main predictor) on Y (dependent variable), 
+Te Hayes regression-based PROCESS macro was used to test for the moderation relationships. Te PROCESS
+macro was chosen because it ofers the opportunity to determine the interaction efect by generating a series of plots that can be later put together into a diagram or graph. Te diagram further illustrates the conditional efect of X (main predictor) on Y (dependent variable),
 as a function of M (moderator variable). Te moderating efects are thereafter examined using the regions of signifcance in accordance with the Johnson-Neyman technique. Process is a better choice for research where the variables are all directly measured (e.g., in clinical, health, and psychological settings that use hard data). All analyses were conducted using the Statistical Package for Social Sciences (SPSS) version 22 [42, 61].
 
 ## Results
 
-From the results of the brief descriptive statistics 
-(Table 1) performed on the demographics like age, marital status, and religion, the ages of the participants ranged from 18 to 32years, with a mean age of 25years and a standard deviation of .45. A total of 492 (97.4%) were single, while 7 (1.4%) were married. Te number of Christians in the sample was 486 (96.2%), traditional 17 (3.4%), 
+From the results of the brief descriptive statistics
+(Table 1) performed on the demographics like age, marital status, and religion, the ages of the participants ranged from 18 to 32years, with a mean age of 25years and a standard deviation of .45. A total of 492 (97.4%) were single, while 7 (1.4%) were married. Te number of Christians in the sample was 486 (96.2%), traditional 17 (3.4%),
 and Islam 2 (.4%). Age, marital status, religion, etc., that have been either positively or negatively implicated in suicidal ideation [1, 4], were included in the preliminary stage of the analysis. Inclusion criteria included full-time registered, non-working class undergraduate students of federal universities under study, while exclusion criteria Table 1 Descriptive statistics of the participants
 
 | Table 1 Descriptive statistics of the participants S/N Variables Frequency (f)   |                       |     | Percent (%)   |
@@ -159,8 +159,8 @@ included working class and postgraduate students who were known to be registered
 
 Results in Table 2 showed that suicidal ideation had a positive association with marital status (r=.08, p.05) but did not correlate with gender, age, or ethnic group. Academic stress (r=.17; p.001) was found to be positively related to suicidal ideation, whereas resilience (r=−.22; p.001) was found to be negatively related to suicidal ideation. Gender, age, and ethnic group that did not correlate with suicidal ideation were excluded from the analysis, and marital status, which correlated with suicidal ideation, was controlled in the subsequent moderation analysis. Suicidal ideation had no signifcant relationship with adaptive coping style (r=−.02), but it did have a signifcant relationship with maladaptive coping (r=.15; p.001).
 
-Table 3 indicates that subscales of coping were correlated with suicidal ideation. Te separation of B-COPE 
-into adaptive and maladaptive styles was done after the various dimensions of adaptive and maladaptive coping styles were correlated with suicidal ideation as shown in Table  3. Subsequently, strategies that negatively correlated (active, planning, positive refraining, acceptance, religion, and emotional support) with suicidal ideation were indicated as protective or adaptive and were summed together, while strategies that positively correlated (humour, instrumental support, self-distraction, denial, venting, behavioural disengagement, self-blame, and substance use) with suicidal ideation were maladaptive and summed together. Tis categorization is in line with extant literature (e.g. [5, 47]), which specifcally suggested and categorized substance use (such as alcohol) as a maladaptive coping style because it impairs judgment and disinhibits impulses, and as such, users of such 
+Table 3 indicates that subscales of coping were correlated with suicidal ideation. Te separation of B-COPE
+into adaptive and maladaptive styles was done after the various dimensions of adaptive and maladaptive coping styles were correlated with suicidal ideation as shown in Table  3. Subsequently, strategies that negatively correlated (active, planning, positive refraining, acceptance, religion, and emotional support) with suicidal ideation were indicated as protective or adaptive and were summed together, while strategies that positively correlated (humour, instrumental support, self-distraction, denial, venting, behavioural disengagement, self-blame, and substance use) with suicidal ideation were maladaptive and summed together. Tis categorization is in line with extant literature (e.g. [5, 47]), which specifcally suggested and categorized substance use (such as alcohol) as a maladaptive coping style because it impairs judgment and disinhibits impulses, and as such, users of such
 
 Table 3 Correlation results between B-COPE and suicidal ideation
 
@@ -186,20 +186,20 @@ Table 3 Correlation results between B-COPE and suicidal ideation
 
 substances are more likely to harm themselves or die by suicide.
 
-Results in Table 4 showed that Step 1, which involved only the demographic variable (marital status), revealed no signifcant result. R=08, (R2=.01), F(1, 503)=2.93. 
+Results in Table 4 showed that Step 1, which involved only the demographic variable (marital status), revealed no signifcant result. R=08, (R2=.01), F(1, 503)=2.93.
 
-Step 2 yielded a signifcant result: R=.19, (R2=.04), F 
-(1, 502)=16.18, p=.01. Te results showed that the addition of academic stress accounted for an additional 3 % of signifcant variance in suicidal ideation. ΔR2=.03, F (1, 502)=16.18, p=.01. However, Step 3 did not yield any additional signifcant results. 
+Step 2 yielded a signifcant result: R=.19, (R2=.04), F
+(1, 502)=16.18, p=.01. Te results showed that the addition of academic stress accounted for an additional 3 % of signifcant variance in suicidal ideation. ΔR2=.03, F (1, 502)=16.18, p=.01. However, Step 3 did not yield any additional signifcant results.
 
-ΔR2=.04, (R2=.06, F (1, 501)=.09. Step 4 produced a signifcant overall model, with R=.22, (R2=.05), F 
-(1, 500)=5.44, p=.00. Tis means that the inclusion of a maladaptive coping style accounted for 1% of the signifcant variance in suicidal ideation, R2=.01, F (1, 500)=5.44, p=.00. And fnally, Step 5 yielded a signifcant result, R=.29, (R2=.08), F (1, 499)=19.94, p=.00. 
+ΔR2=.04, (R2=.06, F (1, 501)=.09. Step 4 produced a signifcant overall model, with R=.22, (R2=.05), F
+(1, 500)=5.44, p=.00. Tis means that the inclusion of a maladaptive coping style accounted for 1% of the signifcant variance in suicidal ideation, R2=.01, F (1, 500)=5.44, p=.00. And fnally, Step 5 yielded a signifcant result, R=.29, (R2=.08), F (1, 499)=19.94, p=.00.
 
 Furthermore, the inclusion of resilience accounted for an additional 4% variance in suicidal ideation, R2=.04, F (1, 499)=19.94, p=.00.
 
-Results in Table 4 indicated that marital status, which was initially correlated with suicidal ideation, failed to predict suicidal ideation. However, academic stress was a signifcant predictor of suicidal ideation. At low (B=.12, t=4.40, p < .001) and moderate (B=.02, t=3.19, p < .01) levels of adaptive coping style, academic stress was positively associated with suicidal ideation, but the association between academic stress and suicidal ideation was not signifcant at high levels of adaptive coping style (B=.03, t=1.41, p < .16), (Fig. 1). Suicidal ideation, on the other hand, was negatively predicted by resilience (B=−.07, SE=.02, p.001). 
+Results in Table 4 indicated that marital status, which was initially correlated with suicidal ideation, failed to predict suicidal ideation. However, academic stress was a signifcant predictor of suicidal ideation. At low (B=.12, t=4.40, p < .001) and moderate (B=.02, t=3.19, p < .01) levels of adaptive coping style, academic stress was positively associated with suicidal ideation, but the association between academic stress and suicidal ideation was not signifcant at high levels of adaptive coping style (B=.03, t=1.41, p < .16), (Fig. 1). Suicidal ideation, on the other hand, was negatively predicted by resilience (B=−.07, SE=.02, p.001).
 
-However, academic stress was positively associated with suicidal ideation at low (B=.12, t=3.93, p < .001) 
-and moderate (B=.06, t=2.91, p < .01) levels of resilience; but for those students with high resilience, academic stress was not associated with suicidal ideation 
+However, academic stress was positively associated with suicidal ideation at low (B=.12, t=3.93, p < .001)
+and moderate (B=.06, t=2.91, p < .01) levels of resilience; but for those students with high resilience, academic stress was not associated with suicidal ideation
 (B=.03, t=1.08, p < .281), (Fig. 2). To avoid potentially problematic high multi-collinearity with the interaction terms, the variables were centered and an interaction term between adaptive coping style and suicidal ideation as well as the interaction between resilience and suicidal ideation were created [3]. Examination of the interaction plots is illustrated in Figs. 1 and 2.
 
 | Table 4 Hierarchical regression model results of academic stress, resilience and coping (Maldaptive and adaptive) on suicidal ideation                       |      |                     |      |          |       |     |
@@ -214,7 +214,7 @@ and moderate (B=.06, t=2.91, p < .01) levels of resilience; but for those studen
 
 ## Discussion
 
-Our hypothesis that academic stress would signifcantly predict suicidal ideation was confrmed, and this fnding is consistent with extant studies [10, 18, 39]. Other 
+Our hypothesis that academic stress would signifcantly predict suicidal ideation was confrmed, and this fnding is consistent with extant studies [10, 18, 39]. Other
 
 ACS adaptive coping style, *MALCS* maladaptive coping style, B standardized beta coefcient, β unstandardized beta coefcient, t total, F f-ratio, R2 R Squared
 
@@ -228,19 +228,19 @@ ACS adaptive coping style, *MALCS* maladaptive coping style, B standardized beta
 
 ![7_image_2.png](7_image_2.png)
 
-literature (e.g [31, 48, 66]) have also documented the significant relationship between academic stress and suicidal ideation. In line with our goal of examining the moderating roles of coping styles in furthering research knowledge about suicide, intervention, and treatment, we found that adequate coping with academic stressors was key to avoiding suicidal ideation among students. 
+literature (e.g [31, 48, 66]) have also documented the significant relationship between academic stress and suicidal ideation. In line with our goal of examining the moderating roles of coping styles in furthering research knowledge about suicide, intervention, and treatment, we found that adequate coping with academic stressors was key to avoiding suicidal ideation among students.
 
 Tis fnding is very important as educational administrators and policy makers should incorporate courses and teachings of efective coping skills into their programs, especially for young students since stressors are inherent in the lives of undergraduate students, especially in our society and at this perilous time.
 
 Stressors have become so prevalent in undergraduate education [19, 22, 49] that adequate coping skills have become a panacea to the likelihood of impending suicidal ideation [31, 48]. We found that adaptive coping styles did not signifcantly predict suicidal ideation, but moderated the relationship such that low or moderate coping with academic stress would most likely lead to suicidal ideation. Students are mostly confronted with the challenges of adapting to a new academic environment, academic workload, academic performance, attending to lectures, overwork, or thoughts of future employment after graduation [22, 49], and most seriously, social, emotional, and fnancial stress [19]. Tis is also in consonance with worries about unemployment rates, poverty and destitution, economic crises, feelings of insecurity, marginalization, and economic disempowerment [8, 44] that dominate our society today. It is made even worse when the student(s) loses their guardian/parents/sibling who pays their academic bills, or when the guardian/parents/ sibling sufers a misfortune that renders him/her almost destitute.
 
-Resilient students have the ability to recover from stress [71], but not without adequate coping strategies. 
+Resilient students have the ability to recover from stress [71], but not without adequate coping strategies.
 
 Our study found that resilience was positively associated with academic stress and negatively predicted suicidal ideation. Tus, the hypothesis which stated that resilience would moderate the relationship between academic stress and suicidal ideation was confrmed. Tis simply means that those who cope well with academic stress have a better chance of bouncing back than those who do not, and they are less likely to consider suicide. In line with our fndings, Tugade et al. [64] noted that resilient people have much more adaptive behaviours, particularly in the areas of social functioning, morale, and somatic health, and such people equally experience positive emotions amidst stress; given that moral and social functioning are anti-suicidal tonics. Te resiliency theory proposed by Richardson [51] explains that qualities of resilience such as optimism, hopefulness, and meaningful engagement ensure higher immune levels than helplessness, hopelessness, and depression (which are precursors of suicide). Terefore, resilience promotes succor and adequate coping under threats of various academic stressors.
 
-Our fndings can be explained by Aaron Anthonovsky's Salutogenic Model of Resilience. In its explanations of resilience, the salutogenic model ignores the whole notion of risk exposure as a prerequisite for being labelled "resilient" and instead places the emphasis on factors that contribute to health and wellbeing. Te salutogenic model specifcally focuses on factors that help identify coping resources that may contribute to resilience and efective adjustment, notwithstanding adversity and risk [60]. 
+Our fndings can be explained by Aaron Anthonovsky's Salutogenic Model of Resilience. In its explanations of resilience, the salutogenic model ignores the whole notion of risk exposure as a prerequisite for being labelled "resilient" and instead places the emphasis on factors that contribute to health and wellbeing. Te salutogenic model specifcally focuses on factors that help identify coping resources that may contribute to resilience and efective adjustment, notwithstanding adversity and risk [60].
 
-It is adequate coping skills that make resilient students able to quickly regain a sense of balance that keeps them going despite academic difculty and trouble, and equally makes them fnd meaning amidst academic confusion and turmoil. Resilient students are self-confdent and understand their own strengths and abilities. Tey do not feel a pressure to conform but take pleasure in being unique. 
+It is adequate coping skills that make resilient students able to quickly regain a sense of balance that keeps them going despite academic difculty and trouble, and equally makes them fnd meaning amidst academic confusion and turmoil. Resilient students are self-confdent and understand their own strengths and abilities. Tey do not feel a pressure to conform but take pleasure in being unique.
 
 Extant literature have documented the relationships between resilience and well-being [40]. Perceived resilience was associated with less suicidal ideation whereas higher psychological distress was associated with higher suicidal ideation [16], depression, anxiety, mental health, resiliency, and daily stresses had been linked to suicidal ideations and are noted to play signifcant role in suicidal ideation [32]. To our knowledge, it seems that no study had particularly evaluated the moderation of coping and resilience on the path of academic stress and suicidal ideation. Hence, our study becomes an interesting read for students, educational administrators, and some other non-governmental suicidal organizations.
 
@@ -266,14 +266,14 @@ OFO critically and constantly proof read this work. KTUO, performed the data cod
 
 ## Authors' Information
 
-Dr. Okechukwu Franca O. held from Anambra State, Nigeria. Obtained her B.Sc, M.Sc and PhD in Home Economics at University of Nigeria, Nsukka. A senior lecturer in Child Development and Family Studies. She teaches and supervises undergraduate and postgraduate students. Her research interest is on children and family related issues. Ogba, Kalu Timothy. Uyor, is a PhD (Social Psychology) holder and lecturer at the Psychology Department, University of Nigeria, Nsukka where I have taught a number of courses. I belong to a number of professional, religious and social organizations. To my credit are numbers of publications that mainly centered on personality, home safety, suicide, health & wellbeing and other nagging societal issues. My name is Dr.(Mrs) Juliet Ifeoma Nwufo, Diploma in Ed (UNN), Bsc Psycholog(UNN), M.Sc in Developmental Psychology (UNN), Ph.D in Developmental Psychology (UNN). A lecturer and a researcher at the Department of Psychology UNN. She teaches undergraduates and Msc students and a reviewer to many journals both local and international. She has published in many journals both local and international. Research interests includes: 
+Dr. Okechukwu Franca O. held from Anambra State, Nigeria. Obtained her B.Sc, M.Sc and PhD in Home Economics at University of Nigeria, Nsukka. A senior lecturer in Child Development and Family Studies. She teaches and supervises undergraduate and postgraduate students. Her research interest is on children and family related issues. Ogba, Kalu Timothy. Uyor, is a PhD (Social Psychology) holder and lecturer at the Psychology Department, University of Nigeria, Nsukka where I have taught a number of courses. I belong to a number of professional, religious and social organizations. To my credit are numbers of publications that mainly centered on personality, home safety, suicide, health & wellbeing and other nagging societal issues. My name is Dr.(Mrs) Juliet Ifeoma Nwufo, Diploma in Ed (UNN), Bsc Psycholog(UNN), M.Sc in Developmental Psychology (UNN), Ph.D in Developmental Psychology (UNN). A lecturer and a researcher at the Department of Psychology UNN. She teaches undergraduates and Msc students and a reviewer to many journals both local and international. She has published in many journals both local and international. Research interests includes:
 psychological issues in general and mainly on adolescent issues like aggression, violence, and addictive behaviours and most of her publications is on adolescent problem. Miracle Oluchi Ogba is an indigene of Akanu Ohafa, Abia State of Nigeria. I am a lecturer and MSc/PhD student at the Faculty of Law, Abia State University, Uturu. I specialize in Corporate Organization and Law has won a number academic excellence awards, written and published widely, attended both local and international conferences. Blessing N. Onyekachi Doctor of social psychology in the University of Nigeria, Nsukka. My research interest spans across social psychological problems, happiness and confict resolution. A mother of three lovely children, with some publications in both local and international journals, Chinonso Nwanosike is a Lecturer/ Social psychologist at the University of Nigeria Nsukka where she started the graduate social psychology program for years. Her publications are in the areas of mental health, gender issues, positive psychology, family and marital relations, ethics and sexuality, and domestic violence. Onyishi Amuche Bonaventure is an experimental psychologist, and Assistant Lecturer at the Department of Psychology, University of Nigeria Nsukka, Enugu State, Nigeria. Amuche Onyishi is a young bright researcher with an interest in Learning, Memory, Cognition and Problem solving. He has published in reputable Journal such as Journal of Social Sciences. Funding Not applicable. Availability of data and materials The datasets generated and/or analyzed during the study are available from the corresponding author based on special request and the corresponding author should be contacted via this email: kalu.ogba@unn.edu.ng.
 
 ## Declarations Consent For Publication Not Applicable.
 
 15. Chou WP, Yen CF, Liu TL. Predicting Efects of Psychological Infexibility/Experiential Avoidance and Stress Coping Strategies for Internet Addiction, Signifcant Depression, and Suicidality in College Students: A Prospective Study. Int J Environ Res Public Health. 2018;18;15(4):788.
 
-16. Cleverely K, Kidd SA. Resilience and suicidality among homeless youth. J 
+16. Cleverely K, Kidd SA. Resilience and suicidality among homeless youth. J
 Adolesc. 2011;34(5):1049–54.
 
 17. Clum GA, Febbraro GA. Stress, social support, and problem-solving appraisal/skills: prediction of suicide severity within a college sample. J Psychopathol Behav Assess. 1994;16(1):69–83.
@@ -320,7 +320,7 @@ We declare that our study was carried out successfully without any relationships
 
 ## Author Details
 
-1Department of Home Science and Management, University of Nigeria, Nsukka, Nigeria. 2Psychology Department, University of Nigeria, Nsukka, Nigeria. 3Faculty of Law, Abia State University, Uturu, Umuahia, Nigeria. 
+1Department of Home Science and Management, University of Nigeria, Nsukka, Nigeria. 2Psychology Department, University of Nigeria, Nsukka, Nigeria. 3Faculty of Law, Abia State University, Uturu, Umuahia, Nigeria.
 
 Received: 2 March 2021 Accepted: 14 June 2022
 
@@ -328,7 +328,7 @@ Received: 2 March 2021 Accepted: 14 June 2022
 
 1. Adewuya AO, Oladipo EO. Prevalence and associated factors for suicidal behaviours (ideation, planning, and attempt) among high school adolescents in Lagos, Nigeria. Eur Child Adolesc Psychiatry. 2020:29(11):1503–12.
 
-2. Adeyemo S, Adeosun II, Ogun OC, Adewuya A, David AN, Adegbohun AA, 
+2. Adeyemo S, Adeosun II, Ogun OC, Adewuya A, David AN, Adegbohun AA,
 et al. Depression and suicidality among adolescents living with human immunodefciency virus in Lagos, Nigeria. Child Adolesc Psychiatry Ment Health. 2020;14(1):1–10.
 
 3. Aiken LS, West SG. Multiple regression: testing and interpreting interactions. Thousand Oaks: Sage; 1991.
@@ -341,29 +341,29 @@ et al. Depression and suicidality among adolescents living with human immunodefc
 
 7. Beck A, Steer R, Renieri WF. Scale for suicidal ideation: psychometric properties of a self-report version. J Clin Psychol. 1988;44(4):499–505.
 
-8. Best S. A beginner's guide to social theory. Thousand Oaks: Sage; 2003. 9. Bilsen J. Suicide and youth: risk factors. Front Psychiatry. 2018;9:540. 
+8. Best S. A beginner's guide to social theory. Thousand Oaks: Sage; 2003. 9. Bilsen J. Suicide and youth: risk factors. Front Psychiatry. 2018;9:540.
 
 https://doi.org/10.3389/fpsyt.2018.00540.
 
-10. Breton JJ, Labelle R, Berthiaume C, Royer C, St-Georges M, Ricard D, et al. 
+10. Breton JJ, Labelle R, Berthiaume C, Royer C, St-Georges M, Ricard D, et al.
 
 Protective factors against depression and suicidal behaviour in adolescence. Can J Psychiatr. 2015;60:1–5.
 
-11. Busch KA, Fawcett J, Jacobs DG. Clinical correlates of inpatient suicide. J 
+11. Busch KA, Fawcett J, Jacobs DG. Clinical correlates of inpatient suicide. J
 Clin Psychiatry. 2003;64:14–9. https://doi.org/10.4088/JCP.v64n0105.
 
-12. Carver C. You want to measure coping but your protocol's too long: 
+12. Carver C. You want to measure coping but your protocol's too long:
 consider the brief- COPE. Int J Behav Med. 1997;4(1):92–100.
 
 13. Çevik H. Investigating the relationship between perceived stress and leisure coping strategies among university students: Eskisehir Technical University case. Int Educ Stud. 2020;13(6):67–77.
 
 14. Chia BH. Too young to die: An Asian perspective on youth suicide paperback. Marshall Cavendish Intl. USA. 1999. 36. Kyron MJ, Rikkers W, Page AC, O'Brien P, Bartlett J, LaMontagne A, Lawrence, D. Prevalence and predictors of suicidal thoughts and behaviours among Australian police and emergency services employees. Aust N Z J Psychiatry. 2021;55(2):180–95.
 
-37. Lakaev N. Validation of an Australian Academic Stress Questionnaire. 
+37. Lakaev N. Validation of an Australian Academic Stress Questionnaire.
 
 Australian J Guidance Couns. 2006;19(1):56–70.
 
-38. Lambert VA, Lambert CE. Nurses' workplace stressors and coping strategies. Indian J Palliat Care. 2008;14(1):38–50. 39. Liang J, Kairi K, Bob L, Diego, De L, Lu Y, Mansor AT, et al. Coping strategies and suicidality: a cross-sectional study from China. Front Psychiatry. 
+38. Lambert VA, Lambert CE. Nurses' workplace stressors and coping strategies. Indian J Palliat Care. 2008;14(1):38–50. 39. Liang J, Kairi K, Bob L, Diego, De L, Lu Y, Mansor AT, et al. Coping strategies and suicidality: a cross-sectional study from China. Front Psychiatry.
 
 2020;11:1–20.
 
@@ -387,15 +387,15 @@ PubMed. 2016;94(5):340–50.
 
 49. Phang CK, Mukhtar F, Ibrahim N, Keng SL, Sidik SM. Efects of a brief mindfulness-based intervention program for stress management among medical students:the mindful-gym randomized controlled study. Adv Health Sci Educ. 2015;20(5):1115–34.
 
-50. Pompili M, Serafni G, Innamorati M, Dominici G, Ferracuti S, Kotzalidis GD, 
+50. Pompili M, Serafni G, Innamorati M, Dominici G, Ferracuti S, Kotzalidis GD,
 et al. Suicidal behavior and alcohol abuse. Int J Environ Res Public Health. 2010;7:1392–431.
 
 51. Richardson GE. The meta-theory of resilience and resiliency. J Clin Psychol. 2002;58(3):307–21.
 
-52. Rossetti M, Tosone A, Stratta P, Collazzoni A, Santarelli V, Guadagni E, 
+52. Rossetti M, Tosone A, Stratta P, Collazzoni A, Santarelli V, Guadagni E,
 et al. Diferent roles of resilience in depressive patients with history of suicide attempt and no history of suicide attempt. Rev Bras Psiquiatr. 2017;39(3):1515–4446.
 
-53. Saadu UT. An investigation into suicidal ideation of low academic achievers in Kwara State University, Malete, Nigeria. FUDMA J Educ Foundations. 
+53. Saadu UT. An investigation into suicidal ideation of low academic achievers in Kwara State University, Malete, Nigeria. FUDMA J Educ Foundations.
 
 2019;2(1):36–45.
 
@@ -413,7 +413,7 @@ et al. Diferent roles of resilience in depressive patients with history of suici
 
 60. Sun J, Stewart DE. Development of population-based resilience measures in the primary school setting. Health Educ. 2007;107(6):1–48. https://doi. org/10.1108/09654280710827957.
 
-61. Tabachnick BG, Fidell LS. Using multivariate statistics. 6th ed. Boston: 
+61. Tabachnick BG, Fidell LS. Using multivariate statistics. 6th ed. Boston:
 Pearson Education; 2013.
 
 62. Tang F, Qin P. Infuence of personal social network and coping skills on risk for suicidal ideation in Chinese university students. PLoS One. 2015;10(3):121–3.
@@ -430,7 +430,7 @@ Pearson Education; 2013.
 
 68. Yang B, Clum GA. Life stress, social support, and problem-solving skills predictive of depressive symptoms, hopelessness, and suicide ideation in an Asian student population: a test of a model. Suicide Life Threat Behav. 1994;24(2):127–39.
 
-69. Yin Y, Tong J, Huang J, et al. Suicidal ideation, suicide attempts, and neurocognitive dysfunctions among patients with frst-episode schizophrenia. 
+69. Yin Y, Tong J, Huang J, et al. Suicidal ideation, suicide attempts, and neurocognitive dysfunctions among patients with frst-episode schizophrenia.
 
 Suicide Life Threat Behav. 2020;2020(00):1–8. https://doi.org/10.1111/sltb. 12689.
 
@@ -440,7 +440,7 @@ Suicide Life Threat Behav. 2020;2020(00):1–8. https://doi.org/10.1111/sltb. 12
 
 72. Wagnild GM, Young HM. Development and psychometric evaluation of the Resilience Scale. J Nursing Meas. 1993;1(2):165–78.
 
-73. World Health Organization. Suicide in the world: global health estimates: 
+73. World Health Organization. Suicide in the world: global health estimates:
 World Health Organization; 2019. https://apps.who.int/iris/handle/10665/ 326948. License: CC BY-NC-SA 3.0 IGO
 74. World Health Organization. Suicide is complex. World Health Statistics 2020 visual summary. 2020. https://www.who.int/news-room/factsheets/detail/suicide.
 
@@ -452,11 +452,10 @@ World Health Organization; 2019. https://apps.who.int/iris/handle/10665/ 326948.
 
 Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional afliations.
 
-Ready to submit y submit your research ? Choose BMC and benefit from: 
+Ready to submit y submit your research ? Choose BMC and benefit from:
 
 ![11_image_1.png](11_image_1.png)
 
 ![11_image_0.png](11_image_0.png)
 
 ![11_image_2.png](11_image_2.png)
-

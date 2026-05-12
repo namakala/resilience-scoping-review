@@ -18,9 +18,9 @@ On 12 January 2020, the World Health Organization (WHO) confirmed that SARS-CoV-
 
 ```
 -
- 
+
 -
- 
+
 Citation: Lara-Cabrera, M.L.;
 Betancort, M.; Muñoz-Rubilar, C.A.;
 Rodríguez Novo, N.; De las Cuevas,

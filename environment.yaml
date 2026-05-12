@@ -1,0 +1,43 @@
+# Data Processing: pandas, polars, duckdb, pyarrow, numpy
+# Graph & Ontology: networkx
+# Semantic Retrieval: sentence-transformers, rank-bm25, pytorch, transformers, huggingface-hub, tokenizers
+# LLM Inference: pydantic, pyyaml, groq
+# HITL CLI: rich, questionary
+# Utilities: tqdm
+# Development: black, isort, mypy, flake8, pre-commit, pytest
+# Note: hamilton installed via pip after env creation
+
+name: qda
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - r-base=4.3.1
+  - pandas
+  - polars
+  - duckdb
+  - pyarrow
+  - numpy
+  - networkx
+  - sentence-transformers
+  - rank-bm25
+  - pytorch
+  - transformers
+  - huggingface_hub
+  - tokenizers
+  - pydantic
+  - pyyaml
+  - groq
+  - rich
+  - questionary
+  - tqdm
+  - black
+  - isort
+  - mypy
+  - pre-commit
+  - pytest
+  - flake8
+  - pip:
+    - apache-hamilton

@@ -1,6 +1,6 @@
 # Functions to parse the dataset
 
-readData <- function(fpath, ...) {
+read_data <- function(fpath, ...) {
   #' Read Data Frame
   #'
   #' Read external tabular data as a tidy data frame
@@ -14,7 +14,7 @@ readData <- function(fpath, ...) {
   return(tbl)
 }
 
-writeData <- function(tbl, ...) {
+write_data <- function(tbl, ...) {
   #' Write Data Frame
   #'
   #' Write data frame as a RIS file.
@@ -22,7 +22,7 @@ writeData <- function(tbl, ...) {
   #' @param tbl A tidy bibliography data frame
   #' @return An external file
 
-  tbl |> data.frame() |> synthesisr::write_refs(...)
-
+  tbl |>
+    data.frame() |>
+    synthesisr::write_refs(...)
 }
-

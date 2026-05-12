@@ -22,11 +22,11 @@ suicidal behavior, mental health, prevalence, college students, COVID-19 pandemi
 
 ## Background
 
-Completed suicide may appear at any age and within the 15 to 29-years-old age group, in Spain, it presents itself with the lowest rate of suicide compared with other age groups (1). 
+Completed suicide may appear at any age and within the 15 to 29-years-old age group, in Spain, it presents itself with the lowest rate of suicide compared with other age groups (1).
 
 Despite this, suicide is the fourth external cause of death in people between 15 and 29years in the world (2).
 
-University students make up a vulnerable group with the appearance of mental illnesses 
+University students make up a vulnerable group with the appearance of mental illnesses
 (3–5). Among the most common during the university stage are depression, anxiety and disorders through substance use (6) and these have been associated with the appearance and persistence of suicidal thoughts and behavior (7).
 
 WHO has developed an international project to evaluate the mental health needs of university students entitled, *World Mental Health International College Student project* [WMHICS] (8). Several of the relevant studies within this project have approached the problem of suicide in university students. In this way, Mortier et al. (9) conducted a meta-analysis about the prevalence of thoughts and suicidal behavior, and concluded that these are common in university students worldwide. In Spain, the Project UNIVERSAL forms part of the initiative WMH-ICS. This study covered first year Spanish students in 5 different universities (10). The results of this investigation showed a high prevalence of suicidal ideation (9.9%) in college students (11).
@@ -44,16 +44,16 @@ An observational and cross-sectional study covering all University of Malaga (UM
 
 According to the UMA website, the number of enrolled students in September 2020 was 36,498, of which 16,501 (45.2%) were men and 19,997 (54.8%) were women. To obtain the size of the sample, the formula for finite populations was used (26). A sampling error of 3%, a confidence level of 95% and a variance of 0.25 were established for a known sample of 36,498 university students. Following the formula for finite populations, the number of subjects necessary to extrapolate the results for the whole population was 1,036.
 
-The strategy for recruitment followed two paths. Firstly, each Dean of Faculty was invited to participate through the University Service of Diffusion by the coordinators of the study. Secondly, the strategy of "snowball sampling" was used between lecturers, colleagues, students, family members and friends in order to reach the maximum numbers of volunteers, as well as the use of social networks for the distribution of the questionnaire. This study was approved by the Ethics Committee for Experimentation of the University of Malaga 
+The strategy for recruitment followed two paths. Firstly, each Dean of Faculty was invited to participate through the University Service of Diffusion by the coordinators of the study. Secondly, the strategy of "snowball sampling" was used between lecturers, colleagues, students, family members and friends in order to reach the maximum numbers of volunteers, as well as the use of social networks for the distribution of the questionnaire. This study was approved by the Ethics Committee for Experimentation of the University of Malaga
 (CEUMA: 6-2021-H).
 
 The criteria for inclusion were: (a) participants between 18 to 30-years-old; (b) studying in the 2020/2021 course in the University of Malaga; (c) acceptance of informed consent.
 
 ## Variables Suicidal Behavior
 
-To measure suicidal behavior we used, on the one hand, The SelfInjurious Thoughts and Behaviors Interview [SITBI, (27)] based on the three-step theory of suicide (28) and adapted for Spanish speakers by García-Nieto et al. (29), and on the other hand, the Columbia Suicide Severity Rating Scale [C-SSR, (30)], adapted for Spanish speakers by Al-Halabí et al. (31). The reliability retest of the SITBI 
-items proved sufficient for the Spanish version: k=0.65–1.00 (27, 29), 
-and the internal consistency of the C-SSRS obtained was α=0.53 (31). 
+To measure suicidal behavior we used, on the one hand, The SelfInjurious Thoughts and Behaviors Interview [SITBI, (27)] based on the three-step theory of suicide (28) and adapted for Spanish speakers by García-Nieto et al. (29), and on the other hand, the Columbia Suicide Severity Rating Scale [C-SSR, (30)], adapted for Spanish speakers by Al-Halabí et al. (31). The reliability retest of the SITBI
+items proved sufficient for the Spanish version: k=0.65–1.00 (27, 29),
+and the internal consistency of the C-SSRS obtained was α=0.53 (31).
 
 Following Blasco et al. (10), items referring to death wishes, suicidal ideation, thoughts of suicide plans, suicide attempts, and self-inflicted injuries throughout life and in the previous 6months were selected.
 
@@ -63,7 +63,7 @@ According to Nock et al. (27): "the SITBI is a structured interview with 169 ite
 
 ## Psychological Distress
 
-The General Health Questionnaire, 12 items version [GHQ-12, 
+The General Health Questionnaire, 12 items version [GHQ-12,
 (32)], adapted to Spanish by Sánchez-López and Dresch (33), which detects the possible presence of minor mental disorders in the general population. The response options comprise a Likert type scale with 4 alternatives (0 to 3) with a total score of between 0 and 36. A score of 12 or more indicates the presence of psychological distress and a higher score, a more serious degree of distress (34). The GHQ-12 provides a good reliability in the Spanish sample (α=0.76) (33). In the present study, the internal consistency was α=0.89.
 
 ## Resilience
@@ -76,14 +76,14 @@ The Family and Friends Scale (38) measures the social support perceived through 
 
 ## Subjective Impact Of The Covid-19 Pandemic
 
-A multiple choice question was included about the impact of the COVID-19 pandemic in the last 6months, whereby the participant could select more than one of the options given: "Motivation," "Learning," "Social relations," "Mood," and *"None of the above."* The variable "*COVID-19 Total*" was created and defined as the sum of all of the selected responses. The score obtained ranged from 0 
-(minimum) to 4 (maximum) depending on the subjective impact that each person perceived the pandemic to have had on his or her life. 
+A multiple choice question was included about the impact of the COVID-19 pandemic in the last 6months, whereby the participant could select more than one of the options given: "Motivation," "Learning," "Social relations," "Mood," and *"None of the above."* The variable "*COVID-19 Total*" was created and defined as the sum of all of the selected responses. The score obtained ranged from 0
+(minimum) to 4 (maximum) depending on the subjective impact that each person perceived the pandemic to have had on his or her life.
 
 Thus, a higher score would indicate a greater impact in different areas of life perceived by the person who had experienced COVID-19.
 
 ## Sociodemographic Characteristics
 
-In order to collect the sociodemographic and academic information, an *ad hoc* questionnaire was composed. On the one hand, it included questions about age, gender, nationality, having or not a partner, having or not a job, paternal and maternal education level, living in Malaga or elsewhere, moving out of previous home to undertake studies, the number of flatmates, and the type of relationship with the flatmates with whom they are currently living. 
+In order to collect the sociodemographic and academic information, an *ad hoc* questionnaire was composed. On the one hand, it included questions about age, gender, nationality, having or not a partner, having or not a job, paternal and maternal education level, living in Malaga or elsewhere, moving out of previous home to undertake studies, the number of flatmates, and the type of relationship with the flatmates with whom they are currently living.
 
 On the other hand, questions were asked about the level of the course studies, the academic area, dedication and the modality of classes. In addition the participants studying for a degree also indicated the subject they were studying, the year they were in, the grade needed for access to the university and the preferred position of the degree they were studying.
 
@@ -99,23 +99,23 @@ Finally, various univariate and multivariate statistical analysis were compiled.
 
 ## Results Participants
 
-A total of 2,845 participants completed the questionnaire, 144 were excluded due to the criteria of inclusion and exclusion, of which 8 participants refused to participate and refuse the informed consent. 
+A total of 2,845 participants completed the questionnaire, 144 were excluded due to the criteria of inclusion and exclusion, of which 8 participants refused to participate and refuse the informed consent.
 
 Of the remaining 2,701 participants, 489 questionnaires were not completed until the end and were therefore excluded, thus leaving a total of 2,212 participants (Figure 1).
 
-With regard to gender, there was an unbalanced distribution of the sample with a greater representation of females vs. males (69.6% vs. 30.4%). The average age of the total sample was 21.28years of age 
-(SD=2.51). The majority of the sample was of Spanish nationality 
-(94.9%), they were exclusively to studying (88.5%), and more than half of their parents did not have a university education (fathers: 71.4%; mothers: 66.2%). With regard to academic information, 92.8% were studying for a university degree and the rest were Masters and PhD 
-students. Most of the participants (29.8%) were studying Social Sciences and Law and were in their second or third academic year 
+With regard to gender, there was an unbalanced distribution of the sample with a greater representation of females vs. males (69.6% vs. 30.4%). The average age of the total sample was 21.28years of age
+(SD=2.51). The majority of the sample was of Spanish nationality
+(94.9%), they were exclusively to studying (88.5%), and more than half of their parents did not have a university education (fathers: 71.4%; mothers: 66.2%). With regard to academic information, 92.8% were studying for a university degree and the rest were Masters and PhD
+students. Most of the participants (29.8%) were studying Social Sciences and Law and were in their second or third academic year
 (23.8 and 23%, respectively; Table 1).
 
 89.6% of the sample had experienced psychological distress in the last 6months. Resilience showed a score of 2.83, which indicates a low ability to return to normality after suffering a stressful life event. The participants gained a high score in perceived family and social support with an average of 19.32 out of 21. With respect to the impact of the COVID-19 pandemic, 97.9% indicated that some aspect of their life had been affected by this (Table 2).
 
 ## Prevalence Of Suicidal Behavior
 
-With regard to the rates of prevalence in the last 6months, the results obtained were 30.4% (95% CI: 28.5–32.3) death wishes; 14.7% 
-(95% CI: 13.2–16.2) suicide ideation; 13.6% (95% CI: 12.1–15) ideas of suicide plans; 5% (95% CI: 4.1–5.9) self-inflicted injuries; and 0.5% 
-(95% CI: 0.2–0.8) suicide attempts. The risk of suicide in the sample was low (M=0.64, SD=1.1), ranging from 0 to 5. Considering gender, females present higher prevalence rates in death wishes (32.3%; 95% CI: 30–34.7) and self-inflicted injuries (5.6%; 95% CI: 4.4–6.7), while males present higher rates in suicidal ideation (15.6%; 95% CI: 
+With regard to the rates of prevalence in the last 6months, the results obtained were 30.4% (95% CI: 28.5–32.3) death wishes; 14.7%
+(95% CI: 13.2–16.2) suicide ideation; 13.6% (95% CI: 12.1–15) ideas of suicide plans; 5% (95% CI: 4.1–5.9) self-inflicted injuries; and 0.5%
+(95% CI: 0.2–0.8) suicide attempts. The risk of suicide in the sample was low (M=0.64, SD=1.1), ranging from 0 to 5. Considering gender, females present higher prevalence rates in death wishes (32.3%; 95% CI: 30–34.7) and self-inflicted injuries (5.6%; 95% CI: 4.4–6.7), while males present higher rates in suicidal ideation (15.6%; 95% CI:
 
 ![3_image_0.png](3_image_0.png)
 
@@ -123,18 +123,18 @@ With regard to the rates of prevalence in the last 6months, the results obtained
 
 ## Association Between Risk Of Suicide And Other Variables
 
-As shown in Supplementary Table S2, significant differences were found between people at higher risk of suicide and having or not a job 
+As shown in Supplementary Table S2, significant differences were found between people at higher risk of suicide and having or not a job
 (t(2,210)=2.567, p=0.01, d=0.19), the academic field (F(4, 2,221)=6.983, p<0.001, *Eta2*=0.01) and the search for professional help (t(2210)=−9.107, p<0.001, d=0.44), where the highest risk of suicide was found to be in those not having a job (M=0.66, SD=1.11, vs. M=0.048, SD=0.92), those that searched for professional help (M=0.93, SD=1.29, vs. M=0.49, SD=0.94) and those who were studying for a degree in Arts and Humanities (M=0.87*, SD*=1.24) in comparison with students studying for degrees in Social Sciences and Law (M=0.60*, SD*=1.05) and Health Sciences (M=0.47*, SD*=0.96).
 
-A positive correlation was found between risk suicide and psychological distress (r=0.43, n=2,224, p<0.001) and the subjective impact of the COVID-19 pandemic (r=0.05, n=2,212, p=0.013), and a negative correlation with resilience (r=−0.29, n=2,224, p<0.001), 
+A positive correlation was found between risk suicide and psychological distress (r=0.43, n=2,224, p<0.001) and the subjective impact of the COVID-19 pandemic (r=0.05, n=2,212, p=0.013), and a negative correlation with resilience (r=−0.29, n=2,224, p<0.001),
 family and social support (r=−0.30, n=2,224, p<0.001) and the grade for access (r=−0.07, n=2,049, p=0.002) on the understanding that those people with the greatest risk of suicide display greater psychological distress, a greater subjective impact from the COVID-19 pandemic, lower resilience, lower perceived family and social support, and lower grade of university entry. No significant differences were found in our variable result with regard to gender.
 
-In the multiple linear regression analysis, the gender variable was included due to its wide relationship with suicidal behavior. As shown in Table  3, psychological distress (β=0.34, p<0.001), resilience (β=−0.08, p<0.001), family and social support (β=−0.18, p<0.001), 
+In the multiple linear regression analysis, the gender variable was included due to its wide relationship with suicidal behavior. As shown in Table  3, psychological distress (β=0.34, p<0.001), resilience (β=−0.08, p<0.001), family and social support (β=−0.18, p<0.001),
 the search for professional help, (β=0.12, p<0.001) and the impact of the COVID-19 pandemic (β=−0.06, p=0.003) would explain 24% of the variance in the risk of suicide (R2=0.24, F(9, 2,039)=72,779, p<0.001).
 
 With regard to the simple mediation analysis, the first of these revealed that the total effect of psychological distress on the risk of suicide was significant (B=0.06, *S.E.*=0.003, p<0.001). In the same way, it also shown that the direct effect of psychological distress on the risk of suicide was significant (B=0.05, *S.E.*=0.003, p<0.001). Finally, an indirect effect of psychological distress on suicide risk was also found through the family and social support (B=0.01, *S.E.*=0.001, CI [0.006, 0.011]; Supplementary Figure S1).
 
-The second simple mediation analysis showed an indirect effect of psychological distress on the risk of suicide, through resilience 
+The second simple mediation analysis showed an indirect effect of psychological distress on the risk of suicide, through resilience
 (B=0.01, *S.E.*=0.002, CI [0.005, 0.012]; Supplementary Figure S2).
 
 | TABLE 1 Sociodemographic and academic variables. Total   | Men               | Women               |              |             |
@@ -193,7 +193,7 @@ The second simple mediation analysis showed an indirect effect of psychological 
 | Preferred position of the degree | 1.4 (1.33)   | 1.36 (0.95)       | 1.41 (1.46)         |
 | a Range: 0–14.                   |              |                   |                     |
 
-On the other hand, the first moderation analysis showed that family and social support moderated the relationship between psychological distress and the risk of suicide (B=<−0.01, *S.E.*=0.001, p<0.001, CI [−0.007, −0.002]). As seen in Figure  2, an effect of psychological distress on the risk of suicide was also observed in both cases of low levels of family and social support (B=0.07, *S.E.*=0.004, CI [0.059, 0.074]), and high levels (B=0.05, *S.E.*=0.003, CI [0.042, 0.055]). These results reveal that family and social support reduce the relationship between psychological distress and the risk of suicide. 
+On the other hand, the first moderation analysis showed that family and social support moderated the relationship between psychological distress and the risk of suicide (B=<−0.01, *S.E.*=0.001, p<0.001, CI [−0.007, −0.002]). As seen in Figure  2, an effect of psychological distress on the risk of suicide was also observed in both cases of low levels of family and social support (B=0.07, *S.E.*=0.004, CI [0.059, 0.074]), and high levels (B=0.05, *S.E.*=0.003, CI [0.042, 0.055]). These results reveal that family and social support reduce the relationship between psychological distress and the risk of suicide.
 
 That is to say, even though psychological distress increases the risk of suicide, it is reduced through the influence of family and social support.
 
@@ -203,14 +203,14 @@ Finally, the second moderation analysis revealed that resilience moderated the r
 
 Our study, as far as we know, is the first to provide data on the prevalence of suicidal behavior in students from the University of Malaga (Spain). We highlight that psychological distress is a risk factor for suicidal behavior, while resilience and family and social support are linked to a lower risk of suicide.
 
-We can observe that the percentage of women who responded to the survey (69.6%) is much higher than the percentage of women enrolled in the university (54.8%). This result is in line with Noy (43) 
+We can observe that the percentage of women who responded to the survey (69.6%) is much higher than the percentage of women enrolled in the university (54.8%). This result is in line with Noy (43)
 indicating that women are more likely to participate in this type of survey, as well as being more likely to seek help form mental health problems than men (44–46).
 
-The results of our study show that the prevalence of suicidal ideation, ideas of suicide plans and suicide attempts lifetime, in students from the University of Malaga, is higher than those of other studies carried out in university students where results obtained were 6–32.7% for ideation, 2.3–17.5% for ideas of plans and 1.4–4.3% for suicide attempts (9, 47, 48). In addition, the prevalence reported in our study is much higher than that found in a systematic and meta-analysis of European studies in the general population (49). However, the prevalence in the last 6months are, in general, lower in our study than others (7, 9, 11, 47, 48). 
+The results of our study show that the prevalence of suicidal ideation, ideas of suicide plans and suicide attempts lifetime, in students from the University of Malaga, is higher than those of other studies carried out in university students where results obtained were 6–32.7% for ideation, 2.3–17.5% for ideas of plans and 1.4–4.3% for suicide attempts (9, 47, 48). In addition, the prevalence reported in our study is much higher than that found in a systematic and meta-analysis of European studies in the general population (49). However, the prevalence in the last 6months are, in general, lower in our study than others (7, 9, 11, 47, 48).
 
 This may be due to the fact that the other studies measured suicidal behavior in the last 12months while our study covered 6months which was the period from the beginning of the beginning of the academic year until the collection of data (6months later).
 
-Several studies found that the presence or appearance of disorders such as depression, anxiety and, substance use during adolescence or adulthood, is associated with a greater risk of the onset and persistence of suicidal thoughts and behavior (50, 51). In our study, the risk of suicide is associated with psychological distress. The results are consistent with those of Blasco et al. (12), where the presence of a mood disorder is the principal risk factor associated with the appearance and persistence of suicidal behavior in students. On the other hand, our results suggest 
+Several studies found that the presence or appearance of disorders such as depression, anxiety and, substance use during adolescence or adulthood, is associated with a greater risk of the onset and persistence of suicidal thoughts and behavior (50, 51). In our study, the risk of suicide is associated with psychological distress. The results are consistent with those of Blasco et al. (12), where the presence of a mood disorder is the principal risk factor associated with the appearance and persistence of suicidal behavior in students. On the other hand, our results suggest
 
 | TABLE 2 Psychosocial variables and suicidal behavior. Total                                                                                                                             |              | Men               | Women               |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|-------------------|---------------------|
@@ -300,24 +300,24 @@ The original contributions presented in the study are included in the article/Su
 
 ## Ethics Statement
 
-The study was approved by the Ethics Committee for Experimentation of the University of Malaga (CEUMA: 6-2021-H). 
+The study was approved by the Ethics Committee for Experimentation of the University of Malaga (CEUMA: 6-2021-H).
 
 Written informed consent to participate in this study was provided by all students before completing the survey.
 
 ## References
 
-1. Instituto Nacional de Estadística [INE] (2019). Causa básica de defunción. 
+1. Instituto Nacional de Estadística [INE] (2019). Causa básica de defunción.
 
 Resultados detallados Año. Available at: https://www.ine.es/dynt3/inebase/es/index.
 
 htm?padre=7932&capsel=7936 2. World Health Organization. *Suicide*. Geneva: WHO (2021).
 
-3. Kessler RC, Amminger GP, Aguilar-Gaxiola S, Alonso J, Lee S, Ustün TB. Age of onset of mental disorders: a review of recent literature. *Curr Opin Psychiatry*. (2007) 
-20:359–4. doi: 10.1097/YCO.0b013e32816ebc8c 4. Nan J, Salina N, Chong ST, Jiang H-J. Trajectory of suicidal ideation among medical students during the COVID-19 pandemic: the role of childhood trauma. BMC 
-Psychiatry. (2021) 23:90. doi: 10.1186/s12888-023-04582-6 5. Stallman HM. Psychological distress in university students: a comparison with general population data. *Aust Psychol*. (2010) 45:249–7. doi: 
-10.1080/00050067.2010.482109 6. Auerbach RP, Mortier P, Bruffaerts R, Alonso J, Benjet C, Cuijpers P, et al. WHO 
+3. Kessler RC, Amminger GP, Aguilar-Gaxiola S, Alonso J, Lee S, Ustün TB. Age of onset of mental disorders: a review of recent literature. *Curr Opin Psychiatry*. (2007)
+20:359–4. doi: 10.1097/YCO.0b013e32816ebc8c 4. Nan J, Salina N, Chong ST, Jiang H-J. Trajectory of suicidal ideation among medical students during the COVID-19 pandemic: the role of childhood trauma. BMC
+Psychiatry. (2021) 23:90. doi: 10.1186/s12888-023-04582-6 5. Stallman HM. Psychological distress in university students: a comparison with general population data. *Aust Psychol*. (2010) 45:249–7. doi:
+10.1080/00050067.2010.482109 6. Auerbach RP, Mortier P, Bruffaerts R, Alonso J, Benjet C, Cuijpers P, et al. WHO
 world mental health surveys international college student project: prevalence and distribution of mental disorders. *J Abnorm Psychol*. (2018) 127:623–8. doi: 10.1037/
-abn0000362 7. Auerbach RP, Mortier P, Bruffaerts R, Alonso J, Benjet C, Cuijpers P, et al. Mental disorder comorbidity and suicidal thoughts and behaviors in the World Health 
+abn0000362 7. Auerbach RP, Mortier P, Bruffaerts R, Alonso J, Benjet C, Cuijpers P, et al. Mental disorder comorbidity and suicidal thoughts and behaviors in the World Health
 
 ## Author Contributions
 
@@ -338,69 +338,69 @@ All claims expressed in this article are solely those of the authors and do not 
 ## Supplementary Material
 
 The Supplementary material for this article can be found online at: https://www.frontiersin.org/articles/10.3389/fpsyt.2023.1155171/
-full\#supplementary-material Organization world mental health surveys international college student initiative. Int J Methods Psychiatr Res. (2019) 28:e1752. doi: 10.1002/mpr.1752 8. Harvard Medical School. *World mental health surveys international college student* project (WMH-ICS). Boston: Harvard Medical School (2015). Available at: https://www. hcp.med.harvard.edu/wmh/college_student_survey.php 9. Mortier P, Cuijpers P, Kiekens G, Auerbach RP, Demyttenaere K, et al. The prevalence of suicidal thoughts and behaviours among college students: a meta-analysis. 
+full\#supplementary-material Organization world mental health surveys international college student initiative. Int J Methods Psychiatr Res. (2019) 28:e1752. doi: 10.1002/mpr.1752 8. Harvard Medical School. *World mental health surveys international college student* project (WMH-ICS). Boston: Harvard Medical School (2015). Available at: https://www. hcp.med.harvard.edu/wmh/college_student_survey.php 9. Mortier P, Cuijpers P, Kiekens G, Auerbach RP, Demyttenaere K, et al. The prevalence of suicidal thoughts and behaviours among college students: a meta-analysis.
 
-Psychol Med. (2018b) 48:554–5. doi: 10.1017/S0033291717002215 10. Blasco MJ, Castellví P, Almenara J, Lagares C, Roca M, Sesé A, et al. Predictive models for suicidal thoughts and behaviors among Spanish university students: rationale and methods of the UNIVERSAL (university & mental health) project. *BMC Psychiatry*. 
+Psychol Med. (2018b) 48:554–5. doi: 10.1017/S0033291717002215 10. Blasco MJ, Castellví P, Almenara J, Lagares C, Roca M, Sesé A, et al. Predictive models for suicidal thoughts and behaviors among Spanish university students: rationale and methods of the UNIVERSAL (university & mental health) project. *BMC Psychiatry*.
 
-(2016) 16:122. doi: 10.1186/s12888-016-0820-y 11. Blasco MJ, Vilagut G, Almenara J, Roca M, Piqueras JA, Gabilondo A, et al. 
+(2016) 16:122. doi: 10.1186/s12888-016-0820-y 11. Blasco MJ, Vilagut G, Almenara J, Roca M, Piqueras JA, Gabilondo A, et al.
 
-Suicidal thoughts and behaviors: prevalence and association with distal and proximal factors in Spanish university students. *Suicide Life Threat Behav*. (2018) 49:881–8. doi: 10.1111/sltb.12491 12. Blasco MJ, Vilagut G, Alayo I, Almenara J, Cebrià AI, Echeburúa E, et al. Firstonset and persistence of suicidal ideation in university students: a one-year follow-up study. *J Affect Disord*. (2019) 256:192–4. doi: 10.1016/j.jad.2019.05.035 13. Castellví P, Miranda-Mendizábal A, Parés-Badell O, Almenara J, Alonso I, Blasco MJ, et al. A meta-analysis of longitudinal studies. *Acta Psychiatr Scand*. (2017) 
-135:195–1. doi: 10.1111/acps.12679 14. Daniel SS, Goldston DB, Erkanli A, Heilbron N, Franklin JC. Prospective study of major loss life events and risk for suicidal thoughts and behaviors among adolescents and young adults. *Suicide Life Threat Behav*. (2017) 47:436–9. doi: 10.1111/sltb.12305 15. Drum DJ, Brownson C, Hess EA, Denmark AB, Talley AE. College Students' sense of coherence and connectedness as predictors of suicidal thoughts and behaviors. *Arch* Suicide Res. (2017) 21:169–4. doi: 10.1080/13811118.2016.1166088 16. Liu DWY, Fairweather-Schmidt AK, Roberts RM, Burns R, Anstey KJ. Does resilience predict suicidality? A lifespan analysis. *Arch Suicide Res*. (2014) 18:453–4. doi: 
-10.1080/13811118.2013.833881 17. Mackin DM, Perlman G, Davila J, Kotov R, Klein DN. Social support buffers the effect of interpersonal life stress on suicidal ideation and self-injury during adolescence. 
+Suicidal thoughts and behaviors: prevalence and association with distal and proximal factors in Spanish university students. *Suicide Life Threat Behav*. (2018) 49:881–8. doi: 10.1111/sltb.12491 12. Blasco MJ, Vilagut G, Alayo I, Almenara J, Cebrià AI, Echeburúa E, et al. Firstonset and persistence of suicidal ideation in university students: a one-year follow-up study. *J Affect Disord*. (2019) 256:192–4. doi: 10.1016/j.jad.2019.05.035 13. Castellví P, Miranda-Mendizábal A, Parés-Badell O, Almenara J, Alonso I, Blasco MJ, et al. A meta-analysis of longitudinal studies. *Acta Psychiatr Scand*. (2017)
+135:195–1. doi: 10.1111/acps.12679 14. Daniel SS, Goldston DB, Erkanli A, Heilbron N, Franklin JC. Prospective study of major loss life events and risk for suicidal thoughts and behaviors among adolescents and young adults. *Suicide Life Threat Behav*. (2017) 47:436–9. doi: 10.1111/sltb.12305 15. Drum DJ, Brownson C, Hess EA, Denmark AB, Talley AE. College Students' sense of coherence and connectedness as predictors of suicidal thoughts and behaviors. *Arch* Suicide Res. (2017) 21:169–4. doi: 10.1080/13811118.2016.1166088 16. Liu DWY, Fairweather-Schmidt AK, Roberts RM, Burns R, Anstey KJ. Does resilience predict suicidality? A lifespan analysis. *Arch Suicide Res*. (2014) 18:453–4. doi:
+10.1080/13811118.2013.833881 17. Mackin DM, Perlman G, Davila J, Kotov R, Klein DN. Social support buffers the effect of interpersonal life stress on suicidal ideation and self-injury during adolescence.
 
-Psychol Med. (2017) 47:1149–61. doi: 10.1017/S0033291716003275 18. Nock MK, Green JG, Hwang I, McLaughlin KA, Sampson NA, Zaslavsky AM, et al. 
+Psychol Med. (2017) 47:1149–61. doi: 10.1017/S0033291716003275 18. Nock MK, Green JG, Hwang I, McLaughlin KA, Sampson NA, Zaslavsky AM, et al.
 
-Prevalence, correlates, and treatment of lifetime suicidal behavior among adolescents. JAMA Psychiat. (2013) 70:300–0. doi: 10.1001/2013.jamapsychiatry.55 19. Tang F, Qin P. Influence of personal social network and coping skills on risk for suicidal ideation in Chinese university students. *PLoS One*. (2015) 10:e0121023–13. doi: 
-10.1371/journal.pone.0121023 20. Batra K, Sharma M, Batra R, Singh TP, Schvaneveldt N. Assessing the psychological impact of COVID-19 among college students: an evidence of 15 countries. *Healthcare*. 
+Prevalence, correlates, and treatment of lifetime suicidal behavior among adolescents. JAMA Psychiat. (2013) 70:300–0. doi: 10.1001/2013.jamapsychiatry.55 19. Tang F, Qin P. Influence of personal social network and coping skills on risk for suicidal ideation in Chinese university students. *PLoS One*. (2015) 10:e0121023–13. doi:
+10.1371/journal.pone.0121023 20. Batra K, Sharma M, Batra R, Singh TP, Schvaneveldt N. Assessing the psychological impact of COVID-19 among college students: an evidence of 15 countries. *Healthcare*.
 
 (2021) 9:222. doi: 10.3390/healthcare9020222 21. Díaz-Jiménez RM, Caravaca-Sánchez F, Martín-Cano MC, De la Fuente-Robles YM. Anxiety levels among social work students during the COVID-19 lockdown in Spain. *Soc Work Health Care*. (2020) 59:681–3. doi: 10.1080/00981389.2020.1859044 22. Liu X, Liu J, Zhong X. Psychological state of college students during COVID-19 epidemic. *SSRN Electron J*. (2020). doi: 10.2139/ssrn.3552814 23. Niu XT, Li HX, Li J. Impact of female college students stress perception on anxiety under the background of normalization of COVID-19 prevention and control: a moderated mediation model. *Chin J Health Psychol*. (2021) 11:1622–6. doi: 10.13342/j.
 
-cnki.cjhp.2021.11.005 24. Kaparounaki CK, Patsali ME, Mousa DPV, Papadopoulou EVK, Papadopoulou KKK, 
-Fountoulakis KN. University students' mental health amidst the COVID-19 quarantine in Greece. *Psychiatry Res*. (2020) 290:113111. doi: 10.1016/j.psychres.2020.113111 25. Santana MA, de Luna LE, Lozano EE, Hermosillo AE. Exploración del riesgo de suicidio en estudiantes universitarios mexicanos durante el aislamiento social por Covid-19. *Revista de Psicología de la Universidad Autónoma del Estado de México*. (2020) 
+cnki.cjhp.2021.11.005 24. Kaparounaki CK, Patsali ME, Mousa DPV, Papadopoulou EVK, Papadopoulou KKK,
+Fountoulakis KN. University students' mental health amidst the COVID-19 quarantine in Greece. *Psychiatry Res*. (2020) 290:113111. doi: 10.1016/j.psychres.2020.113111 25. Santana MA, de Luna LE, Lozano EE, Hermosillo AE. Exploración del riesgo de suicidio en estudiantes universitarios mexicanos durante el aislamiento social por Covid-19. *Revista de Psicología de la Universidad Autónoma del Estado de México*. (2020)
 9:54–72. doi: 10.36677/rpsicologia.v9i18.15582 26. Morales P Tamaño necesario de la muestra: ¿Cuántos sujetos necesitamos? En Estadística Aplicada a las Ciencias Sociales. (2012). Available at: https://www.academia.
 
-edu/5826247 27. Holmberg EB, Photos VI, Michel BD. Self-injurious thoughts and behaviors interview: development, reliability, and validity in an adolescent sample. *Psychol Assess*. 
+edu/5826247 27. Holmberg EB, Photos VI, Michel BD. Self-injurious thoughts and behaviors interview: development, reliability, and validity in an adolescent sample. *Psychol Assess*.
 
 (2007) 19:309–7. doi: 10.1037/1040-3590.19.3.309 28. Klonsky ED, May AM. The three-step theory (3ST): a new theory of suicide rooted in the "ideation-to-action" framework. *Int J Cogn Ther*. (2015) 8:114–9. doi: 10.1521/
-ijct.2015.8.2.114 29. García-Nieto R, Blasco-Fontecilla H, Paz Yepes M, Baca-García E. Translation and validation of the 'self-injurious thoughts and behaviours interview' in a Spanish population with suicidal behaviour. *Revista de Psiquiatría y Salud Mental*. (2013) 
-6:101–8. doi: 10.1016/j.rpsm.2012.07.001 30. Posner K, Brown GK, Stanley B, Brent DA, Yershova KV, Oquendo MA, et al. The Columbia-suicide severity rating scale: initial validity and internal consistency findings from three multisite studies with adolescents and adults. *Am J Psychiatry*. (2011) 
-168:1266–77. doi: 10.1176/appi.ajp.2011.10111704 31. Al-Halabí S, Sáiz PA, Burón P, Garrido M, Benabarre A, Jiménez E, et al. Validación de la versión en español de la Columbia-Suicide Severity Rating Scale (Escala Columbia para Evaluar el Riesgo de Suicidio). *Revista de Psiquiatría y Salud Mental*. (2016) 
-9:134–2. doi: 10.1016/j.rpsm.2016.02.002 32. Goldberg DP, Gater R, Sartorius N, Ustun TB, Piccinelli M, Gureje O, et al. The validity of two versions of the GHQ in the WHO study of mental illness in general health care. *Psychol Med*. (1997) 27:191–7. doi: 10.1017/S0033291796004242 33. Sánchez-López MP, Dresch V. The 12-item general health questionnaire (GHQ-12): 
-reliability, external validity and factor structure in the Spanish population. *Psicothema*. 
+ijct.2015.8.2.114 29. García-Nieto R, Blasco-Fontecilla H, Paz Yepes M, Baca-García E. Translation and validation of the 'self-injurious thoughts and behaviours interview' in a Spanish population with suicidal behaviour. *Revista de Psiquiatría y Salud Mental*. (2013)
+6:101–8. doi: 10.1016/j.rpsm.2012.07.001 30. Posner K, Brown GK, Stanley B, Brent DA, Yershova KV, Oquendo MA, et al. The Columbia-suicide severity rating scale: initial validity and internal consistency findings from three multisite studies with adolescents and adults. *Am J Psychiatry*. (2011)
+168:1266–77. doi: 10.1176/appi.ajp.2011.10111704 31. Al-Halabí S, Sáiz PA, Burón P, Garrido M, Benabarre A, Jiménez E, et al. Validación de la versión en español de la Columbia-Suicide Severity Rating Scale (Escala Columbia para Evaluar el Riesgo de Suicidio). *Revista de Psiquiatría y Salud Mental*. (2016)
+9:134–2. doi: 10.1016/j.rpsm.2016.02.002 32. Goldberg DP, Gater R, Sartorius N, Ustun TB, Piccinelli M, Gureje O, et al. The validity of two versions of the GHQ in the WHO study of mental illness in general health care. *Psychol Med*. (1997) 27:191–7. doi: 10.1017/S0033291796004242 33. Sánchez-López MP, Dresch V. The 12-item general health questionnaire (GHQ-12):
+reliability, external validity and factor structure in the Spanish population. *Psicothema*.
 
 (2008) 20:839–3.
 
-34. Ruiz FJ, García-Beltrán DM, Suárez-Falcón JC. General health Questionnaire-12 validity in Colombia and factorial equivalence between clinical and nonclinical participants. *Psychiatry Res*. (2017) 256:53–8. doi: 10.1016/j.psychres.2017.06.020 35. Smith BW, Dalen J, Wiggins K, Tooley E, Christopher P, Bernard J. The brief resilience scale: assessing the ability to bounce back. *Int J Behav Med*. (2008) 15:194–0. 
+34. Ruiz FJ, García-Beltrán DM, Suárez-Falcón JC. General health Questionnaire-12 validity in Colombia and factorial equivalence between clinical and nonclinical participants. *Psychiatry Res*. (2017) 256:53–8. doi: 10.1016/j.psychres.2017.06.020 35. Smith BW, Dalen J, Wiggins K, Tooley E, Christopher P, Bernard J. The brief resilience scale: assessing the ability to bounce back. *Int J Behav Med*. (2008) 15:194–0.
 
-doi: 10.1080/10705500802222972 36. Rodríguez-Rey R, Alonso-Tapia J, Hernansaiz-Garrido H. Reliability and validity of the brief resilience scale (BRS) Spanish version. *Psychol Assess*. (2016) 28:e101–10. 
+doi: 10.1080/10705500802222972 36. Rodríguez-Rey R, Alonso-Tapia J, Hernansaiz-Garrido H. Reliability and validity of the brief resilience scale (BRS) Spanish version. *Psychol Assess*. (2016) 28:e101–10.
 
-doi: 10.1037/pas0000191 37. Smith BW, Epstein EE, Oritz JA, Christopher PK, Tooley EM. The foundations of resilience: what are the critical resources for bouncing back from stress? In: S PrinceEmbury and DH Saklofske, editors. *Resilience in children, adolescents, and adults:* 
-Translating research into practice, the springer series on human exceptionality. Singapore: 
+doi: 10.1037/pas0000191 37. Smith BW, Epstein EE, Oritz JA, Christopher PK, Tooley EM. The foundations of resilience: what are the critical resources for bouncing back from stress? In: S PrinceEmbury and DH Saklofske, editors. *Resilience in children, adolescents, and adults:*
+Translating research into practice, the springer series on human exceptionality. Singapore:
 Springer (2013)
 38. Blaxter M. *Health and lifestyles*. London: Tavistock/Routledge (1990).
 
-39. Bellón JA, Moreno-Küstner B, Torres-González F, Montón-Franco C, Gil de Gómez-Barragán MJ, Sánchez-Celaya M, et al. Predicting the onset and persistence of episodes of depression in primary health care. The predictD-Spain study: methodology. 
+39. Bellón JA, Moreno-Küstner B, Torres-González F, Montón-Franco C, Gil de Gómez-Barragán MJ, Sánchez-Celaya M, et al. Predicting the onset and persistence of episodes of depression in primary health care. The predictD-Spain study: methodology.
 
-BMC Public Health. (2008) 8:256–5. doi: 10.1186/1471-2458-8-256 40. Preacher KJ, Hayes AF. Asymptotic and resampling strategies for assessing and comparing indirect effects in multiple mediator models. *Behav Res Methods*. (2008) 
+BMC Public Health. (2008) 8:256–5. doi: 10.1186/1471-2458-8-256 40. Preacher KJ, Hayes AF. Asymptotic and resampling strategies for assessing and comparing indirect effects in multiple mediator models. *Behav Res Methods*. (2008)
 40:879–1. doi: 10.3758/BRM.40.3.879 41. Hayes A. *Introduction to mediation, moderation and conditional process analysis a* regression-based approach. New York: Guilford Press (2017).
 
-42. Shrout PE, Bolger N. Mediation in experimental and nonexperimental studies: 
-new procedures and recommendations. *Psychol Methods*. (2002) 7:422–5. doi: 
+42. Shrout PE, Bolger N. Mediation in experimental and nonexperimental studies:
+new procedures and recommendations. *Psychol Methods*. (2002) 7:422–5. doi:
 10.1037/1082-989X.7.4.422 43. Noy C. Sampling knowledge: the hermeneutics of snowball sampling in qualitative research. *Int J Soc Res Methodol*. (2008) 11:327–4. doi: 10.1080/13645570701401305 44. Cotter P, Kaess M, Corcoran P, Parzer P, Brunner R, Keeley H, et al. Help-seeking behaviour following school-based screening for current suicidality among European adolescents. *Soc Psychiatry Psychiatr Epidemiol*. (2015) 50:973–2. doi: 10.1007/
-s00127-015-1016-3 45. Haavik L, Joa I, Hatloy K, Stain HJ, Langeveld J. Help seeking for mental health problems in an adolescent population: the effect of gender. *J Ment Health*. (2017) 
-28:467–4. doi: 10.1080/09638237.2017.1340630 46. Han J, Batterham PJ, Calear AL, Randall R. Factors influencing professional helpseeking for suicidality: a systematic review. *Crisis*. (2017) 39:175–6. doi: 
-10.1027/0227-5910/a000485 47. Bruffaerts R, Mortier P, Kiekens G, Auerbach RP, Cuijpers P, Demyttenaere K, et al. 
+s00127-015-1016-3 45. Haavik L, Joa I, Hatloy K, Stain HJ, Langeveld J. Help seeking for mental health problems in an adolescent population: the effect of gender. *J Ment Health*. (2017)
+28:467–4. doi: 10.1080/09638237.2017.1340630 46. Han J, Batterham PJ, Calear AL, Randall R. Factors influencing professional helpseeking for suicidality: a systematic review. *Crisis*. (2017) 39:175–6. doi:
+10.1027/0227-5910/a000485 47. Bruffaerts R, Mortier P, Kiekens G, Auerbach RP, Cuijpers P, Demyttenaere K, et al.
 
-Mental health problems in college freshmen: prevalence and academic functioning. J Affect Disord. (2018) 225:97–3. doi: 10.1016/j.jad.2017.07.044 48. Mortier P, Auerbach RP, Alonso J, Bantjes J, Benjet C, Cuijpers P, et al. Suicidal thoughts and behaviors among first-year college students: results from the WMH-ICS 
+Mental health problems in college freshmen: prevalence and academic functioning. J Affect Disord. (2018) 225:97–3. doi: 10.1016/j.jad.2017.07.044 48. Mortier P, Auerbach RP, Alonso J, Bantjes J, Benjet C, Cuijpers P, et al. Suicidal thoughts and behaviors among first-year college students: results from the WMH-ICS
 project. *J Am Acad Child Adolesc Psychiatry*. (2018a) 57:263–273.e1. doi: 10.1016/j.
 
-jaac.2018.01.018 49. Castillejos MC, Huertas P, Martín P, Moreno-Küstner B. Prevalence of suicidality in the European general population: a systematic review and Meta-analysis. *Arch Suicide* Res. (2020) 25:810–8. doi: 10.1080/13811118.2020.1765928 50. De Girolamo G, Dagani J, Purcell R, Cocchi A, McGorry P. Age of onset of mental disorders and use of mental health services: needs, opportunities and obstacles. 
+jaac.2018.01.018 49. Castillejos MC, Huertas P, Martín P, Moreno-Küstner B. Prevalence of suicidality in the European general population: a systematic review and Meta-analysis. *Arch Suicide* Res. (2020) 25:810–8. doi: 10.1080/13811118.2020.1765928 50. De Girolamo G, Dagani J, Purcell R, Cocchi A, McGorry P. Age of onset of mental disorders and use of mental health services: needs, opportunities and obstacles.
 
-Epidemiol Psychiatric Sci. (2012) 21:47–57. doi: 10.1017/S2045796011000746 51. Holmstrand C, Bogren M, Mattisson C, Bradvik L. Long-term suicide risk in no, one or more mental disorders: the Lundby study 1947–1997. *Acta Psychiatr Scand*. 
+Epidemiol Psychiatric Sci. (2012) 21:47–57. doi: 10.1017/S2045796011000746 51. Holmstrand C, Bogren M, Mattisson C, Bradvik L. Long-term suicide risk in no, one or more mental disorders: the Lundby study 1947–1997. *Acta Psychiatr Scand*.
 
-(2015) 132:459–9. doi: 10.1111/acps.12506 52. Muyor-Rodríguez J, Caravaca-Sánchez F, Fernández-Prados J. COVID-19 fear, resilience, social support, anxiety, and suicide among college students in Spain. Int J 
-Environ Res Public Health. (2021) 18:8156. doi: 10.3390/ijerph18158156 53. Ayuso-Mateos JL, Morillo D, Haro JM, Olaya B, Lara E, Miret M. Changes on depression and suicidal ideation under severe lockdown restrictions during the first wave of the COVID-19 pandemic in Spain: a longitudinal study in the general population. *Epidemiol Psychiatr Sci*. (2021) 30:e49. doi: 10.1017/S2045796021000408 54. Czeisler ME, Lane RI, Petrosky E, Wiley JF, Christensen A, Njai R, et al. Mental health, substance use, and suicidal ideation during the COVID-19 pandemic - United  States, June 24-30, 2020. *Morb Mortal Wkly Rep*. (2020) 69:1049–57. doi: 
+(2015) 132:459–9. doi: 10.1111/acps.12506 52. Muyor-Rodríguez J, Caravaca-Sánchez F, Fernández-Prados J. COVID-19 fear, resilience, social support, anxiety, and suicide among college students in Spain. Int J
+Environ Res Public Health. (2021) 18:8156. doi: 10.3390/ijerph18158156 53. Ayuso-Mateos JL, Morillo D, Haro JM, Olaya B, Lara E, Miret M. Changes on depression and suicidal ideation under severe lockdown restrictions during the first wave of the COVID-19 pandemic in Spain: a longitudinal study in the general population. *Epidemiol Psychiatr Sci*. (2021) 30:e49. doi: 10.1017/S2045796021000408 54. Czeisler ME, Lane RI, Petrosky E, Wiley JF, Christensen A, Njai R, et al. Mental health, substance use, and suicidal ideation during the COVID-19 pandemic - United  States, June 24-30, 2020. *Morb Mortal Wkly Rep*. (2020) 69:1049–57. doi:
 10.15585/mmwr.mm6932a1 55. Li DJ, Ko NY, Chen YL, Wang PW, Chang YP, Yen CF, et al. COVID-19-realted factors associated with sleep disturbance and suicidal thoughts among the Taiwanese public: a facebook survey. *Int J Environ Res Public Health*. (2020) 17:4479. doi: 10.3390/
-ijerph17124479 56. Wang X, Hegde S, Son C, Keller B, Smith A, Sasangohar F. Investigating mental health of US college students during the COVID-19 pandemic: cross-sectional survey study. *J Med Internet Res*. (2020) 22:e22817. doi: 10.2196/22817 57. Griffith GJ, Morris TT, Tudball MJ, Herbert A, Mancano G, Pike L, et al. Collider bias undermines our understanding of COVID-19 disease risk and severity. *Nat* Commun. (2020) 11:5749. doi: 10.1038/s41467-020-19478-2 58. Ozamiz-Etxebarria N, Dosil-Santamaria M, Picaza-Gorrochategui M, IdoiagaMondragon N. Niveles de estrés, ansiedad y depresión en la primera fase del brote del COVID-19 en una muestra recogida en el norte de España. *Cad Saude Publica*. (2020) 
-36:e00054020. doi: 10.1590/0102-311X00054020 59. Perz CA, Lang BA, Harrington R. Validation of the fear of COVID-19 scale in a US 
+ijerph17124479 56. Wang X, Hegde S, Son C, Keller B, Smith A, Sasangohar F. Investigating mental health of US college students during the COVID-19 pandemic: cross-sectional survey study. *J Med Internet Res*. (2020) 22:e22817. doi: 10.2196/22817 57. Griffith GJ, Morris TT, Tudball MJ, Herbert A, Mancano G, Pike L, et al. Collider bias undermines our understanding of COVID-19 disease risk and severity. *Nat* Commun. (2020) 11:5749. doi: 10.1038/s41467-020-19478-2 58. Ozamiz-Etxebarria N, Dosil-Santamaria M, Picaza-Gorrochategui M, IdoiagaMondragon N. Niveles de estrés, ansiedad y depresión en la primera fase del brote del COVID-19 en una muestra recogida en el norte de España. *Cad Saude Publica*. (2020)
+36:e00054020. doi: 10.1590/0102-311X00054020 59. Perz CA, Lang BA, Harrington R. Validation of the fear of COVID-19 scale in a US
 college sample. *Int J Ment Heal Addict*. (2020) 20:273–3. doi: 10.1007/s11469-020-00356-3 60. Núñez D, Arias V, Méndez-Bustos P, Fresno A. Is a brief self-report version of the Columbia severity scale useful for screening suicidal ideation in Chilean adolescents? Compr Psychiatry. (2019) 88:39–48. doi: 10.1016/j.comppsych.2018.11.002

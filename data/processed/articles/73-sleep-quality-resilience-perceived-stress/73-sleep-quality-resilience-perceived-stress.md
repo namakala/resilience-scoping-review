@@ -10,9 +10,9 @@ North America during the COVID-19 Pandemic Chen Du 1, Megan Chong Hueh Zan 2, Mi
 
 ```
 -
- 
+
 -
- 
+
 Citation: Du, C.; Zan, M.C.H.; Cho,
 M.J.; Fenton, J.I.; Hsiao, P.Y.; Hsiao, R.;
 Keaver, L.; Lai, C.-C.; Lee, H.; Ludy,
@@ -109,8 +109,8 @@ Subjective sleep quality was assessed using the Pittsburgh Sleep Quality Index (
 which has been well validated in many populations, including university students [39–42].
 
 PSQI scores range from 0 to 21. Higher scores indicate poorer sleep quality, and a score of
-≥5 indicates poor sleep quality [43]. Weekday and weekend sleep duration were assessed by asking participants how many hours they usually sleep during the weekdays and Subjective sleep quality was assessed using the Pittsburgh Sleep Quality Index 
-(PSQI), which has been well validated in many populations, including university students 
+≥5 indicates poor sleep quality [43]. Weekday and weekend sleep duration were assessed by asking participants how many hours they usually sleep during the weekdays and Subjective sleep quality was assessed using the Pittsburgh Sleep Quality Index
+(PSQI), which has been well validated in many populations, including university students
 [39–42]. PSQI scores range from 0 to 21. Higher scores indicate poorer sleep quality, and a score of ≥5 indicates poor sleep quality [43]. Weekday and weekend sleep duration were assessed by asking participants how many hours they usually sleep during the weekdays and weekends. Average sleep duration was calculated using the equation, ((weekday sleep duration × 5) + (weekend sleep duration × 2))/7. Participants were classified as meeting sleep duration guidelines if they reported sleeping at least 7 h/night [44].
 
 weekends. Average sleep duration was calculated using the equation, ((weekday sleep duration × 5) + (weekend sleep duration × 2))/7. Participants were classified as meeting sleep duration guidelines if they reported sleeping at least 7 h/night [44].
@@ -133,7 +133,7 @@ Figure 1. Proposed moderated mediation models. (a) Perceived stress on dietary b
 
 Only completed surveys were included in data analysis, and data were analyzed using IBM SPSS Version 26 (IBM Corporation, Armonk, New York, USA). Descriptive statistics were performed, and data were presented in percentage (%) or mean ± standard deviations (SD). Zero-order correlations were conducted to examine the relationships between all constructs included in mediation and moderation analysis models. Statistical significance was determined using Bonferroni adjusted p values. A total of 28 comparisons were performed in the correlation analysis; therefore, statistical significance was determined at p < 0.0018 (0.05 ÷ 28).
 
-Moderated mediation analyses were conducted using the SPSS PROCESS Macro developed by Hayes [30]. All models were adjusted for age, sex, and BMI. The number of bootstraps performed for bias corrected bootstrap confidence intervals was set at 10,000. 
+Moderated mediation analyses were conducted using the SPSS PROCESS Macro developed by Hayes [30]. All models were adjusted for age, sex, and BMI. The number of bootstraps performed for bias corrected bootstrap confidence intervals was set at 10,000.
 
 All variables entered in the models were approximately normally distributed after excluding outliers, which were defined by above or below mean ± 3SD. PROCESS was performed Only completed surveys were included in data analysis, and data were analyzed using IBM SPSS Version 26 (IBM Corporation, Armonk, New York, USA). Descriptive statistics were performed, and data were presented in percentage (%) or mean ± standard deviations
 (SD). Zero-order correlations were conducted to examine the relationships between all constructs included in mediation and moderation analysis models. Statistical significance was determined using Bonferroni adjusted p values. A total of 28 comparisons were performed in the correlation analysis; therefore, statistical significance was determined at p < 0.0018 (0.05 ÷ 28).
