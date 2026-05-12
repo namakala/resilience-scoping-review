@@ -77,6 +77,18 @@ Environment: mamba env from `environment.yml`, also local environment for secret
 
 Each AGENTS.md ≤100 lines. YAML frontmatter required (title, description ≤200 chars, updated_at). Use short, simple sentences. No code snippets. Describe algorithmic intent, not implementation. Cross-reference hierarchically only (higher → lower). Derive content from `@ADR.md`. Purpose over mechanics.
 
+## Implementation Tracking
+
+The project uses `PLANS.md` (root) as the master feature checklist. Every implementable feature is enumerated as `XX-name` across 11 phase files in `docs/plan/`. When implementing a feature:
+
+1. Read the feature specification from the linked `docs/plan/XX-phase.md#feature-YY-name`.
+2. Implement, test, and verify acceptance criteria.
+3. Mark the corresponding line in `PLANS.md` as `[x]` and add a short note (commit hash or date).
+4. Update `docs/plan/XX-phase.md` with any specification changes (revise description, criteria, dependencies).
+5. Update the phase file's `updated_at` frontmatter.
+
+If you add, remove, or restructure features, update the `PLANS.md` checklist and the affected phase file(s) accordingly. Keep `PLANS.md` as a clean, simple checklist — all details reside in the `docs/plan/` files.
+
 ## References
 
 - Architecture Decision Record: `@ADR.md`
