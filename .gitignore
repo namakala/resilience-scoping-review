@@ -20,6 +20,7 @@
 !LICENSE
 !*ignore
 !*profile
+!*toml
 !README*
 !*bib
 !*yml
