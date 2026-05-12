@@ -1,7 +1,7 @@
 ---
 title: "Persistence & Storage Layer"
 description: "Handles artifact serialization, caching, and session state management"
-updated_at: "2026-05-11"
+updated_at: "2026-05-12"
 ---
 
 # Persistence & Storage Layer
@@ -70,38 +70,4 @@ The persistence layer is organized into focused modules:
 - **`reader.py`** (201 lines) — CSV ingestion: schema validation, data quality checks, content_hash enrichment, tag reconciliation. Pure functions.
 - **`writer.py`** (61 lines) — Parquet serialization: write LazyFrames to Parquet, compute compression statistics.
 - **`exceptions.py`** (17 lines) — Exception hierarchy: `ConversionError`, `SchemaValidationError`, `DataQualityError`.
-- **`graph.py`** — (separate module) DuckDB graph persistence for codes, themes, interpretations.
-- **`cache.py`** — (planned) Embedding cache with content-hash invalidation.
-- **`state.py`** — (planned) Session state checkpoint and resume.
-
-Total converter-related modules: 414 lines across 4 files. Each file is independently sized under the 300-line limit, with reader.py being the largest at 201 lines but still within acceptable range given its cohesive responsibilities.
-
-## Public API
-
-All symbols exported from `persistence.converter`:
-```python
-from persistence.converter import (
-    CSVToParquetConverter,
-    convert_csvs,
-    ConversionError,
-    SchemaValidationError,
-    DataQualityError,
-)
-```
-
-The refactored module maintains 100% backward compatibility; existing imports from `converter.py` remain valid.
-
-## Public API
-
-All symbols exported from `persistence.converter`:
-```python
-from persistence.converter import (
-    CSVToParquetConverter,
-    convert_csvs,
-    ConversionError,
-    SchemaValidationError,
-    DataQualityError,
-)
-```
-
-The refactored module maintains 100% backward compatibility; existing imports from `converter.py` remain valid.
+- **`duckdb_init.py`** (~356 lines) — DuckDB schema initialization and migration management.
