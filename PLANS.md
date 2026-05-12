@@ -12,7 +12,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 1 — Persistence Layer (05–10)
 
-- [ ] @docs/plan/05-csv-to-parquet-converter.md
+- [x] @docs/plan/05-csv-to-parquet-converter.md (implemented: CSVToParquetConverter class, schema validation, n_contents reconciliation, nullable keywords/content_hash enrichment; 8 tests pass)
 - [ ] @docs/plan/06-artifact-loaders.md
 - [ ] @docs/plan/07-duckdb-schema-init.md
 - [ ] @docs/plan/08-embedding-cache-schema.md
