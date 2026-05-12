@@ -626,4 +626,3 @@ Benefits:
 Trade-offs:
 
 * reduced flexibility for overlapping thematic structures.
-

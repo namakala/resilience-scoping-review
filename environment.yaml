@@ -4,7 +4,7 @@
 # LLM Inference: pydantic, pyyaml, groq
 # HITL CLI: rich, questionary
 # Utilities: tqdm
-# Development: black, isort, mypy, pre-commit, pytest
+# Development: black, isort, mypy, flake8, pre-commit, pytest
 # Note: hamilton installed via pip after env creation
 
 name: qda
@@ -14,6 +14,7 @@ channels:
 dependencies:
   - python=3.11
   - pip
+  - r-base=4.3.1
   - pandas
   - polars
   - duckdb
@@ -37,5 +38,6 @@ dependencies:
   - mypy
   - pre-commit
   - pytest
+  - flake8
   - pip:
     - apache-hamilton

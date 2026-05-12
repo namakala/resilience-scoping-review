@@ -255,7 +255,7 @@ Table 3. The cross-level moderation of resilience on the relationships between d
 = γ10+ γ11 (resilience) + μ1. * p < .05, *** p < .001, APA = Activated Positive A
 ffect.
 
-14 
+14
 
 Figure 2. The cross-level moderating effect of resilience on the relationship between daily hindrance
 

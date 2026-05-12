@@ -7,10 +7,8 @@ knitr:
 ---
 
 ```{r init}
-
 pkgs <- c("targets", "magrittr")
 pkgs_load <- sapply(pkgs, library, character.only = TRUE)
-
 ```
 
 # Getting started
@@ -56,7 +54,5 @@ This step will read `_targets.R` file, where I systematically draft all of the a
 This is the functional pipeline for conducting statistical analysis. The complete flow can be viewed in the following `mermaid` diagram:
 
 ```{r, results = "asis"}
-
 cat("```mermaid", tar_mermaid(), "```", sep = "\n")
-
 ```

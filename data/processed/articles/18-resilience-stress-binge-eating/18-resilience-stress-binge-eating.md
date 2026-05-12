@@ -186,7 +186,7 @@ In our second aim, study findings suggest that resilience may serve a protective
 
 Our findings can be contextualized by a recent study where implementing a resilience-based intervention for college students led to increased resilience and reduced stress (Steinhardt & Dolbier, 2008). While the authors did not directly examine the intervention's impact on disordered eating, the study could still serve as a potential roadmap for ways to increase resilience among college students in the context of stress and disordered eating. Specifically, Steinhart and Dolbier implemented four two-hour classroom sessions focused on transforming stress into resilience at the individual and relational levels, including teaching students about taking responsibility, empowered thinking, and creating meaningful connections with others (Steinhardt & Dolbier, 2008). Compared to a wait-list control, college students who received the intervention exhibited higher resilience and other protective factors scores, used more effective coping strategies, and had lower mental health symptom scores (Steinhardt & Dolbier, 2008). Such an intervention may not only help young people manage stress more
 
- 
+
 
 ![4_image_0.png](4_image_0.png)
 

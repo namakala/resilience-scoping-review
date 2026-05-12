@@ -7,11 +7,11 @@ Open Access
 
 # The Mediating And Moderating Role Of Psychological Resilience Between Occupational Stress And Mental Health Of Psychiatric Nurses: A Multicenter Cross-Sectional Study
 
-Shu‑Yan Chen1 , Shi‑Rui Yan2 , Wei‑Wei Zhao1,2, Ying Gao2, Wei Zong2, Cheng Bian1 , Yin Cheng1 and Yan‑Hong Zhang2* 
+Shu‑Yan Chen1 , Shi‑Rui Yan2 , Wei‑Wei Zhao1,2, Ying Gao2, Wei Zong2, Cheng Bian1 , Yin Cheng1 and Yan‑Hong Zhang2*
 
 ## Abstract
 
-Background: The particular occupational stress of psychiatric nurses has a negative impact on their mental health. 
+Background: The particular occupational stress of psychiatric nurses has a negative impact on their mental health.
 
 There is evidence that psychological resilience can promote mental health; however, the relationship between resil‑ ience in occupational stress and mental health of psychiatric nurses is unclear, and mental health was assessed from a psychopathological perspective, neglecting the role of positive psychology. Therefore, this study was based on a dualfactor model of mental health, describing mental health in terms of both positive well-being and psychiatric symp‑
 toms. We aimed to investigate the level of psychiatric nurses' mental health and whether resilience plays a mediating or moderating role between occupational stress and mental health in psychiatry nurses.
@@ -19,7 +19,7 @@ toms. We aimed to investigate the level of psychiatric nurses' mental health and
 Methods: A cross sectional survey of 450 psychiatric nurses in fve hospitals in Jiangsu Province was conducted using a convenience sampling method, of which 413 were valid questionnaires with an efective rate of 91.8%. The evaluation included the Chinese Nurses' Stress Scale, the Connor-Davidson Resilience Scale, the Warwick-Edinburgh Mental Well-being Scale, and the General Health Questionnaire. Descriptive and Spearman correlation analyses were performed using SPSS25.0 while mediating and moderating efects were performed using SmartPLS3.0.
 
 Results: Based on a dual-factor model of mental health, this study found that psychiatric nurses had a low gen‑
-eral state of mental health, with 54.5% positive mental health, 7% vulnerable, 21.8% symptomatic but content, and 16.7% completely troubled. In addition, we found that resilience plays a mediating role in stress and mental health 
+eral state of mental health, with 54.5% positive mental health, 7% vulnerable, 21.8% symptomatic but content, and 16.7% completely troubled. In addition, we found that resilience plays a mediating role in stress and mental health
 [β= -0.230, 95% CI of (-0.310, -0.150)] and does not play a moderating role [β= -0.018, 95%CI (-0.091, 0.055)].
 
 Conclusions: Psychiatric nurses are in a poor state of mental health, and psychological resilience partly mediates occupational stress and mental health. This study suggests that attention should be paid to both positive and nega‑ tive aspects of psychiatric nurses' mental health, and strategies should be developed to reduce occupational stress and develop psychological resilience.
@@ -35,13 +35,13 @@ Keywords: Psychiatric nurses, Mental health, Occupational stress, Psychological 
 
 ## Introduction
 
-Nurses are recognized as having high-stress and highrisk careers [1], and occupational stress afects nurses' mental health, job satisfaction, and quality of life [2, 3]. 
+Nurses are recognized as having high-stress and highrisk careers [1], and occupational stress afects nurses' mental health, job satisfaction, and quality of life [2, 3].
 
-Nurses, as important components of the healthcare system, spend most of their time providing direct care to patients. With multiple stressors [4–6] such as high clinical workload, inadequate respect and recognition, strained nurse-patient relationships, and discordant staf relationships, nurses are often overworked and overstressed, facing higher risks of sufering from anxiety and depression. In addition, for psychiatric nurses, the working situation is more severe due to patients with mental disorders, the closed working environment and the frequent occurrence of violence in the workplace [7–10]. 
+Nurses, as important components of the healthcare system, spend most of their time providing direct care to patients. With multiple stressors [4–6] such as high clinical workload, inadequate respect and recognition, strained nurse-patient relationships, and discordant staf relationships, nurses are often overworked and overstressed, facing higher risks of sufering from anxiety and depression. In addition, for psychiatric nurses, the working situation is more severe due to patients with mental disorders, the closed working environment and the frequent occurrence of violence in the workplace [7–10].
 
 Psychiatric nurses tend to have more prominent mental problems when they are in this stressful working environment for a long time [11]. It is noted that the prevalence of depression among psychiatric nurses in China and Australia is 36.6% [12] and 52.7% [6], respectively, indicating a poor level of mental health among psychiatric nurses. Terefore, the attention to the mental health of psychiatric nurses is a crucial issue to improve the current healthcare environment. Psychological resilience describes the ability of an individual to adapt when faced with stress or difculties, focusing on positive attitudes and strengths in the face of difculties [13]. Psychological resilience is a protective factor that helps nurses cope with occupational stress [14]. When faced with the same pressures and challenges, nurses with high psychological resilience are better able to cope and achieve their growth and professional development [15]. As a result, psychological resilience is important in promoting mental health and improving the safety and quality of care.
 
-Carson and Kuipers [16] have proposed three levels of the stress process, including stressors, moderators, and stress outcomes. Te model suggests that stressful life events as stressors can infuence mental health through seven factors such as resilience, social support, and selfesteem, and has been studied to confrm that psychological resilience plays a mediating role in stress and mental health [17]. Te protective factor model of resilience theory [18] has stated that protective factors can decrease the cumulative efect of risk factors on negative outcomes and act as a bufer. Research also confrmed the moderating role of psychological resilience between stress and mental health [19]. Furthermore, there is research [20] 
+Carson and Kuipers [16] have proposed three levels of the stress process, including stressors, moderators, and stress outcomes. Te model suggests that stressful life events as stressors can infuence mental health through seven factors such as resilience, social support, and selfesteem, and has been studied to confrm that psychological resilience plays a mediating role in stress and mental health [17]. Te protective factor model of resilience theory [18] has stated that protective factors can decrease the cumulative efect of risk factors on negative outcomes and act as a bufer. Research also confrmed the moderating role of psychological resilience between stress and mental health [19]. Furthermore, there is research [20]
 that fnds that psychological resilience plays a mediating and moderating efect between stress and mental health. In addition, although there has been an increase in research on psychological resilience in occupational stress and mental health in nursing, previous studies have mostly been conducted on nurses in general hospitals, and relatively few on psychiatric nurses, so it is unclear whether psychological resilience plays a mediating role, a moderating role, or both a mediating and moderating role in occupational stress and mental health. Terefore, it is necessary to explore the mechanisms of psychological resilience in occupational stress and the mental health of psychiatric nurses.
 
 Mental health has often been evaluated from a psychopathological perspective, ignoring the potential and strengths of the individual. Te dual-factor model of mental health emphasizes that mental health should be assessed from both positive and negative indicators to have a more comprehensive understanding of mental health status [21]. Terefore, based on the above theories, this study used occupational stress as an independent variable, psychological resilience as an intermediate variable, mental health described in both positive and negative dimensions as a dependent variable, and proposed two hypotheses, frst, that psychological resilience plays a mediating role between occupational stress and mental health of psychiatric nurses, second, that psychological resilience plays a moderating role in occupational stress and mental health.
@@ -66,16 +66,16 @@ Te Chinese Nurses' Stress Scale(CNSS) [23] was used to measure occupational stre
 
 ## Intermediate Variable: Psychological Resilience
 
-Te Chinese version of the Connor-Davidson Resilience Scale (CD-RISC) [24] was used to measure psychological resilience. Te scale includes 3 dimensions of strength (8 items), optimism (4 items), and resilience (13 items), with a total of 25 items. Te scale uses a Likert 5-point scale, with each entry ranging from 1 (never) to 5 (always). 
+Te Chinese version of the Connor-Davidson Resilience Scale (CD-RISC) [24] was used to measure psychological resilience. Te scale includes 3 dimensions of strength (8 items), optimism (4 items), and resilience (13 items), with a total of 25 items. Te scale uses a Likert 5-point scale, with each entry ranging from 1 (never) to 5 (always).
 
 Scores range from 25 to 125, with higher scores indicating better psychological resilience. Te Cronbach's alpha coefcient for this scale in this study was 0.957, with Cronbach's alpha coefcients ranging from 0.684 to 0.936 for each subscale.
 
 ## Dependent Variable: Mental Health
 
-Positive well-being was measured using the Chinese version of the Warwick-Edinburgh Mental Well-being Scale (WEMWBS) [25]. Tere are 14 items, each scored on a 5-point Likert scale from 1 (never) to 5 (always), 
+Positive well-being was measured using the Chinese version of the Warwick-Edinburgh Mental Well-being Scale (WEMWBS) [25]. Tere are 14 items, each scored on a 5-point Likert scale from 1 (never) to 5 (always),
 with a total score range of 14 to 70. Higher scores indicate higher levels of overall well-being. A score of 40 was used as a cutof value to classify the level of positive wellbeing, with scores≤40 indicating lower levels of wellbeing and others as high well-being [26]. Te Cronbach's alpha coefcient for this scale in the study was 0.947.
 
-Psychopathological symptoms were assessed using the Chinese version of the 12-item General Health Questionnaire(GHQ-12) [27]. Tis scale is one of the most commonly used instruments to measure mental health problems and can be used as a typical representative of negative indicators of mental health [28]. 
+Psychopathological symptoms were assessed using the Chinese version of the 12-item General Health Questionnaire(GHQ-12) [27]. Tis scale is one of the most commonly used instruments to measure mental health problems and can be used as a typical representative of negative indicators of mental health [28].
 
 Tere are 12 items, including three dimensions, namely somatic symptoms (4 items), anxiety and worry (4 items), and depression (4 items). Te scale is scored on a scale of 0–0-1–1 with a total score of 0–12, and a total score≥3 is considered to have some degree of psychological problems [29]. In the present study, Cronbach's alpha coefcient for this scale was 0.890.
 
@@ -85,7 +85,7 @@ In this study, online data will be collected from fve hospitals, including one p
 
 ## Data Analysis
 
-Tis study used SPSS 25.0 and SmartPLS3.0 [30] for statistical analysis of the data. Descriptive analysis was used to describe the demographic characteristics and main variables of psychiatric nurses. Te skewness and kurtosis are used to determine whether the main variables adhere to a normal distribution. If the variables have a normal distribution, the mean and standard deviation are used; otherwise, the median is used. Additionally, we performed a Spearman correlation analysis to explore the association of the variables with statistical signifcance at p<0.05. Since mental health was measured in this study using WEMWBS and GHQ-12, which are formative measures, we used the partial least square structural equation model (PLS-SEM) to establish and test structural equation models to analyze the mediating and moderating efects of psychological resilience in the relationship between occupational stress and mental health. PLS-SEM analysis strictly follows a two-step approach, that is, checking the measurement and the structural models. Te ft indices of the measurement model include Cronbach's alpha, composite reliability 
+Tis study used SPSS 25.0 and SmartPLS3.0 [30] for statistical analysis of the data. Descriptive analysis was used to describe the demographic characteristics and main variables of psychiatric nurses. Te skewness and kurtosis are used to determine whether the main variables adhere to a normal distribution. If the variables have a normal distribution, the mean and standard deviation are used; otherwise, the median is used. Additionally, we performed a Spearman correlation analysis to explore the association of the variables with statistical signifcance at p<0.05. Since mental health was measured in this study using WEMWBS and GHQ-12, which are formative measures, we used the partial least square structural equation model (PLS-SEM) to establish and test structural equation models to analyze the mediating and moderating efects of psychological resilience in the relationship between occupational stress and mental health. PLS-SEM analysis strictly follows a two-step approach, that is, checking the measurement and the structural models. Te ft indices of the measurement model include Cronbach's alpha, composite reliability
 (CR), average variance extracted (AVE), loadings, variance infation factors (VIF), indicator weights, and t-values. Te ft indices of structural models involve R2, Q2 and standardized root mean residual (SRMR).
 
 ## Results Demographic Information Of Psychiatric Nurses
@@ -96,13 +96,13 @@ As detailed in Table  1, a total of 413 psychiatric nurses were included in this
 
 Our results showed that psychiatric nurses had a total occupational stress score of (103.29±26.31), a total psychological resilience score of (79.35±15.68), and a total positive well-being score of (46.31±9.18). Scores of the GHQ-12, which measure negative psychiatric symptoms, do not follow a normal distribution and are therefore described using a percentile, with a median of 2. Te detailed information is shown in Table 2.
 
-According to the dual-factor model of mental health, the state of mental health of psychiatric nurses was classifed into four groups based on high or low levels of positive well-being and the presence or absence of psychological symptoms, which were a. "positive mental health", characterized by high well-being and low psychological symptoms; b. "vulnerable", characterized by low well-being and low psychological symptoms; c. "symptomatic but content", characterized by high well-being and high psychological symptoms; and d. "troubled", characterized by low well-being and high psychological symptoms. As shown in Table 3, of the 414 psychiatric nurses, those with positive mental health accounted for 54.5%, 
+According to the dual-factor model of mental health, the state of mental health of psychiatric nurses was classifed into four groups based on high or low levels of positive well-being and the presence or absence of psychological symptoms, which were a. "positive mental health", characterized by high well-being and low psychological symptoms; b. "vulnerable", characterized by low well-being and low psychological symptoms; c. "symptomatic but content", characterized by high well-being and high psychological symptoms; and d. "troubled", characterized by low well-being and high psychological symptoms. As shown in Table 3, of the 414 psychiatric nurses, those with positive mental health accounted for 54.5%,
 those with low well-being and low psychological symptoms made up 7%, those with symptomatic but content 21.8%, and those with troubled 16.7%.
 
 ## Analysis Of The Correlation Between Cnss, Cd‑Risc, Wemwbs, And Ghq‑12
 
-Te results of Spearman's correlation analysis showed that occupational stress was negatively correlated with psychological resilience and positive well-being 
-(r=-0.331, -0.444, both P<0.001) and positively 
+Te results of Spearman's correlation analysis showed that occupational stress was negatively correlated with psychological resilience and positive well-being
+(r=-0.331, -0.444, both P<0.001) and positively
 
 | (N=413) Characteristics                          | n           | %      | Mean±SD   | Range   |
 |--------------------------------------------------|-------------|--------|-----------|---------|
@@ -138,18 +138,18 @@ Te results of Spearman's correlation analysis showed that occupational stress wa
 | 1–2 times per week                               | 272         | 65.86% |           |         |
 | 3 times and more per week                        | 47          | 11.38% |           |         |
 
-correlated with psychopathological symptom (r=0.274, P<0.001); psychological resilience was positively correlated with positive wellbeing (r=0.786, P<0.001) and negatively correlated with psychopathological symptom 
+correlated with psychopathological symptom (r=0.274, P<0.001); psychological resilience was positively correlated with positive wellbeing (r=0.786, P<0.001) and negatively correlated with psychopathological symptom
 (r=-0.448, P<0.001), see Table 4.
 
 ## Evaluation Of The Measurement Model
 
-Evaluation of the measurement model is required before validating the structural model. Reliability and validity analyses were performed using the PLS algorithm. Since 
+Evaluation of the measurement model is required before validating the structural model. Reliability and validity analyses were performed using the PLS algorithm. Since
 
 Table 2 Mean and standard deviation or percentiles of each variable (N=413)
 
-Number items Min Max Mean Standard deviation Skewness **Standard** 
+Number items Min Max Mean Standard deviation Skewness **Standard**
 
-deviation of 
+deviation of
 
 Skewness
 
@@ -169,11 +169,11 @@ optimism 4 20 12.63 2.72 0.205 0.120 0.130 0.240
 
 WEMWBS 17 70 46.31 9.18 0.102 0.120 0.164 0.240
 
-Number items Min Max Median Percentile 25, Percentile 25 Skewness **Standard** 
+Number items Min Max Median Percentile 25, Percentile 25 Skewness **Standard**
 
 deviation of Skewness
 
-Kurtosis Standard 
+Kurtosis Standard
 
 devia‑ tion of Kurtosis
 
@@ -206,7 +206,7 @@ GHQ-12 0 12 2 0, 4 1.264 0.120 0.620 0.240
 | 90(21.8%)         | 69(16.7%)               |            |            |
 | Total             | 315((76.3%)             | 98(23.7%)  |            |
 
-Table 3 Mental health status groups of psychiatric nurses 
+Table 3 Mental health status groups of psychiatric nurses
 
 according to the dual-factor model of mental health (N=413)
 
@@ -220,12 +220,12 @@ but are evaluated based on VIF, indicator weights, and their respective t-values
 
 ## Evaluation Of The Structural Model
 
-After completing the evaluation of the measurement model, we further assess the structural model. R2 indicates the strength of each structural path and its value should be greater than or equal to 0.1 [32]. In our study, the results in Table  6 indicated that all R2 values were greater than 0.1. In addition, the Q2 for psychological resilience and mental health in this study were 0.085 and 0.428, respectively, which exceeded the recommended 
-[33]. Te predictive relevance is small when Q2 is 0.02, moderate when Q2 is 0.15, and large when Q2 is 0.35. 
+After completing the evaluation of the measurement model, we further assess the structural model. R2 indicates the strength of each structural path and its value should be greater than or equal to 0.1 [32]. In our study, the results in Table  6 indicated that all R2 values were greater than 0.1. In addition, the Q2 for psychological resilience and mental health in this study were 0.085 and 0.428, respectively, which exceeded the recommended
+[33]. Te predictive relevance is small when Q2 is 0.02, moderate when Q2 is 0.15, and large when Q2 is 0.35.
 
 Terefore, the predictive relevance of psychological resilience is small, while the predictive relevance of mental health is large. Moreover, the SRMR≤0.1 in this study suggests that the model ft is acceptable [34].
 
-The mediating role of psychological resilience Our study put psychological resilience as a mediating variable in the model, thus exploring the mediating 
+The mediating role of psychological resilience Our study put psychological resilience as a mediating variable in the model, thus exploring the mediating
 
 | Table 5 Internal consistency reliability and convergent validity Latent variables Scale type Indicator                                                                  | Loadings   | CR                          | Cronbach´s  AVE   | t-value   | weight   | VIF    |        |       |       |
 |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-----------------------------|-------------------|-----------|----------|--------|--------|-------|-------|
@@ -272,8 +272,8 @@ Psychological resilience was used as a moderating variable to determine whether 
 
 Our results showed that the occupational stress score of psychiatric nurses was (103.29±26.31), which was similar to CNSS score of (99.29±9.96) for psychiatric nurses in another study in China [35], but signifcantly higher than the CNSS score of (88.6±21.0) with Chinese community nurses [36]. Tis suggests that the occupational stress of psychiatric nurses is relatively high. High levels of occupational stress may be related to the patients they care for and the environment in which psychiatric nurses work. Since psychiatric nurses provide care for patients with mental disorders, caring for such patients is inherently difcult and challenging, and this complexity can lead to greater stress for nurses [37]. Te non-enclosed work environment is one of the reasons for the increased occupational stress of nurses. In addition, the anxiety, panic and fear of being infected during the COVID-19 pandemic put nurses under higher pressure to provide nursing care than in previous years. In addition, workplace violence is more likely to occur during the COVID19 pandemic, which can also have an impact on nurses' occupational stress.
 
-Mental health is a state-related to mental health and psychological well-being, and the positive dimension of mental health cannot simply be considered as the absence of negative symptoms. It is more comprehensive to measure mental health in both positive and negative dimensions [38]. In this study, positive well-being of psychiatric nurses as measured using the WEMWBS and the total WEMWBS score was (46.31±9.18), 
-which was signifcantly lower than the WEMWBS score of Chinese medical staf (56.05±9.56) [39]. In addition, the WEMWBS score in this study is similar to the UK Mental Health Nurses score (47.57±8.32) [40], but 
+Mental health is a state-related to mental health and psychological well-being, and the positive dimension of mental health cannot simply be considered as the absence of negative symptoms. It is more comprehensive to measure mental health in both positive and negative dimensions [38]. In this study, positive well-being of psychiatric nurses as measured using the WEMWBS and the total WEMWBS score was (46.31±9.18),
+which was signifcantly lower than the WEMWBS score of Chinese medical staf (56.05±9.56) [39]. In addition, the WEMWBS score in this study is similar to the UK Mental Health Nurses score (47.57±8.32) [40], but
 
 ![6_image_0.png](6_image_0.png)
 
@@ -281,10 +281,10 @@ which was signifcantly lower than the WEMWBS score of Chinese medical staf (56.0
 
 our WEMWBS score were slightly lower. When a cutof value of WEMWBS≤40 was used to indicate a low level of well-being, 98 nurses were screened, accounting for 23.7%, which is similar to previous results. And when the cut-of value of GHQ-12≥3 was used to represent the presence of psychological symptoms, 159 nurses were found to have psychological symptoms, representing 38.5%. From the above data, it is clear that the overall health status of psychiatric nurses is poor, especially with negative symptoms.
 
-Based on the dual-factor model of mental health, this study divided psychiatric nurses' mental health status into four groups, which also refects the fact that wellbeing and psychiatric symptoms are not opposites of the same dimension, but independent but related structures. Our fndings also found that the positive mental health group had the highest percentage (54.5%), indicating that half of the psychiatric nurses were in good psychological condition. Te vulnerable group, which is defned as having low levels of well-being and psychological symptoms, represents 7% and traditional psychopathological models usually assume that this group is healthy, but in reality, the absence of psychological symptoms does not mean mental health, and thus this group can be neglected. In addition, the symptomatic but content group with signifcant psychological symptoms and high well-being accounted for 21.8%, suggesting that this group of patients can feel positive emotions despite their mental health problems. Te trouble group with both psychological symptoms and lower well-being was 16.7% of the total population. Among these four groups, we found that the proportion of the positive mental health group was signifcantly lower among psychiatric nurses than among adolescents [41], 
+Based on the dual-factor model of mental health, this study divided psychiatric nurses' mental health status into four groups, which also refects the fact that wellbeing and psychiatric symptoms are not opposites of the same dimension, but independent but related structures. Our fndings also found that the positive mental health group had the highest percentage (54.5%), indicating that half of the psychiatric nurses were in good psychological condition. Te vulnerable group, which is defned as having low levels of well-being and psychological symptoms, represents 7% and traditional psychopathological models usually assume that this group is healthy, but in reality, the absence of psychological symptoms does not mean mental health, and thus this group can be neglected. In addition, the symptomatic but content group with signifcant psychological symptoms and high well-being accounted for 21.8%, suggesting that this group of patients can feel positive emotions despite their mental health problems. Te trouble group with both psychological symptoms and lower well-being was 16.7% of the total population. Among these four groups, we found that the proportion of the positive mental health group was signifcantly lower among psychiatric nurses than among adolescents [41],
 college students [42], and normal individuals [43], yet the proportion of the troubled group was higher than the others. Tis is a strong indication that mental health of psychiatric nurses is not optimistic. It may be related to the high occupational stress of psychiatric nurses. Although no studies have directly compared the stress of adolescents, college students, normal groups, and psychiatric nurses, we believe that psychiatric nurses are the most stressed among these groups. Spearman's correlation analysis showed that occupational stress has a negative impact on mental health. Terefore, hospital managers can improve mental health by improving occupational stress management.
 
-Our study confrmed the hypothesis that psychological resilience mediates the role of occupational stress and mental health in psychiatric nurses. However, due to the signifcant direct efect of occupational stress on mental health, a complete mediating efect was not obtained, which also serves as a side reminder of the multiple variables that can play a role in the relationship between occupational stress and mental health. 
+Our study confrmed the hypothesis that psychological resilience mediates the role of occupational stress and mental health in psychiatric nurses. However, due to the signifcant direct efect of occupational stress on mental health, a complete mediating efect was not obtained, which also serves as a side reminder of the multiple variables that can play a role in the relationship between occupational stress and mental health.
 
 Our study found that occupational stress can afect mental health not only directly, but also indirectly by afecting psychological resilience, which is consistent with the fndings of Catabay et  al. [44]. Te fndings of Lara-Cabrera et  al. [45] pointed that psychological resilience mediated the role of occupational stress and depression, anxiety and psychological distress among nurses working. Tis also proves the stress theory [46], when psychiatric nurses experience more occupational stress, it negatively afects psychological resilience and to a certain extent reduces the level of resilience and sensitizes them, which in turn afects mental health. Tis also suggests that hospital managers can focus on the development and enhancement of psychological resilience in addition to reducing occupational stress in the process of improving mental health.
 
@@ -308,19 +308,19 @@ Despite these limitations of the present study, it also provides some informatio
 
 Ethics approval and consent to participate This study was approved by the ethics committee of Nanjing Brain Hospital (2021-KY112-01). All methods were carried out in accordance with the Decla‑ ration of Helsinki. Informed consent was obtained from all participants. Consent for publication Not applicable. Competing interests None.
 
-Author details 1School of Nursing, Nanjing Medical University, Nanjing, China. 2The Afliated Brain Hospital of Nanjing Medical University, Nanjing, China. 
+Author details 1School of Nursing, Nanjing Medical University, Nanjing, China. 2The Afliated Brain Hospital of Nanjing Medical University, Nanjing, China.
 
 Received: 2 May 2022 Accepted: 19 December 2022
 
 ## References
 
-1. Luan X, Wang P, Hou W, Chen L, Lou F. Job stress and burnout: A 
+1. Luan X, Wang P, Hou W, Chen L, Lou F. Job stress and burnout: A
 comparative study of senior and head nurses in China. Nurs Health Sci. 2017;19(2):163–9. https://doi.org/10.1111/nhs.12328.
 
-2. Sarafs P, Rousaki E, Tsounis A, Malliarou M, Lahana L, Bamidis P, Niakas D, 
+2. Sarafs P, Rousaki E, Tsounis A, Malliarou M, Lahana L, Bamidis P, Niakas D,
 Papastavrou E. The impact of occupational stress on nurses' caring behav‑ iors and their health related quality of life. BMC Nurs. 2016;15:56. https:// doi.org/10.1186/s12912-016-0178-y.
 
-3. Hayes B, Douglas C, Bonner A. Work environment, job satisfaction, stress and burnout among haemodialysis nurses. J Nurs Manag. 
+3. Hayes B, Douglas C, Bonner A. Work environment, job satisfaction, stress and burnout among haemodialysis nurses. J Nurs Manag.
 
 2015;23(5):588–98. https://doi.org/10.1111/jonm.12184.
 
@@ -335,18 +335,18 @@ ety, and Stress in a Cohort of Australian Nurses. International journal of envir
 
 8. Chambers M, Kantaris X, Guise V, Välimäki M. Managing and caring for distressed and disturbed service users: the thoughts and feelings expe‑ rienced by a sample of E nglish mental health nurses. J Psychiatr Ment Health Nurs. 2015;22(5):289–97. https://doi.org/10.1111/jpm.12199.
 
-9. Itzhaki M, Bluvstein I, Peles Bortz A, Kostistky H, Bar Noy D, Filshtinsky V, 
+9. Itzhaki M, Bluvstein I, Peles Bortz A, Kostistky H, Bar Noy D, Filshtinsky V,
 Theilla M. Mental Health Nurse's Exposure to Workplace Violence Leads to Job Stress, Which Leads to Reduced Professional Quality of Life. Front Psych. 2018;9:59. https://doi.org/10.3389/fpsyt.2018.00059.
 
 10. Niu SF, Kuo SF, Tsai HT, Kao CC, Traynor V, Chou KR. Prevalence of workplace violent episodes experienced by nurses in acute psychiatric settings. PLoS ONE. 2019;14(1): e0211183. https://doi.org/10.1371/journal. pone.0211183.
 
-11. Pekurinen V, Willman L, Virtanen M, Kivimäki M, Vahtera J, Välimäki M. 
+11. Pekurinen V, Willman L, Virtanen M, Kivimäki M, Vahtera J, Välimäki M.
 
 Patient aggression and the wellbeing of nurses: a cross-sectional survey study in psychiatric and non-psychiatric settings. Int J Environ Res Public Health. 2017;14(10):1245. https://doi.org/10.3390/ijerph14101245.
 
 12. Lu Q-H, Zhong G-K: Depression in Psychiatric Nurses. China Journal of Health Psychology 2015, 23(02):204–206. https://doi.org/10.13342/j.cnki. cjhp.2015.02.015.
 
-13. Connor KM, Davidson JR. Development of a new resilience scale: 
+13. Connor KM, Davidson JR. Development of a new resilience scale:
 the Connor-Davidson Resilience Scale (CD-RISC). Depress Anxiety. 2003;18(2):76–82. https://doi.org/10.1002/da.10113.
 
 14. Abram MD, Jacobowitz W. Resilience and burnout in healthcare students and inpatient psychiatric nurses: A between-groups study of two popula‑ tions. Arch Psychiatr Nurs. 2021;35(1):1–8. https://doi.org/10.1016/j.apnu. 2020.10.008.
@@ -355,7 +355,7 @@ the Connor-Davidson Resilience Scale (CD-RISC). Depress Anxiety. 2003;18(2):76�
 
 16. Carson J, Kuipers E: Stress management interventions. Occupational stress: Personal and professional approaches 1998:157–174. https://doi. org/10.1002/9780470711712.ch6.
 
-17. Wang Y-W, Liu G-Z, Zhou X-T, Zhou P-J, Cui F-F, Shi T. Mediating efect of mental elasticity on occupational stress and depression in female nurses. Chinese Journal of Industrial Hygiene and Occupational Diseases. 
+17. Wang Y-W, Liu G-Z, Zhou X-T, Zhou P-J, Cui F-F, Shi T. Mediating efect of mental elasticity on occupational stress and depression in female nurses. Chinese Journal of Industrial Hygiene and Occupational Diseases.
 
 2017;35(06):436–9. https://doi.org/10.3760/cma.j.issn.1001-9391.2017.06. 009.
 
@@ -370,7 +370,7 @@ oms of the complete state model of health. J Consult Clin Psychol. 2005;73(3):53
 
 22. Kline RB. Structural equation modeling. New York: Guilford; 1998.
 
-23. Li X-M, Liu Y-J. Job Stressors and Burnout among Staf Nurses. Chin J Nurs. 
+23. Li X-M, Liu Y-J. Job Stressors and Burnout among Staf Nurses. Chin J Nurs.
 
 2000;11:4–8. https://doi.org/10.3321/j.issn:0254-1769.2000.11.001.
 
@@ -382,15 +382,15 @@ oms of the complete state model of health. J Consult Clin Psychol. 2005;73(3):53
 
 27. Cheng TA, Wu J, Chong M, Williams P. Internal consistency and factor structure of the Chinese Health Questionnaire. Acta Psychiatr Scand. 1990;82(4):304–8. https://doi.org/10.1111/j.1600-0447.1990.tb01389.
 
-28. Zhang Y, Cui L-J, Li K-Q, Jiang Q-P, Sun X-L, Gao L-H, Li J-F, Liu Y-Q, 
+28. Zhang Y, Cui L-J, Li K-Q, Jiang Q-P, Sun X-L, Gao L-H, Li J-F, Liu Y-Q,
 Yan B-P, Lv H, et al. Supplemented Edition of the General Health Question(GHQ-12) in Epidemiological Survey of Mental Illness. Chin Ment Health J. 2008;03:189–92. https://doi.org/10.3321/j.issn:1000-6729.2008. 03.009.
 
-29. Kim YJ, Cho MJ, Park S, Hong JP, Sohn JH, Bae JN, Jeon HJ, Chang SM, 
+29. Kim YJ, Cho MJ, Park S, Hong JP, Sohn JH, Bae JN, Jeon HJ, Chang SM,
 Lee HW, Park JI. The 12-item general health questionnaire as an efective mental health screening tool for general korean adult population. Psy‑ chiatry Investig. 2013;10(4):352–8. https://doi.org/10.4306/pi.2013.10.4. 352.
 
 30. Ringle CM, Wende S, Becker J-M. SmartPLS 3. In.: SmartPLS GmbH. 2015. 31. Hair JF, Ringle CM, Sarstedt M. Partial least squares structural equation modeling: Rigorous applications, better results and higher acceptance. Long Range Plan. 2013;46(1–2):1–12. https://doi.org/10.1016/j.lrp.2013. 01.001.
 
-32. Falk RF, Miller NB. A primer for soft modeling: University of Akron Press. 
+32. Falk RF, Miller NB. A primer for soft modeling: University of Akron Press.
 
 1992.
 
@@ -402,7 +402,7 @@ Lee HW, Park JI. The 12-item general health questionnaire as an efective mental 
 
 36. Zhu W, Guo H, Li J. Psychometric properties of the short-form Chinese Community Nurses Stress Scale: A cross-sectional study. Medicine. 2020;99(32): e21607. https://doi.org/10.1097/md.0000000000021607.
 
-37. Maslach C, Leiter MP. Understanding the burnout experience: 
+37. Maslach C, Leiter MP. Understanding the burnout experience:
 recent research and its implications for psychiatry. World Psychiatry. 2016;15(2):103–11.
 
 38. Suldo SM, Shafer EJ. Looking beyond psychopathology: The dual-factor model of mental health in youth. Sch Psychol Rev. 2008;37(1):52–68. https://doi.org/10.1080/02796015.2008.12087908.
@@ -420,7 +420,7 @@ ture of Mental Well-being Among Medical Staf. Military Medical Journal of South 
 
 44. Catabay CJ, Stockman JK, Campbell JC, Tsuyuki K. Perceived stress and mental health: The mediating roles of social support and resilience among black women exposed to sexual violence. J Afect Disord. 2019;259:143–9. https://doi.org/10.1016/j.jad.2019.08.037.
 
-45. Lara-Cabrera ML, Betancort M, Muñoz-Rubilar CA, Rodríguez Novo N, 
+45. Lara-Cabrera ML, Betancort M, Muñoz-Rubilar CA, Rodríguez Novo N,
 De Las Cuevas C: The Mediating Role of Resilience in the Relationship between Perceived Stress and Mental Health. International journal of environmental research and public health 2021, 18(18). https://doi.org/ 10.3390/ijerph18189762.
 
 46. Zhu Q, Fan F, Zheng Y-H, Sun S-X, Zhang L, Tian W-W: Moderating and Mediating Efects of Resilience Between Negative Life Events and Depres‑ sion Symptoms among Adolescents Following the 2008 Wenchuan Earthquake in China. Chinese Journal of Clinical Psychology 2012, 20(04):514–517. https://doi.org/10.16128/j.cnki.1005-3611.2012.04.031.
@@ -440,9 +440,8 @@ Springer Nature remains neutral with regard to jurisdictional claims in pub‑ l
 
 ![10_image_2.png](10_image_2.png)
 
-Ready to submit y submit your research ? Choose BMC and benefit from: 
+Ready to submit y submit your research ? Choose BMC and benefit from:
 
 ![10_image_3.png](10_image_3.png)
 
 ![10_image_4.png](10_image_4.png)
-

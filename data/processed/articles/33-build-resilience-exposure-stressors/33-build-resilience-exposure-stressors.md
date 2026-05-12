@@ -1,6 +1,6 @@
 # Journal Of Occupational Health Psychology
 
-Building Resilience Through Exposure to Stressors: The Effects of Challenges Versus Hindrances Monique F. Crane and Ben J. Searle Online First Publication, January 18, 2016. http://dx.doi.org/10.1037/a0040064 CITATION Crane, M. F., & Searle, B. J. (2016, January 18). Building Resilience Through Exposure to Stressors: The Effects of Challenges Versus Hindrances. Journal of Occupational Health Psychology. Advance online publication. http://dx.doi.org/10.1037/a0040064 
+Building Resilience Through Exposure to Stressors: The Effects of Challenges Versus Hindrances Monique F. Crane and Ben J. Searle Online First Publication, January 18, 2016. http://dx.doi.org/10.1037/a0040064 CITATION Crane, M. F., & Searle, B. J. (2016, January 18). Building Resilience Through Exposure to Stressors: The Effects of Challenges Versus Hindrances. Journal of Occupational Health Psychology. Advance online publication. http://dx.doi.org/10.1037/a0040064
 
 # Building Resilience Through Exposure To Stressors: The Effects Of Challenges Versus Hindrances
 
@@ -44,7 +44,7 @@ The present research draws from an occupational health model of work-based stres
 2000). Challenge stressors are considered to also deplete energy leading to exhaustion and stress, but at the same time increase personal capabilities (Van den Broeck, De Cuyper, De Witte, & Vansteenkiste, 2010). This is what Selye (1956) characterized as eustress, the more positive component of stress. The education and training process is perhaps a good example of this dual-action demand. Education and training build one's personal skill base, but they place cognitive demands on learners, and may be emotionally demanding where they highlight the limitations of one's current knowledge or ability. Previous authors readily acknowledge that personal growth and gain is often coupled with the experience of psychological or physical stress (Carver, 1998). The Conservation of Resources Model (Hobfoll, 1989) suggests that although stressful circumstances often result in resource loss, successfully ad-
 This document is copyrighted by the American Psychological Association or one of its allied publishers.
 
-This  is   for the  use of the  user and is not to be  
+This  is   for the  use of the  user and is not to be
 dressing stressful situations is also likely to enhance resources by promoting an increase in self-esteem, self-efficacy, and adaptive coping. Thus, several theories converge on the notion that stressful challenges can promote personal growth and, ultimately, improved well-being.
 
 The research examining challenge stressors suggests that these stressors are related to a range of positive work-related outcomes. A study of U.S management executives demonstrated that the experience of work stress was related to different work outcomes depending on the type of stressor experienced (Cavanaugh et al.,
@@ -162,7 +162,7 @@ Table 1 presents the descriptives and bivariate correlations for latent variable
 Table 1 Descriptive Statistics and Bivariate Correlations for Latent Variables and Age
 This document is copyrighted by the American Psychological Association or one of its allied publishers.
 
-This  is   for the  use of the  user and is not to be  
+This  is   for the  use of the  user and is not to be
 both time points, and strain at both time points. These findings indicated moderate levels of stability over time, with T1 variables explaining 68 - 80% of the variance in their T2 counterparts. There was a strong positive relationship between the two stressor types within each time point (rT1 - .76, p  .001; rT2 - .76, p  .001),
 consistent with the findings of Cavanaugh et al. (2000) and other authors. Consistent with previous research, we also found that higher levels of strain were concurrently associated with more challenge stressors (rT1 - .31, p  .001; rT2 - .31, p  .001) as well as with more hindrance stressors (rT1 - .45, p  .01; rT2 -
 .44, p  .001). T1 challenge stressors were not significantly related to T2 resilience, whereas T1 hindrance stressors were related negatively to T2 resilience (r  .25, p.001).
@@ -171,7 +171,7 @@ consistent with the findings of Cavanaugh et al. (2000) and other authors. Consi
 
 In the stability model (M1), T2 variables were regressed on their T1 counterparts, a critical precondition for testing lagged effects.
 
-These autoregressive effects were included in all subsequent analyses. In the causal model (M2), we examined whether the data supported causal effects of T1 stressors and resilience on T2 resilience and strain. As shown in Table 2, model M2 fit the data better than the stability model. Figure 2 demonstrates that in model M2 significant lagged paths emerged from T1 challenge stressors to T2 resilience ( - .18, p - .019) as well as from T1 hindrance stressors to T2 levels of both resilience (-.28, p - .003) and strain ( - .28, p - .002). These results supported our prediction that T2 resilience would be enhanced by T1 challenge stressors (H1a) and eroded by T1 hindrance stressors (H2a). Supporting prediction H2b, T1 hindrance stressors predicted greater strain at T2, although there was no evidence that T1 challenge stressors were negatively related to strain (H1b). There was also a significant lagged path from T1 resilience to T2 strain (-.20, p 
+These autoregressive effects were included in all subsequent analyses. In the causal model (M2), we examined whether the data supported causal effects of T1 stressors and resilience on T2 resilience and strain. As shown in Table 2, model M2 fit the data better than the stability model. Figure 2 demonstrates that in model M2 significant lagged paths emerged from T1 challenge stressors to T2 resilience ( - .18, p - .019) as well as from T1 hindrance stressors to T2 levels of both resilience (-.28, p - .003) and strain ( - .28, p - .002). These results supported our prediction that T2 resilience would be enhanced by T1 challenge stressors (H1a) and eroded by T1 hindrance stressors (H2a). Supporting prediction H2b, T1 hindrance stressors predicted greater strain at T2, although there was no evidence that T1 challenge stressors were negatively related to strain (H1b). There was also a significant lagged path from T1 resilience to T2 strain (-.20, p
 .001), consistent with our prediction that higher levels of resilience reduce strain over time (H3).
 
 Model M2 assumes that the effects only occur in the predicted directions. Yet it is possible, for example, that strain levels could affect subsequent resilience or subsequent exposure to stressors. A cross-lagged analysis was conducted to determine whether such effects existed, and if so, their strength relative to the hypothesized effects. This reciprocal model (M3) tested the paths from M2 alongside the lagged effects of T1 resilience on T2 stressors and of T1 strain on T2 stressors and resilience. Despite including these additional paths, the fit (as shown in Table 2) was equivalent to that of M2. Like M2, model M3 revealed significant lagged paths from T1 challenge stressors to T2 resilience ( -
@@ -201,7 +201,7 @@ This document is copyrighted by the American Psychological Association or one of
 
 ![7_image_0.png](7_image_0.png)
 
-This  is   for the  use of the  user and is not to be  
+This  is   for the  use of the  user and is not to be
 Next, we tested the hypothesized mediating effect of resilience in relations between stressors and strain (H4/H5). The simplest test (based on Cole & Maxwell, 2003) uses standardized estimates from Model M2 to calculate the product of (a) the lagged effect of T1 stressors on T2 resilience, with (b) the lagged effect of T1 resilience on T2 strain. This approach indicates a mediation effect of -.04 for challenge stressors via resilience to strain, and one of  - .05 for hindrance stressors via resilience to strain. However, this method does not allow significance testing or confidence estimation of these effects.
 
 A new model (M4) was constructed that included autoregressive effects, lagged effects of T1 stressors on T2 resilience and stress, and the effect of T2 resilience on T2 strain. This allowed us to determine the indirect effect of stressors on strain via resilience, estimating confidence intervals using bootstrapping with 1,000 samples (Preacher & Hayes, 2008). In model M4, T2 strain was directly predicted by T2 resilience (-.36, p  .001) and T1 hindrance stressors ( - .17, p - .036) but not by T1 challenge stressors ( - .003, p - .964), suggesting that effects of challenge stressors on strain could be fully mediated by resilience. The indirect effect of challenge stressors on strain via resilience was significant (-.06, 95% CI  .12 to .01, p - .018) and in the predicted direction (H4), with T1 challenge stressors positively related to T2 resilience, which in turn was negatively related to strain. Consistent with prediction (H5), there was also a significant indirect effect of hindrance stressors on strain via resilience ( - .08, 95% CI - .02 to 0.14, p - .012), indicating that hindrance stressors reduce resilience, which in turn leads to increased strain.
@@ -214,7 +214,7 @@ Having demonstrated the existence of a mediating role for resilience, we examine
 
 No effect was observed for the Challenge  Resilience interaction.
 
-This significant interaction is consistent with the suggestion that resilience plays a role in moderating the stressor-strain relationship. In this way, individual differences in resilience determine how people react to stressors, specifically hindrances. If this were the case, the same moderation effect for resilience should be observable regardless of whether the interaction utilized resilience at T1 or at T2. To test this explanation, we conducted a similar analysis (model M5a) in which we examined the main, mediating and interactive effects of T1 resilience instead of T2 resilience. Model M5a was constructed using all the effects from M4a and then adding the T1 hindrance  T1 resilience and T1 challenge 
+This significant interaction is consistent with the suggestion that resilience plays a role in moderating the stressor-strain relationship. In this way, individual differences in resilience determine how people react to stressors, specifically hindrances. If this were the case, the same moderation effect for resilience should be observable regardless of whether the interaction utilized resilience at T1 or at T2. To test this explanation, we conducted a similar analysis (model M5a) in which we examined the main, mediating and interactive effects of T1 resilience instead of T2 resilience. Model M5a was constructed using all the effects from M4a and then adding the T1 hindrance  T1 resilience and T1 challenge
 
 Table 3 Standardized SEM Effects on T2 Resilience and strain, Model M5
 
@@ -246,7 +246,7 @@ Consistent with our prediction (H4), T1 challenge stressors influenced T2 strain
 
 Resilience also mediated the relationship between hindrance stressors and subsequent strain (H5), with hindrance stressors reducing resilience, which in turn led to increased strain. These findings provide evidence for a mechanism linking stressors to strain via resilience. That is, part of the way that work stressors influence employee well-being is by influencing his or her capacity for resilience, and since different stressors have different impacts on This document is copyrighted by the American Psychological Association or one of its allied publishers.
 
-This  is   for the  use of the  user and is not to be  
+This  is   for the  use of the  user and is not to be
 resilience, this has different outcomes for well-being. The finding for challenge stressors in particular is consistent with several models that propose the possible beneficial, resource-enhancing aspects of stress, as captured in the notion of *eustress* (Selye, 1956)
 and the Conservation of Resources Model (Hobfoll, 1989).
 
@@ -332,7 +332,7 @@ met0000041 Enders, C. K. (2001). A primer on maximum likelihood algorithms avail
 schbul/1.8.14 Hobfoll, S. E. (1989). Conservation of resources. A new attempt at conceptualizing stress. *American Psychologist, 44,* 513–524. http://dx.doi
 .org/10.1037/0003-066X.44.3.513 This document is copyrighted by the American Psychological Association or one of its allied publishers.
 
-This  is   for the  use of the  user and is not to be  
+This  is   for the  use of the  user and is not to be
 Lazarus, R. S., & Folkman, S. (1984). *Stress, appraisal, and coping*. New York, NY: Springer.
 
 Lazarus, R. S., & Folkman, S. (1987). Transactional theory and research on emotions and coping. *European Journal of Personality, 1,* 141–169.

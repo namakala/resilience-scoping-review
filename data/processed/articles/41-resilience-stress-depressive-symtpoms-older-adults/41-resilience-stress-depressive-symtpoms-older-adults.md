@@ -12,7 +12,7 @@ ISSN: 1360-7863 (Print) 1364-6915 (Online) Journal homepage: www.tandfonline.com
 
 # Resilience, Stressful Life Events, And Depressive Symptomatology Among Older Chinese Adults
 
-May Li Lim, Donovan Lim, Xinyi Gwee, Ma Shwe Zin Nyunt, Rajeev Kumar & Tze Pin Ng To cite this article: May Li Lim, Donovan Lim, Xinyi Gwee, Ma Shwe Zin Nyunt, Rajeev Kumar & Tze Pin Ng (2015) Resilience, stressful life events, and depressive symptomatology among older Chinese adults, Aging & Mental Health, 19:11, 1005-1014, DOI: 10.1080/13607863.2014.995591 To link to this article: https://doi.org/10.1080/13607863.2014.995591 Published online: 06 Jan 2015. Submit your article to this journal Article views: 1346 View related articles View Crossmark data Citing articles: 14 View citing articles 
+May Li Lim, Donovan Lim, Xinyi Gwee, Ma Shwe Zin Nyunt, Rajeev Kumar & Tze Pin Ng To cite this article: May Li Lim, Donovan Lim, Xinyi Gwee, Ma Shwe Zin Nyunt, Rajeev Kumar & Tze Pin Ng (2015) Resilience, stressful life events, and depressive symptomatology among older Chinese adults, Aging & Mental Health, 19:11, 1005-1014, DOI: 10.1080/13607863.2014.995591 To link to this article: https://doi.org/10.1080/13607863.2014.995591 Published online: 06 Jan 2015. Submit your article to this journal Article views: 1346 View related articles View Crossmark data Citing articles: 14 View citing articles
 
 ## Resilience, Stressful Life Events, And Depressive Symptomatology Among Older Chinese Adults
 

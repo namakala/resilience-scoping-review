@@ -8,12 +8,12 @@ funs <- list.files("src/R", pattern = "*.R", full.name = TRUE) %>%
 
 # Set option for targets
 tar_option_set(
-  packages   = pkgs,
-  error      = "continue",
-  memory     = "transient",
+  packages = pkgs,
+  error = "continue",
+  memory = "transient",
   controller = crew_controller_local(worker = 4),
-  storage    = "worker",
-  retrieval  = "worker",
+  storage = "worker",
+  retrieval = "worker",
   garbage_collection = TRUE
 )
 
@@ -27,7 +27,7 @@ list(
   tar_target(fpath, "data/raw/articles.ris", format = "file"),
 
   # Read the data frame
-  tar_target(tbl, readData(fpath)),
+  tar_target(tbl, read_data(fpath)),
 
   # Deduplicate the data frame
   tar_target(tbl_dup, dedup(tbl, get_dup = TRUE)),
@@ -36,11 +36,10 @@ list(
   # Write deduplicated data frame as a RIS file
   tar_target(
     dat_dedup,
-    writeData(tbl_dedup, file = "data/processed/articles.ris"),
+    write_data(tbl_dedup, file = "data/processed/articles.ris"),
     format = "file"
   ),
 
   # Generate documentation
   tar_quarto(readme, "README.qmd", priority = 0)
-
 )

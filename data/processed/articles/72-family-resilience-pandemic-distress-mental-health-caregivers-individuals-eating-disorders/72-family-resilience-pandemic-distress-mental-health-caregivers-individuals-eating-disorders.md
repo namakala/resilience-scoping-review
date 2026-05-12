@@ -58,7 +58,7 @@ creativecommons.org/licenses/by/
 
 Parents might be at an increased risk of mental health problems following the various life disruptions and psychological distress associated with the COVID-19 pandemic [8]. Critically, investigating factors that alleviate parents' psychological distress in response to the pandemic is necessary, because it is not only for their benefit, but also correlates with the outcome of ED [7].
 
-Both individual resilience (IR) and family resilience (FR) have been verified as protective factors against psychological distress [9,10]. IR is considered a healthy coping process whereby individuals could adapt positively despite adversity. Families, as social systems, can be described as "resilient" in ways that may support family adjustment and adaptations during a stressful time [11]. Resilience has been demonstrated to be a culturally and contextually sensitive construct. It is necessary to consider the specific culture context when evaluating the effect of resilience on health outcomes [12,13]. In China, people embrace familial connection, a value rooted in traditional collectivist cultures [14]. 
+Both individual resilience (IR) and family resilience (FR) have been verified as protective factors against psychological distress [9,10]. IR is considered a healthy coping process whereby individuals could adapt positively despite adversity. Families, as social systems, can be described as "resilient" in ways that may support family adjustment and adaptations during a stressful time [11]. Resilience has been demonstrated to be a culturally and contextually sensitive construct. It is necessary to consider the specific culture context when evaluating the effect of resilience on health outcomes [12,13]. In China, people embrace familial connection, a value rooted in traditional collectivist cultures [14].
 
 Therefore, higher FR may be associated with better psychological adjustment when families are coping with the pandemic.
 
@@ -232,11 +232,11 @@ Hierarchical multiple regression analysis was performed to test the effects of C
 Table 3. Hierarchical regression analyses predicting mental health outcomes.
 
 Regarding the effects of pandemic-related psychological distress on mental health, in step one, the covariates of gender, age, marital status, education and income were entered and significantly predicted anxiety, F (7, 193) = 2.47, p = 0.019. More years of study (p < 0.05)
-were associated with less depression and anxiety. The addition of CORPD in step two was 0.05) were associated with less depression and anxiety. The addition of CORPD in step two was significant in predicting depression (β = 1.83, p < 0.001), anxiety (β = 1.16, p < 0.001) 
-and stress symptoms (β = 1.98, p < 0.001). In step three, we entered IR, FR and the interaction term between CORPD and resilience into the second model. Both greater IR and FR were positively associated with each of the mental health outcomes. Specifically, respondents who reported higher IR were more likely to have lower depression (β = −1.51, p < 
+were associated with less depression and anxiety. The addition of CORPD in step two was 0.05) were associated with less depression and anxiety. The addition of CORPD in step two was significant in predicting depression (β = 1.83, p < 0.001), anxiety (β = 1.16, p < 0.001)
+and stress symptoms (β = 1.98, p < 0.001). In step three, we entered IR, FR and the interaction term between CORPD and resilience into the second model. Both greater IR and FR were positively associated with each of the mental health outcomes. Specifically, respondents who reported higher IR were more likely to have lower depression (β = −1.51, p <
 0.001), anxiety (β = −1.47, p < 0.001) and stress symptoms (β = −2.43, p < 0.001). Concerning FR, greater FR predicted less depression (β = −1.11, p = 0.005), anxiety (β = −1.04, p = 0.003) and stress symptoms (β = −1.22, p = 0.003).
 
-Moreover, FR significantly moderated the relationship between CORPD and mental health problems (see Figure 2). Simple slope analyses revealed a significant relationship between CORPD and mental health problems at low FR only (depression, t = 5.050, p < 
+Moreover, FR significantly moderated the relationship between CORPD and mental health problems (see Figure 2). Simple slope analyses revealed a significant relationship between CORPD and mental health problems at low FR only (depression, t = 5.050, p <
 0.001; anxiety, t = 3.757, p < 0.001; stress, t = 4.965, p < 0.001). When FR was high, the association between CORPD and mental health problems became insignificant (depression, t
 = 1.255, p = 0.211; anxiety, t = 0.362, p = 0.717; stress, t = 1.098, p = 0.274). In other words, the relationship between CORPD and mental health problems was reduced for individuals with high levels of FR.
 
@@ -285,17 +285,17 @@ Predictors Step 1 Step 2 Step 3 Step 1 Step 2 Step 3 Step 1 Step 2 **Step 3**
 
 8.96 * 8.99 * 5.89 5.59 5.61 2.52 17.00 *** 17.03 *** 13.64 ***
 
-Gender −1.27 −1.04 −0.53 −1.98 * −1.84 * −1.34 −1.75 −1.50 −0.65 
+Gender −1.27 −1.04 −0.53 −1.98 * −1.84 * −1.34 −1.75 −1.50 −0.65
 
-Age 0.07 0.05 0.09 0.08 0.07 0.11 0.05 0.03 0.06 
+Age 0.07 0.05 0.09 0.08 0.07 0.11 0.05 0.03 0.06
 
-Marital status −1.66 −1.21 −0.71 −0.32 −0.04 0.47 −1.46 −0.98 −0.43 
+Marital status −1.66 −1.21 −0.71 −0.32 −0.04 0.47 −1.46 −0.98 −0.43
 
-Year of study −0.25 * −0.23 * −0.19 −0.23 * −0.22 * −0.17 −0.10 −0.08 −0.02 
+Year of study −0.25 * −0.23 * −0.19 −0.23 * −0.22 * −0.17 −0.10 −0.08 −0.02
 
-Income 1 0.02 −0.27 −0.58 0.07 −0.11 −0.45 1.07 0.75 0.42 
+Income 1 0.02 −0.27 −0.58 0.07 −0.11 −0.45 1.07 0.75 0.42
 
-Income 2 −0.20 −0.19 −0.51 0.06 0.07 −0.23 −0.08 −0.07 −0.40 Income 3 −0.74 −0.25 −0.11 −0.56 −0.25 −0.13 −0.75 −0.22 0.00 
+Income 2 −0.20 −0.19 −0.51 0.06 0.07 −0.23 −0.08 −0.07 −0.40 Income 3 −0.74 −0.25 −0.11 −0.56 −0.25 −0.13 −0.75 −0.22 0.00
 
 CORPD 1.83 *** 1.21 *** 1.16 *** 0.58 1.98 *** 1.04 **
 
@@ -305,9 +305,9 @@ IR 1.51 *** 1.47 *** −2.43 ***
 
 CORPD x FR −1.04 ** −0.89 ** **−0.96** *
 
-CORPD x IR 0.54 0.62 −0.04 
+CORPD x IR 0.54 0.62 −0.04
 
-Adjusted R2 0.03 0.14 0.29 0.05 0.10 0.29 0.02 0.12 0.37 
+Adjusted R2 0.03 0.14 0.29 0.05 0.10 0.29 0.02 0.12 0.37
 
 F 1.92 4.97 *** 7.89 *** 2.47 * 3.84 *** 7.83 *** 1.55 4.43 *** 10.98 ***
 

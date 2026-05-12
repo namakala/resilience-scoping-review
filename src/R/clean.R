@@ -1,6 +1,6 @@
 # Functions to clean the dataset
 
-findDuplicate <- function(str_list) {
+find_duplicate <- function(str_list) {
   #' Find Duplicates
   #'
   #' Find duplicates from a given list of string.
@@ -8,7 +8,9 @@ findDuplicate <- function(str_list) {
   #' @param str_list A list of string
   #' @return A vector of boolean indicating the presence of duplicates
 
-  dup <- str_list |> stringr::str_to_upper() |> duplicated()
+  dup <- str_list |>
+    stringr::str_to_upper() |>
+    duplicated()
 
   return(dup)
 }
@@ -27,8 +29,8 @@ dedup <- function(tbl, get_dup = FALSE, conserve = FALSE, ...) {
   #' @return A deduplicated tidy bibliography data frame
 
   # Find duplicates
-  dup_doi    <- findDuplicate(tbl$doi)
-  dup_title  <- findDuplicate(tbl$title)
+  dup_doi <- find_duplicate(tbl$doi)
+  dup_title <- find_duplicate(tbl$title)
 
   # Indicate duplication based on the DOI and/or title
   if (conserve) {
@@ -42,8 +44,9 @@ dedup <- function(tbl, get_dup = FALSE, conserve = FALSE, ...) {
     duplicates <- !duplicates
   }
 
-  sub_tbl <- tbl |> subset(!duplicates) |> dplyr::arrange(doi, author, year)
+  sub_tbl <- tbl |>
+    subset(!duplicates) |>
+    dplyr::arrange(.data$doi, .data$author, .data$year) # nolint
 
   return(sub_tbl)
 }
-
