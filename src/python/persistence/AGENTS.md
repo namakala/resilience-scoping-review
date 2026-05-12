@@ -56,7 +56,7 @@ Workflow progress in `output/session.duckdb`: current_stage, dirty_flags per tag
 
 ## Directory Layout
 
-Immutable inputs in `data/raw/`: user-provided CSV files. Processed artifacts in `data/processed/`: Parquet caches and DuckDB graph. Session outputs in `output/`: state database, results JSON, logs.
+Immutable inputs in `data/raw/`: user-provided CSV files. Processed artifacts in `data/processed/`: Parquet caches and DuckDB graph. Session outputs in `data/output/`: state database, results JSON, logs.
 
 ## Validation
 

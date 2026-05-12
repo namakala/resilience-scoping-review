@@ -4,10 +4,11 @@
 # Whitelist directory contents
 !*/
 
-# Environment files: ignore .env, but track .env.example
+# Environment files: ignore .env, but track .env.example and environment.yaml
 .env*
 *.env
 !.env.example
+!environment.yaml
 
 # Track specific filetypes
 !*R

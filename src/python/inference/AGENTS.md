@@ -47,7 +47,7 @@ Prompts avoid over-specification. LLM acts as constrained interpreter, not ontol
 
 ## API Integration
 
-Groq client uses Mixtral model (or GPT OSS equivalent if available). API key loaded from environment (GROQ_API_KEY). Client configured with timeout and retry middleware.
+Groq client uses OpenAI GPT OSS 120B. API key loaded from environment (GROQ_API_KEY). Client configured with timeout and retry middleware.
 
 Error handling:
 
@@ -68,7 +68,7 @@ Validation failures raise errors. HITL layer may later edit parsed outputs.
 
 ## Token Tracking
 
-Each response logs input and output token counts. Cumulated per session. Cost estimation uses Groq pricing (input ~$0.0001/1K tokens, output ~$0.0003/1K tokens). Typical stage costs: code inference (50–200K tokens), theme inference (30–100K), interpretation (10–30K).
+Each response logs input and output token counts. Cumulated per session. Cost estimation uses Groq pricing (input $0.15/1M tokens, output ~$0.6/1M tokens). Typical stage costs: code inference (50–200K tokens), theme inference (30–100K), interpretation (10–30K).
 
 ## Constraints
 
