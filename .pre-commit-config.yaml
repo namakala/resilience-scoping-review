@@ -1,0 +1,71 @@
+repos:
+  # === Python: Auto-formatting (mutates files) ===
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.4.2
+    hooks:
+      - id: black
+        types_or: [python, pyi]
+        require_serial: true
+        exclude: ^tests/fixtures/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--filter-files"]
+        require_serial: true
+        exclude: ^tests/fixtures/
+
+  # === Python: Linting (blocks on errors) ===
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --exclude, '^tests/fixtures/']
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=88]
+        exclude: ^tests/fixtures/
+
+  # === Python: Testing ===
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        args: [--tb=short, -q]
+
+  # === R: Linting + Formatting ===
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.1
+    hooks:
+      - id: lintr
+      - id: style-files
+
+  # === General repo hygiene ===
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: name-tests-test
+        exclude: ^tests/fixtures/
+      - id: trailing-whitespace
