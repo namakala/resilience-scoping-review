@@ -7,12 +7,25 @@ phase: 1
 
 # Feature 06: artifact-loaders
 
+**Status:** Implemented — commit `e3beaa9`
 
 ---
 
 ## Description
 
 Implement lazy-loading functions: `load_exemplars() → Polars LazyFrame`, `load_tags() → Polars LazyFrame`, `load_keywords() → Polars LazyFrame`. Each function reads from `data/processed/*.parquet` and adds computed columns: `content_hash` (SHA256 of content), `keyword_count`, etc.
+
+---
+
+## Implementation Summary
+
+- **Module:** `src/python/persistence/loaders.py` (172 lines)
+- **Export:** Added to `src/python/persistence/__init__.py`
+- **Tests:** `tests/unit/persistence/loaders_test.py` (19 tests)
+- **Caching:** `@functools.lru_cache(maxsize=1)` per loader; `clear_cache()` utility
+- **Defensive recompute:** `content_hash` always derived from `content` column (ADR-002)
+- **Tag enrichment:** `parent` (string before last dot or empty), `depth` (segment count)
+- **Keywords:** Graceful absent-file handling — returns empty LazyFrame with correct schema
 
 ---
 
