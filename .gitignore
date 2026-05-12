@@ -4,6 +4,11 @@
 # Whitelist directory contents
 !*/
 
+# Environment files: ignore .env, but track .env.example
+.env*
+*.env
+!.env.example
+
 # Track specific filetypes
 !*R
 !*py
