@@ -26,8 +26,7 @@ from typing import cast
 
 import duckdb
 import numpy as np
-from persistence.duckdb_init import initialize_database
-from persistence.embedding_cache import (
+from persistence import (
     compute_model_hash,
     get_cache_stats,
     get_embedding,
@@ -35,6 +34,7 @@ from persistence.embedding_cache import (
     invalidate_entity,
     put_embedding,
 )
+from persistence.duckdb_init import initialize_database
 
 
 class TestEmbeddingCacheSchema(unittest.TestCase):

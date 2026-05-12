@@ -1,11 +1,10 @@
-"""Embedding cache CRUD operations with content-hash invalidation.
+"""CRUD operations for embedding cache with content-hash invalidation.
 
 Provides get/put/invalidate operations for cached embeddings stored in DuckDB.
 Serializes NumPy float32 arrays as BLOBs. Cache keyed by (entity_id, entity_type).
 Lookup respects model_hash and content_hash for validity.
 """
 
-import hashlib
 from typing import Optional
 
 import duckdb
@@ -13,21 +12,6 @@ import numpy as np
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
-
-
-def compute_model_hash(model_name: str) -> str:
-    """Compute fingerprint for an embedding model version.
-
-    Uses SHA256(model_name.encode()).hexdigest()[:16] to produce a 16-character
-    identifier. Consistent with ADR-005 and implementation notes.
-
-    Args:
-        model_name: Name/identifier of the embedding model (e.g., "all-MiniLM-L6-v2").
-
-    Returns:
-        16-character hexadecimal model hash.
-    """
-    return hashlib.sha256(model_name.encode()).hexdigest()[:16]
 
 
 def get_embedding(
@@ -229,37 +213,4 @@ def invalidate_by_content_hash(
             "Failed to invalidate cache by content_hash",
             extra={"error": str(e), "content_hash": content_hash},
         )
-        raise
-
-
-def get_cache_stats(con: duckdb.DuckDBPyConnection) -> dict:
-    """Return aggregate statistics about the embedding cache.
-
-    Stats include total rows, breakdown by entity_type, and cache hit-rate
-    approximations (requires external tracking of requests; here returns only
-    stored counts).
-
-    Args:
-        con: Active DuckDB connection.
-
-    Returns:
-        Dictionary with keys: total, by_entity_type (dict), oldest, newest.
-    """
-    try:
-        total = con.execute("SELECT COUNT(*) FROM embedding_cache").fetchone()[0]
-        by_type_rows = con.execute(
-            "SELECT entity_type, COUNT(*) FROM embedding_cache GROUP BY entity_type"
-        ).fetchall()
-        by_type = {row[0]: row[1] for row in by_type_rows}
-        bounds = con.execute(
-            "SELECT MIN(timestamp), MAX(timestamp) FROM embedding_cache"
-        ).fetchone()
-        return {
-            "total": total,
-            "by_entity_type": by_type,
-            "oldest": bounds[0],
-            "newest": bounds[1],
-        }
-    except Exception as e:
-        logger.error("Failed to query cache stats", extra={"error": str(e)})
         raise
