@@ -17,7 +17,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/07-duckdb-schema-init.md
 - [x] @docs/plan/08-embedding-cache-schema.md (implemented: DuckDB table, CRUD ops, serialization, index; 15 tests)
 - [x] @docs/plan/09-bm25-index-serialization.md
-- [ ] @docs/plan/10-session-state-manager.md
+- [x] @docs/plan/10-session-state-manager.md
 
 ## Phase 2 — Graph Module (11–16)
 
