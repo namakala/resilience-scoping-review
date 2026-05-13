@@ -65,7 +65,7 @@ Also used by HITL review to suggest semantic neighbors for codes.
 
 ## Constraints
 
-Embedding model fixed at `all-MiniLM-L6-v2` (384 dimensions, CPU-friendly). All retrieval queries must respect tag-based scope unless context requires full-ontology search. Top-k results always sorted descending.
+Embedding model fixed at `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions, CPU-friendly). Cache location configurable via `MODEL_CACHE_DIR` env var (default: `~/.cache/huggingface/hub/`). Cache management: `clear_model_cache()` and `reload_model()` for lifecycle control. All retrieval queries must respect tag-based scope unless context requires full-ontology search. Top-k results always sorted descending.
 
 ## BM25 Configuration
 

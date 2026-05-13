@@ -39,7 +39,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 4 — Semantic Layer (23–29)
 
-- [ ] @docs/plan/23-sentence-transformer-initialization.md
+- [x] @docs/plan/23-sentence-transformer-initialization.md
 - [ ] @docs/plan/24-exemplar-embedding-generation.md
 - [ ] @docs/plan/25-keyword-embedding-generation.md
 - [ ] @docs/plan/26-bm25-index-builder.md
