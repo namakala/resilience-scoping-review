@@ -140,3 +140,54 @@ def fewshot_shuffle() -> bool:
     """Randomize few-shot example selection order."""
     raw = os.getenv("FEWSHOT_SHUFFLE", "true")
     return raw.lower() in ("true", "1", "yes")
+
+
+# ── Token Tracking & Cost ────────────────────────────────────────────
+
+
+def token_cost_input_per_million() -> float:
+    """Cost per 1M input tokens in USD (default: Groq pricing)."""
+    raw = os.getenv("TOKEN_COST_INPUT_PER_MILLION")
+    if raw is None:
+        return 0.15
+    try:
+        val = float(raw)
+        if val < 0:
+            raise ValueError
+        return val
+    except ValueError:
+        raise ConfigurationError(
+            f"TOKEN_COST_INPUT_PER_MILLION must be a non-negative number, got {raw!r}"
+        )
+
+
+def token_cost_output_per_million() -> float:
+    """Cost per 1M output tokens in USD (default: Groq pricing)."""
+    raw = os.getenv("TOKEN_COST_OUTPUT_PER_MILLION")
+    if raw is None:
+        return 0.60
+    try:
+        val = float(raw)
+        if val < 0:
+            raise ValueError
+        return val
+    except ValueError:
+        raise ConfigurationError(
+            f"TOKEN_COST_OUTPUT_PER_MILLION must be a non-negative number, got {raw!r}"
+        )
+
+
+def max_stage_cost_usd() -> float:
+    """Warning threshold for per-stage cost in USD (default: $1.00)."""
+    raw = os.getenv("MAX_STAGE_COST_USD")
+    if raw is None:
+        return 1.00
+    try:
+        val = float(raw)
+        if val < 0:
+            raise ValueError
+        return val
+    except ValueError:
+        raise ConfigurationError(
+            f"MAX_STAGE_COST_USD must be a non-negative number, got {raw!r}"
+        )

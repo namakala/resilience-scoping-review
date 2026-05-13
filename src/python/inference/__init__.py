@@ -17,6 +17,14 @@ from .prompts import (
     render_interpretation_prompt,
     render_theme_prompt,
 )
+from .tracking import (
+    TokenTracker,
+    UsageRecord,
+    format_stage_summary,
+    get_tracker,
+    reset_tracker,
+    track_tokens,
+)
 
 __all__ = [
     "Batch",
@@ -25,10 +33,14 @@ __all__ = [
     "InterpretationInference",
     "PromptBundle",
     "ThemeInference",
+    "TokenTracker",
+    "UsageRecord",
     "build_messages",
     "complete",
+    "format_stage_summary",
     "get_client",
     "get_model",
+    "get_tracker",
     "group_by_tag",
     "load_fewshot",
     "parse_code_response",
@@ -37,4 +49,6 @@ __all__ = [
     "render_code_prompt",
     "render_interpretation_prompt",
     "render_theme_prompt",
+    "reset_tracker",
+    "track_tokens",
 ]

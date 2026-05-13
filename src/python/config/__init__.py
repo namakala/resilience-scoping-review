@@ -17,9 +17,12 @@ from .settings import (
     groq_model,
     groq_timeout,
     log_level,
+    max_stage_cost_usd,
     model_cache_dir,
     processed_data_path,
     tags_path,
+    token_cost_input_per_million,
+    token_cost_output_per_million,
 )
 
 __all__ = [
@@ -35,4 +38,7 @@ __all__ = [
     "tags_path",
     "processed_data_path",
     "bm25_tokenizer_config",
+    "token_cost_input_per_million",
+    "token_cost_output_per_million",
+    "max_stage_cost_usd",
 ]

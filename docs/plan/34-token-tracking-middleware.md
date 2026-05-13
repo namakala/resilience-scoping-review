@@ -1,7 +1,7 @@
 ---
 title: "34 — token-tracking-middleware"
 description: "Log input/output tokens; accumulate session totals; estimate cost"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 5
 ---
 
@@ -43,5 +43,33 @@ Wrap Groq API calls to log token usage: `input_tokens`, `output_tokens` from res
 - Warning threshold: `MAX_STAGE_COST_USD=1.00`
 
 ---
+
+---
+
+## Implementation Completion
+
+**Completed:** 2026-05-14
+
+All acceptance criteria satisfied:
+
+- **AC #1:** Structured JSONL written to `data/output/token_usage.log` — each line contains `stage`, `batch_id`, `input_tokens`, `output_tokens`, `cost_usd`, `timestamp`
+- **AC #2:** `format_stage_summary()` produces human-readable summary: `"Code inference complete. Tokens: 50K in, 20K out. Cost: $0.015"`
+- **AC #3:** Cost calculation verified with manual arithmetic test across multiple rate configurations
+- **AC #4:** `flush_to_dict()` and `flush_to_records()` produce session_state-compatible dicts; extra keys preserved by state manager
+- **AC #5:** `logger.warning` triggered once per stage when cumulative stage cost exceeds `MAX_STAGE_COST_USD` (default $1.00)
+
+### Implementation Details
+
+- **Module:** `src/python/inference/tracking.py`
+- **Config added:** `token_cost_input_per_million()`, `token_cost_output_per_million()`, `max_stage_cost_usd()` in `src/python/config/settings.py` (exported via `config/__init__.py`)
+- **API surface:**
+  - `TokenTracker` class: `record()`, `stage_summary()`, `session_summary()`, `recent_usage()`, `flush_to_dict()`, `flush_to_records()`, `reset()`
+  - `get_tracker()` / `reset_tracker()` — singleton accessors
+  - `@track_tokens(stage_name)` — decorator wrapping functions that return ChatCompletion-like objects
+  - `format_stage_summary()` — formatted stage completion message
+- **Enhanced for Feature 35:** `recent_usage(window_seconds=60)` exposes a sliding window of tokens used, enabling rate-limit pre-flight checks in the retry/rate-limit module
+- **Env vars:** `TOKEN_COST_INPUT_PER_MILLION`, `TOKEN_COST_OUTPUT_PER_MILLION`, `MAX_STAGE_COST_USD` — all documented in `.env.example`
+- **Tests:** 41 tests in `tests/unit/inference/tracking_test.py` covering recording, accumulation, cost math, persistence, warnings, singleton, decorator, edge cases (zero tokens, log directory creation)
+- No regressions: 643 total tests pass
 
 **References:** ADR-010
