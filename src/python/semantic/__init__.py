@@ -1,21 +1,10 @@
-"""Semantic retrieval layer: BM25 lexical indexing, embeddings, hybrid search."""
+"""Semantic retrieval: BM25 indexing, embeddings, hybrid search."""
 
 from .api import get_index_info, get_scores, get_top_n
 from .cache import clear_cache as clear_bm25_cache
 from .embedding_generation import generate_exemplar_embeddings
-from .embeddings import (
-    EMBEDDING_DIM,
-    MODEL_CACHE_DIR,
-    MODEL_NAME,
-    EmbeddingError,
-    clear_model_cache,
-    generate_embedding,
-    generate_embeddings,
-    get_model_hash,
-    reload_model,
-)
-from .exceptions import BM25IndexError, IndexCorruptedError
-from .index_builder import build_index
+from .keyword_embedding import generate_keyword_embeddings
+from .keyword_extraction import extract_keywords
 from .persistence import load_bm25, save_bm25
 
 __all__ = [
@@ -39,6 +28,9 @@ __all__ = [
     "MODEL_CACHE_DIR",
     # Embedding generation
     "generate_exemplar_embeddings",
+    "generate_keyword_embeddings",
+    # Keyword extraction
+    "extract_keywords",
     # Exceptions
     "BM25IndexError",
     "IndexCorruptedError",

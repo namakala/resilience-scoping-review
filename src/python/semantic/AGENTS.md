@@ -14,6 +14,7 @@ Retrieve semantically relevant exemplars, codes, themes, and interpretations acr
 
 ## Core Responsibilities
 
+- Extract keywords from exemplars via KeyBERT with MMR diversity
 - Generate sentence-transformer embeddings for all semantic entities
 - Build BM25 lexical index over extracted keywords
 - Execute hybrid retrieval: scope restriction → BM25 → embeddings → reranking

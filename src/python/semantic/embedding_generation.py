@@ -1,8 +1,9 @@
-"""Batch-encode all exemplar content; store in embedding_cache; immutable.
+"""Batch-encode exemplar content into embedding_cache; immutable.
 
 Loads exemplars from load_exemplars(), determines which need encoding via
-cache lookup with content_hash validation, batch-generates embeddings using
-generate_embeddings(), and stores results in the embedding_cache DuckDB table.
+cache lookup with content_hash validation, batch-encodes via
+generate_embeddings(). Also provides shared helpers used by
+keyword_embedding.py.
 """
 
 import time
@@ -16,6 +17,103 @@ from tqdm import tqdm
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+# ── Generic helpers (shared with keyword_embedding) ────────────────────────
+
+
+def _get_existing_cache_map_generic(
+    con: duckdb.DuckDBPyConnection,
+    entity_ids: list[str],
+    entity_type: str,
+    model_hash: str,
+) -> dict[str, str]:
+    """Query embedding_cache for entries matching entity_type + model_hash.
+
+    Returns dict mapping entity_id (str) -> stored content_hash.
+    """
+    if not entity_ids:
+        return {}
+
+    placeholders = ",".join("?" for _ in entity_ids)
+    rows = con.execute(
+        f"""
+        SELECT entity_id, content_hash
+        FROM embedding_cache
+        WHERE entity_type = ?
+          AND entity_id IN ({placeholders})
+          AND model_hash = ?
+        """,
+        [entity_type] + entity_ids + [model_hash],
+    ).fetchall()
+
+    return {row[0]: row[1] for row in rows}
+
+
+def _identify_uncached(
+    items: list[tuple[str, str, str]],
+    stored_map: dict[str, str],
+) -> list[tuple[str, str, str]]:
+    """Return items needing encoding.
+
+    Each item is (entity_id, text, content_hash). Items already present
+    in stored_map with matching content_hash are skipped.
+    """
+    to_encode: list[tuple[str, str, str]] = []
+    for entity_id, text, ch in items:
+        if entity_id in stored_map and stored_map[entity_id] == ch:
+            continue
+        to_encode.append((entity_id, text, ch))
+    return to_encode
+
+
+def _encode_and_store_generic(
+    con: duckdb.DuckDBPyConnection,
+    to_encode: list[tuple[str, str, str]],
+    entity_type: str,
+    model_hash: str,
+    batch_size: int,
+    desc: str,
+    unit: str,
+) -> int:
+    """Batch-encode items and store in cache.
+
+    Args:
+        con: DuckDB connection.
+        to_encode: List of (entity_id, text, content_hash).
+        entity_type: Type tag for cache ('exemplar' or 'keyword').
+        model_hash: Current model version hash.
+        batch_size: Encode batch size.
+        desc: tqdm progress bar description.
+        unit: tqdm progress bar unit label.
+
+    Returns:
+        Number of items encoded.
+    """
+    count = len(to_encode)
+    if count == 0:
+        return 0
+
+    texts = [item[1] for item in to_encode]
+
+    with tqdm(total=count, desc=desc, unit=unit) as pbar:
+        for i in range(0, count, batch_size):
+            batch_items = to_encode[i : i + batch_size]  # noqa: E203
+            batch_texts = texts[i : i + batch_size]  # noqa: E203
+
+            embeddings = generate_embeddings(batch_texts, batch_size)
+
+            for (entity_id, _, content_hash), emb in zip(batch_items, embeddings):
+                put_embedding(
+                    con, entity_id, entity_type, emb, model_hash, content_hash
+                )
+
+            pbar.update(len(batch_items))
+
+    return count
+
+
+# ── Exemplar embedding generation ──────────────────────────────────────────
 
 
 def generate_exemplar_embeddings(
@@ -54,10 +152,12 @@ def generate_exemplar_embeddings(
 
     model_hash = get_model_hash()
 
-    to_encode = _identify_uncached(con, exemplars, model_hash)
+    to_encode = _identify_uncached_exemplars(con, exemplars, model_hash)
     cached_count = total - len(to_encode)
 
-    generated_count = _encode_and_store(con, to_encode, model_hash, batch_size)
+    generated_count = _encode_and_store_exemplars(
+        con, to_encode, model_hash, batch_size
+    )
 
     elapsed = time.perf_counter() - start
     logger.info(
@@ -83,59 +183,22 @@ def _collect_exemplars() -> pl.DataFrame:
     return lf.collect()
 
 
-def _identify_uncached(
+def _identify_uncached_exemplars(
     con: duckdb.DuckDBPyConnection,
     exemplars: pl.DataFrame,
     model_hash: str,
 ) -> list[tuple[str, str, str]]:
-    """Return list of (entity_id, content, content_hash) needing encoding.
-
-    Queries embedding_cache for existing exemplar entries matching
-    model_hash. Returns only exemplars that are missing or have stale
-    content_hash.
-    """
-    stored = _get_existing_cache_map(con, exemplars, model_hash)
-
-    to_encode: list[tuple[str, str, str]] = []
-    for row in exemplars.iter_rows(named=True):
-        eid = str(row["id"])
-        ch = row["content_hash"]
-        if eid in stored and stored[eid] == ch:
-            continue
-        to_encode.append((eid, row["content"], ch))
-
-    return to_encode
+    """Return list of (entity_id, content, content_hash) needing encoding."""
+    items = [
+        (str(row["id"]), row["content"], row["content_hash"])
+        for row in exemplars.iter_rows(named=True)
+    ]
+    ids = [item[0] for item in items]
+    stored = _get_existing_cache_map_generic(con, ids, "exemplar", model_hash)
+    return _identify_uncached(items, stored)
 
 
-def _get_existing_cache_map(
-    con: duckdb.DuckDBPyConnection,
-    exemplars: pl.DataFrame,
-    model_hash: str,
-) -> dict[str, str]:
-    """Query embedding_cache for exemplar entries matching model_hash.
-
-    Returns dict mapping entity_id (str) -> stored content_hash.
-    """
-    ids = [str(eid) for eid in exemplars["id"].to_list()]
-    if not ids:
-        return {}
-
-    placeholders = ",".join("?" for _ in ids)
-    rows = con.execute(
-        f"""
-        SELECT entity_id, content_hash
-        FROM embedding_cache
-        WHERE entity_type = 'exemplar'
-          AND entity_id IN ({placeholders})
-          AND model_hash = ?
-        """,
-        ids + [model_hash],
-    ).fetchall()
-
-    return {row[0]: row[1] for row in rows}
-
-
-def _encode_and_store(
+def _encode_and_store_exemplars(
     con: duckdb.DuckDBPyConnection,
     to_encode: list[tuple[str, str, str]],
     model_hash: str,
@@ -145,22 +208,12 @@ def _encode_and_store(
 
     Returns number of exemplars encoded.
     """
-    count = len(to_encode)
-    if count == 0:
-        return 0
-
-    texts = [item[1] for item in to_encode]
-
-    with tqdm(total=count, desc="Embedding exemplars", unit="ex") as pbar:
-        for i in range(0, count, batch_size):
-            batch_items = to_encode[i : i + batch_size]  # noqa: E203
-            batch_texts = texts[i : i + batch_size]  # noqa: E203
-
-            embeddings = generate_embeddings(batch_texts, batch_size)
-
-            for (eid, _, content_hash), emb in zip(batch_items, embeddings):
-                put_embedding(con, eid, "exemplar", emb, model_hash, content_hash)
-
-            pbar.update(len(batch_items))
-
-    return count
+    return _encode_and_store_generic(
+        con,
+        to_encode,
+        "exemplar",
+        model_hash,
+        batch_size,
+        desc="Embedding exemplars",
+        unit="ex",
+    )
