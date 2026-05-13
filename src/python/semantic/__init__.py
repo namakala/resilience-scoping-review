@@ -3,6 +3,7 @@
 from .api import get_index_info, get_scores, get_top_n
 from .cache import clear_cache as clear_bm25_cache
 from .embedding_generation import generate_exemplar_embeddings
+from .index_builder import build_index
 from .keyword_embedding import generate_keyword_embeddings
 from .keyword_extraction import extract_keywords
 from .persistence import load_bm25, save_bm25
