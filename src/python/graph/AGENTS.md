@@ -1,7 +1,7 @@
 ---
 title: "Graph Module"
 description: "Low-level graph database operations, node/edge CRUD, and DuckDB persistence layer"
-updated_at: "2026-05-11"
+updated_at: "2026-05-13"
 ---
 
 # Graph Module
@@ -98,3 +98,17 @@ Entry points for downstream layers:
 - `build_graph` may be invoked directly in specialized scenarios (e.g., alternate DB path, testing fixtures).
 
 Performance target: <5 seconds to build 10,000 nodes (bulk fetch + batch insert). Verified by unit test.
+
+---
+
+## Implementation Notes — Feature 16 (Transactions)
+
+- **`transactions.py`** — atomic batch operations across DuckDB and NetworkX.
+  - `graph_transaction` context manager: enters DuckDB `BEGIN TRANSACTION`, deep-copies the NetworkX graph, sets `_active_tx_conn` ContextVar.
+  - On success exit: `COMMIT`; NetworkX changes kept.
+  - On error exit: `ROLLBACK`; singleton graph restored from snapshot; traversal cache cleared.
+  - Nested transactions raise `GraphTransactionError` (single-level only).
+  - Deadlock handling: retry commit once on `duckdb.Error` containing "lock".
+  - `get_active_connection()` and `is_in_transaction()` query functions used by CRUD modules.
+
+- **Integration with CRUD**: `create_node`, `create_edge`, `create_edges` check `is_in_transaction()` before opening their own connection. Inside a transaction they use the shared connection and skip connection close / inner transaction boundaries.

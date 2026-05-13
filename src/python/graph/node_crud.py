@@ -13,6 +13,7 @@ from persistence.duckdb_connection import get_connection
 from utils.logging import get_logger
 
 from .singleton import get_graph
+from .transactions import get_active_connection, is_in_transaction
 
 logger = get_logger(__name__)
 
@@ -54,9 +55,16 @@ def create_node(
             logger.error("data_json serialization failed", extra={"error": str(e)})
             raise ValueError(f"data_json not JSON-serializable: {e}") from e
 
+    local_conn = False
     con = None
     try:
-        con = get_connection(db_path)
+        if is_in_transaction():
+            con = get_active_connection()
+        else:
+            con = get_connection(db_path)
+            local_conn = True
+
+        assert con is not None
 
         # Duplicate check: (type, name) must be unique
         row = con.execute(
@@ -101,5 +109,5 @@ def create_node(
         logger.error("create_node failed", extra={"error": str(e)})
         raise
     finally:
-        if con:
+        if local_conn and con:
             con.close()

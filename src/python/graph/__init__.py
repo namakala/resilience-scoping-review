@@ -19,6 +19,7 @@ from .node_crud import create_node
 from .queries import get_node, get_node_by_name, get_nodes_by_type_and_tag
 from .singleton import get_graph, rebuild_graph
 from .sync import sync_edge, sync_node
+from .transactions import GraphTransactionError, graph_transaction
 from .traversal import (
     clear_traversal_cache,
     get_children,
@@ -42,6 +43,8 @@ __all__ = [
     "get_node_by_name",
     "ForeignKeyError",
     "CycleError",
+    "GraphTransactionError",
+    "graph_transaction",
     "get_children",
     "get_parents",
     "get_successors",

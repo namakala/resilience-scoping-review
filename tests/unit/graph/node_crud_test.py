@@ -318,7 +318,7 @@ class TestCreateNodeAtomicity(unittest.TestCase):
         except ImportError:
             self.skipTest("Feature 16 (transactions) not yet implemented")
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ValueError):
             with graph_transaction(db_path=self.db_path):
                 nid1 = create_node(
                     node_type="code",

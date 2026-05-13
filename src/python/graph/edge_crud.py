@@ -14,6 +14,7 @@ from utils.logging import get_logger
 
 from .exceptions import ForeignKeyError
 from .singleton import get_graph
+from .transactions import get_active_connection, is_in_transaction
 
 logger = get_logger(__name__)
 
@@ -120,9 +121,17 @@ def create_edge(
     metadata_str = _serialize_metadata(metadata_json)
 
     G = get_graph(db_path)
+    local_conn = False
     con = None
     try:
-        con = get_connection(db_path)
+        if is_in_transaction():
+            con = get_active_connection()
+        else:
+            con = get_connection(db_path)
+            local_conn = True
+
+        assert con is not None
+
         _check_nodes_exist(con, source_id, target_id)
         updated = _upsert_edge(con, source_id, target_id, edge_type, metadata_str)
 
@@ -141,7 +150,7 @@ def create_edge(
         logger.error("create_edge failed", extra={"error": str(e)})
         raise
     finally:
-        if con:
+        if local_conn and con:
             con.close()
 
 
@@ -179,16 +188,28 @@ def create_edges(
         serialized.append((s, t, et, ms, m))
 
     G = get_graph(db_path)
+    local_conn = False
     con = None
     try:
-        con = get_connection(db_path)
-        con.execute("BEGIN TRANSACTION")
+        if is_in_transaction():
+            con = get_active_connection()
+            in_tx = True
+        else:
+            con = get_connection(db_path)
+            local_conn = True
+            in_tx = False
+
+        assert con is not None
+
+        if not in_tx:
+            con.execute("BEGIN TRANSACTION")
 
         for s, t, et, ms, _ in serialized:
             _check_nodes_exist(con, s, t)
             _upsert_edge(con, s, t, et, ms)
 
-        con.execute("COMMIT")
+        if not in_tx:
+            con.execute("COMMIT")
 
         for s, t, et, _, m_dict in serialized:
             G.add_edge(s, t, type=et, metadata=m_dict)
@@ -196,12 +217,12 @@ def create_edges(
         logger.info("Batch edges created", extra={"count": len(edge_list)})
 
     except (ValueError, ForeignKeyError, duckdb.Error):
-        if con:
+        if con and not in_tx:
             try:
                 con.execute("ROLLBACK")
             except duckdb.Error:
                 logger.warning("create_edges: rollback failed")
         raise
     finally:
-        if con:
+        if local_conn and con:
             con.close()
