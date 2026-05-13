@@ -1,6 +1,7 @@
 """Tests for inference/parsing.py — response parsing and validation."""
 
 # flake8: noqa: E402
+import logging
 import sys
 import unittest
 from pathlib import Path
@@ -11,8 +12,12 @@ from inference.parsing import (
     CodeInference,
     InterpretationInference,
     ThemeInference,
+    _has_trailing_comma,
     _strip_fences,
     _unwrap,
+)
+from inference.parsing import logger as parsing_logger
+from inference.parsing import (
     parse_code_response,
     parse_interpretation_response,
     parse_theme_response,
@@ -139,6 +144,32 @@ class TestParseCodeResponse(unittest.TestCase):
         )
         self.assertEqual(len(result), 2)
         self.assertEqual(result[1].related_existing_codes, ["CodeA"])
+
+    def test_trailing_comma_in_array(self):
+        with self.assertRaises(ParseError) as ctx:
+            parse_code_response(
+                '{"codes": [{"exemplar_id": "E001", "code_name": "N", '
+                '"definition": "D", "supporting_quote": "Q"},]}'
+            )
+        self.assertIn("trailing comma", str(ctx.exception).lower())
+
+    def test_trailing_comma_in_object(self):
+        with self.assertRaises(ParseError) as ctx:
+            parse_code_response(
+                '{"codes": [{"exemplar_id": "E001", "code_name": "N",}],}'
+            )
+        self.assertIn("trailing comma", str(ctx.exception).lower())
+
+    def test_extra_fields_emits_warning(self):
+        with self.assertLogs(parsing_logger, level=logging.WARNING) as log:
+            parse_code_response(
+                '{"codes": [{"exemplar_id": "E001", "code_name": "N", '
+                '"definition": "D", "supporting_quote": "Q", '
+                '"unexpected_field": "ignored"}]}'
+            )
+        self.assertTrue(
+            any("Extra fields" in msg and "CodeInference" in msg for msg in log.output)
+        )
 
 
 class TestParseThemeResponse(unittest.TestCase):

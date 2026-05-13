@@ -15,6 +15,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 from utils.exceptions import ParseError
+from utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = [
     "CodeInference",
@@ -67,6 +70,11 @@ _INTERP_WRAPPER = "interpretations"
 def _strip_fences(text: str) -> str:
     """Remove markdown code fences (`` ```json `` or ``````)."""
     return re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.MULTILINE).strip()
+
+
+def _has_trailing_comma(text: str) -> bool:
+    """Check if JSON text has trailing comma before closing bracket/brace."""
+    return bool(re.search(r",\s*[}\]]", text))
 
 
 def _unwrap(data: dict[str, Any], wrapper_key: str) -> list[dict[str, Any]]:
@@ -128,6 +136,16 @@ def _parse_response(
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
+        logger.error(
+            "Failed to parse LLM response: %s\nRaw text: %s",
+            exc,
+            text,
+        )
+        if _has_trailing_comma(text):
+            raise ParseError(
+                "Trailing comma detected in JSON response",
+                response_text=text,
+            )
         raise ParseError(f"Invalid JSON: {exc}", response_text=text)
     if not isinstance(data, dict):
         raise ParseError(
@@ -135,10 +153,23 @@ def _parse_response(
             response_text=text,
         )
     items = _unwrap(data, wrapper_key)
-    try:
-        return [model_cls(**item) for item in items]
-    except Exception as exc:
-        raise ParseError(f"Schema validation failed: {exc}", response_text=text)
+    validated: list[BaseModel] = []
+    for item in items:
+        extra_keys = set(item) - set(model_cls.model_fields)
+        if extra_keys:
+            logger.warning(
+                "Extra fields in %s: %s",
+                model_cls.__name__,
+                sorted(extra_keys),
+            )
+        try:
+            validated.append(model_cls(**item))
+        except Exception as exc:
+            raise ParseError(
+                f"Schema validation failed: {exc}",
+                response_text=text,
+            )
+    return validated
 
 
 # ── Public API ────────────────────────────────────────────────────────────
