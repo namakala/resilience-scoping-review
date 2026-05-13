@@ -1,7 +1,7 @@
 ---
 title: "19 — traversal-cache-materialization"
 description: "Precompute and store ancestors, descendants, subtree aggregates in DuckDB"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 3
 ---
 
@@ -37,9 +37,11 @@ Precompute and store in DuckDB `traversal_cache` table: for each tag, store arra
 
 - Module: `src/python/ontology/cache.py`
 - Table schema: `tag TEXT PRIMARY KEY, ancestors JSON, descendants JSON, subtree_exemplars JSON, subtree_codes JSON, subtree_themes JSON, stale BOOLEAN DEFAULT FALSE`
-- Compute on startup: iterate all tags → compute via NetworkX traversal → join with exemplars table
+- Feature 18 (`ontology.traversal`) implements in-memory `lru_cache` for traversal ops via NetworkX
+- This feature should build on top of Feature 18's public API (`get_ancestors`, `get_descendants`, `get_subtree`), replacing the in-memory `lru_cache` with DuckDB-backed persistence while keeping the API unchanged
+- Compute on startup: iterate all tags → call `get_ancestors(tag)`, `get_descendants(tag)` → store results in DuckDB
 - `subtree_exemplar_ids`: find all exemplars whose tag is in `get_subtree(tag)`
-- `get_cached_subtree(tag)`: read row; if `stale=True`, recompute and update
+- `get_cached_subtree(tag)`: read row from DuckDB; if `stale=True`, recompute using Feature 18 functions and update
 - Batch query: `SELECT * FROM traversal_cache WHERE tag IN (?, ?, ...)`
 
 ---

@@ -1,7 +1,7 @@
 ---
 title: "18 — ontology-traversal-ops"
 description: "get_ancestors, get_descendants, get_subtree, is_ancestor"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 3
 ---
 
@@ -36,11 +36,13 @@ Implement tag traversal functions: `get_ancestors(tag: str) → list[str]` (all 
 ## Implementation Notes
 
 - Module: `src/python/ontology/traversal.py`
-- Use precomputed caches from Feature 19: `get_cached_ancestors(tag)`, `get_cached_descendants(tag)`
+- Uses in-memory `functools.lru_cache` on NetworkX calls (amortized O(1) after cache warm-up)
 - `get_ancestors`: from cache list, filter to ancestors only (exclude self and siblings)
 - `get_subtree = {tag} ∪ get_descendants(tag)`
 - `is_ancestor`: `parent in get_ancestors(child)`
-- Cache warm-up at system initialization
+- `_resolve_tag(tag)` validates existence; raises `KeyError` for unknown tags
+- Cache warm-up at system initialization via first call
+- When Feature 19 is implemented, replace the internal `lru_cache` with DuckDB-backed persistence while keeping the public API unchanged
 
 ---
 
