@@ -80,7 +80,7 @@ class TestDuckDBInitialization(unittest.TestCase):
         initialize_database(db_path=self.db_path)
 
     def test_all_tables_exist(self) -> None:
-        """All six required tables are created."""
+        """All seven required tables are created."""
         initialize_database(db_path=self.db_path)
         con = get_connection(self.db_path)
         try:
@@ -98,6 +98,7 @@ class TestDuckDBInitialization(unittest.TestCase):
                 "session_state",
                 "user_actions",
                 "embedding_cache",
+                "invalidation_log",
             }
             self.assertEqual(expected, table_names)
         finally:

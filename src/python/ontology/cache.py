@@ -146,27 +146,6 @@ def get_cached_subtree(
         con.close()
 
 
-def invalidate_cache_for_tag(
-    tag: str,
-    db_path: Optional[Path] = None,
-) -> None:
-    """Mark the cache row for *tag* as stale, triggering recompute on next read.
-
-    Args:
-        tag: Ontology tag string.
-        db_path: DuckDB path. Defaults to session DB.
-    """
-    con = get_connection(db_path)
-    try:
-        con.execute(
-            "UPDATE traversal_cache SET stale = TRUE WHERE tag = ?",
-            [tag],
-        )
-        logger.info("Cache invalidated", extra={"tag": tag})
-    finally:
-        con.close()
-
-
 def clear_duckdb_cache(db_path: Optional[Path] = None) -> None:
     """Delete all rows from the traversal_cache table.
 

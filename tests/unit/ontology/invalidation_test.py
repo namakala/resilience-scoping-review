@@ -1,12 +1,11 @@
-"""Unit tests for DuckDB-backed traversal cache (Feature 19).
+"""Unit tests for incremental cache invalidation (Feature 20).
 
 Test coverage:
-- build_traversal_cache: populates all tags, correct ancestors/descendants,
-  correct subtree_exemplars, empty subtree_codes/themes, empty DAG handling
-- get_cached_subtree: returns full dict, fallback on missing, fallback on
-  stale, unknown tag raises KeyError
-- invalidate_cache_for_tag: sets stale flag
-- clear_duckdb_cache: empties table
+- invalidate_cache_for_tag: sets stale on tag, propagates to descendants
+- invalidate_cache_for_tags: bulk invalidation, single transaction
+- Audit log entries created for each invalidation
+- Unknown tag raises KeyError
+- get_cached_subtree recomputes after invalidation
 """
 
 # flake8: noqa: E402
@@ -71,22 +70,17 @@ def _make_exemplars_lf(exemplar_data):
 
 def _standard_tree():
     return [
-        {
-            "tag": "Problem",
-            "parent": "",
-            "description": "Root problem",
-            "n_contents": 4,
-        },
+        {"tag": "Problem", "parent": "", "description": "Root", "n_contents": 4},
         {
             "tag": "Problem.Cause",
             "parent": "Problem",
-            "description": "Causal factors",
+            "description": "Causes",
             "n_contents": 2,
         },
         {
             "tag": "Problem.Cause.Scope",
             "parent": "Problem.Cause",
-            "description": "Scope of cause",
+            "description": "Cause scope",
             "n_contents": 1,
         },
         {
@@ -104,7 +98,7 @@ def _standard_tree():
         {
             "tag": "Problem.Impact.Scope",
             "parent": "Problem.Impact",
-            "description": "Scope of impact",
+            "description": "Impact scope",
             "n_contents": 0,
         },
     ]
@@ -162,7 +156,8 @@ def _standard_exemplars():
 
 
 def _create_tables(con):
-    """Create test tables: traversal_cache and invalidation_log."""
+    """Create sequences, traversal_cache and invalidation_log tables."""
+    con.execute("CREATE SEQUENCE IF NOT EXISTS il_seq START 1;")
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS traversal_cache (
@@ -176,7 +171,6 @@ def _create_tables(con):
         );
     """
     )
-    con.execute("CREATE SEQUENCE IF NOT EXISTS il_seq START 1;")
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS invalidation_log (
@@ -189,8 +183,8 @@ def _create_tables(con):
     )
 
 
-class TestTraversalCache(unittest.TestCase):
-    """Test suite for DuckDB-backed traversal cache."""
+class TestInvalidation(unittest.TestCase):
+    """Test suite for incremental cache invalidation."""
 
     def setUp(self):
         import ontology.dag as dag_mod
@@ -213,255 +207,265 @@ class TestTraversalCache(unittest.TestCase):
         if self.db_path.exists():
             self.db_path.unlink()
 
-    # --- build_traversal_cache ---
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_build_populates_all_tags(self, mock_exemplars, mock_tags):
-        """After build_traversal_cache, all 6 tags have rows."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache
-
-        count = build_traversal_cache(self.db_path)
-        self.assertEqual(count, 6)
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        rows = con.execute("SELECT COUNT(*) FROM traversal_cache").fetchone()[0]
-        con.close()
-        self.assertEqual(rows, 6)
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_cache_ancestors_correct(self, mock_exemplars, mock_tags):
-        """Ancestor JSON deserialized matches expected values."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
+    def _build_cache(self):
+        """Helper: build traversal cache with standard tree."""
         from ontology.cache import build_traversal_cache
 
         build_traversal_cache(self.db_path)
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        row = con.execute(
-            "SELECT ancestors FROM traversal_cache " "WHERE tag = 'Problem.Cause.Scope'"
-        ).fetchone()
-        con.close()
-        self.assertEqual(json.loads(row[0]), ["Problem", "Problem.Cause"])
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_cache_descendants_correct(self, mock_exemplars, mock_tags):
-        """Descendant JSON for root includes all 5 other tags."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache
-
-        build_traversal_cache(self.db_path)
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        row = con.execute(
-            "SELECT descendants FROM traversal_cache " "WHERE tag = 'Problem'"
-        ).fetchone()
-        con.close()
-        desc = json.loads(row[0])
-        self.assertEqual(len(desc), 5)
-        self.assertIn("Problem.Cause", desc)
-        self.assertIn("Problem.Cause.Scope", desc)
-        self.assertIn("Problem.Solution", desc)
-        self.assertIn("Problem.Impact", desc)
-        self.assertIn("Problem.Impact.Scope", desc)
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_subtree_exemplars_computed(self, mock_exemplars, mock_tags):
-        """Exemplar IDs match tags within the tag's subtree."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache
-
-        build_traversal_cache(self.db_path)
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        row = con.execute(
-            "SELECT subtree_exemplars FROM traversal_cache "
-            "WHERE tag = 'Problem.Cause'"
-        ).fetchone()
-        con.close()
-        # Problem.Cause subtree: Problem.Cause (id=2), Problem.Cause.Scope (id=3)
-        self.assertEqual(json.loads(row[0]), [2, 3])
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_subtree_codes_themes_initially_empty(self, mock_exemplars, mock_tags):
-        """subtree_codes and subtree_themes are empty JSON arrays."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache
-
-        build_traversal_cache(self.db_path)
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        rows = con.execute(
-            "SELECT subtree_codes, subtree_themes FROM traversal_cache"
-        ).fetchall()
-        con.close()
-        for codes, themes in rows:
-            self.assertEqual(json.loads(codes), [])
-            self.assertEqual(json.loads(themes), [])
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_build_empty_dag(self, mock_exemplars, mock_tags):
-        """Empty DAG returns 0 without error."""
-        mock_tags.return_value = _make_tags_lf([])
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache
-
-        count = build_traversal_cache(self.db_path)
-        self.assertEqual(count, 0)
-
-    # --- get_cached_subtree ---
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_get_cached_subtree_returns_full_dict(self, mock_exemplars, mock_tags):
-        """get_cached_subtree returns dict with all expected keys."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import build_traversal_cache, get_cached_subtree
-
-        build_traversal_cache(self.db_path)
-
-        result = get_cached_subtree("Problem.Cause.Scope", self.db_path)
-        self.assertEqual(result["tag"], "Problem.Cause.Scope")
-        self.assertEqual(result["ancestors"], ["Problem", "Problem.Cause"])
-        self.assertEqual(result["descendants"], [])
-        self.assertEqual(result["subtree_exemplars"], [3])
-        self.assertEqual(result["subtree_codes"], [])
-        self.assertEqual(result["subtree_themes"], [])
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_get_cached_subtree_fallback_on_missing(self, mock_exemplars, mock_tags):
-        """Missing row triggers recompute and returns correct data."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import get_cached_subtree
-
-        result = get_cached_subtree("Problem", self.db_path)
-        self.assertEqual(result["tag"], "Problem")
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        row = con.execute(
-            "SELECT 1 FROM traversal_cache " "WHERE tag = 'Problem' AND stale = FALSE"
-        ).fetchone()
-        con.close()
-        self.assertIsNotNone(row)
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_get_cached_subtree_fallback_on_stale(self, mock_exemplars, mock_tags):
-        """Stale row triggers recompute and clears stale flag."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        import duckdb
-
-        con = duckdb.connect(str(self.db_path))
-        con.execute(
-            "INSERT INTO traversal_cache VALUES "
-            "('Problem', '[]', '[]', '[]', '[]', '[]', TRUE)"
-        )
-        con.close()
-
-        from ontology.cache import get_cached_subtree
-
-        result = get_cached_subtree("Problem", self.db_path)
-        self.assertEqual(result["tag"], "Problem")
-
-        con = duckdb.connect(str(self.db_path))
-        stale = con.execute(
-            "SELECT stale FROM traversal_cache WHERE tag = 'Problem'"
-        ).fetchone()[0]
-        con.close()
-        self.assertFalse(stale)
-
-    @patch("ontology.dag.load_tags")
-    @patch("ontology.cache.load_exemplars")
-    def test_get_cached_subtree_unknown_tag(self, mock_exemplars, mock_tags):
-        """Unknown tag raises KeyError."""
-        mock_tags.return_value = _make_tags_lf(_standard_tree())
-        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
-
-        from ontology.cache import get_cached_subtree
-
-        with self.assertRaises(KeyError):
-            get_cached_subtree("Nonexistent.Tag", self.db_path)
 
     # --- invalidate_cache_for_tag ---
 
     @patch("ontology.dag.load_tags")
     @patch("ontology.cache.load_exemplars")
-    def test_invalidate_sets_stale_flag(self, mock_exemplars, mock_tags):
-        """After invalidate_cache_for_tag, stale=TRUE for that tag."""
+    def test_invalidate_sets_stale_on_tag(self, mock_exemplars, mock_tags):
+        """invalidate_cache_for_tag sets stale=TRUE for the target tag."""
         mock_tags.return_value = _make_tags_lf(_standard_tree())
         mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
 
-        from ontology.cache import build_traversal_cache
         from ontology.invalidation import invalidate_cache_for_tag
 
-        build_traversal_cache(self.db_path)
-        invalidate_cache_for_tag("Problem", self.db_path)
+        invalidate_cache_for_tag("Problem.Cause", self.db_path)
 
         import duckdb
 
         con = duckdb.connect(str(self.db_path))
         stale = con.execute(
-            "SELECT stale FROM traversal_cache WHERE tag = 'Problem'"
+            "SELECT stale FROM traversal_cache WHERE tag = 'Problem.Cause'"
         ).fetchone()[0]
         con.close()
         self.assertTrue(stale)
 
-    # --- clear_duckdb_cache ---
-
     @patch("ontology.dag.load_tags")
     @patch("ontology.cache.load_exemplars")
-    def test_clear_cache_empties_table(self, mock_exemplars, mock_tags):
-        """After clear_duckdb_cache, traversal_cache is empty."""
+    def test_invalidate_propagates_to_descendants(self, mock_exemplars, mock_tags):
+        """Descendants of the invalidated tag also get stale=TRUE."""
         mock_tags.return_value = _make_tags_lf(_standard_tree())
         mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
 
-        from ontology.cache import build_traversal_cache, clear_duckdb_cache
+        from ontology.invalidation import invalidate_cache_for_tag
 
-        build_traversal_cache(self.db_path)
-        clear_duckdb_cache(self.db_path)
+        invalidate_cache_for_tag("Problem.Cause", self.db_path)
 
         import duckdb
 
         con = duckdb.connect(str(self.db_path))
-        count = con.execute("SELECT COUNT(*) FROM traversal_cache").fetchone()[0]
+        rows = dict(
+            con.execute(
+                "SELECT tag, stale FROM traversal_cache "
+                "WHERE tag IN ('Problem.Cause', 'Problem.Cause.Scope')"
+            ).fetchall()
+        )
         con.close()
-        self.assertEqual(count, 0)
+        self.assertTrue(rows["Problem.Cause"])
+        self.assertTrue(rows["Problem.Cause.Scope"])
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_leaf_tag_no_propagation(self, mock_exemplars, mock_tags):
+        """Leaf tag only marks itself stale, not its parent or siblings."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.invalidation import invalidate_cache_for_tag
+
+        invalidate_cache_for_tag("Problem.Cause.Scope", self.db_path)
+
+        import duckdb
+
+        con = duckdb.connect(str(self.db_path))
+        rows = dict(
+            con.execute(
+                "SELECT tag, stale FROM traversal_cache "
+                "WHERE tag IN ('Problem', 'Problem.Cause', 'Problem.Cause.Scope', "
+                "'Problem.Solution')"
+            ).fetchall()
+        )
+        con.close()
+        self.assertFalse(rows["Problem"])
+        self.assertFalse(rows["Problem.Cause"])
+        self.assertTrue(rows["Problem.Cause.Scope"])
+        self.assertFalse(rows["Problem.Solution"])
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_root_tag_all_descendants(self, mock_exemplars, mock_tags):
+        """Root tag propagates stale to all other tags."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.invalidation import invalidate_cache_for_tag
+
+        invalidate_cache_for_tag("Problem", self.db_path)
+
+        import duckdb
+
+        con = duckdb.connect(str(self.db_path))
+        rows = dict(con.execute("SELECT tag, stale FROM traversal_cache").fetchall())
+        con.close()
+        self.assertTrue(rows["Problem"])
+        self.assertTrue(rows["Problem.Cause"])
+        self.assertTrue(rows["Problem.Cause.Scope"])
+        self.assertTrue(rows["Problem.Solution"])
+        self.assertTrue(rows["Problem.Impact"])
+        self.assertTrue(rows["Problem.Impact.Scope"])
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_logs_audit_entry(self, mock_exemplars, mock_tags):
+        """Invalidation creates an audit log entry with tag and reason."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.invalidation import invalidate_cache_for_tag
+
+        invalidate_cache_for_tag("Problem.Cause", self.db_path, "tag_merge")
+
+        import duckdb
+
+        con = duckdb.connect(str(self.db_path))
+        entries = con.execute(
+            "SELECT tag, reason FROM invalidation_log ORDER BY id"
+        ).fetchall()
+        con.close()
+        tags_logged = [e[0] for e in entries]
+        reasons = set(e[1] for e in entries)
+        self.assertIn("Problem.Cause", tags_logged)
+        self.assertIn("Problem.Cause.Scope", tags_logged)
+        # All entries for same call share the reason
+        self.assertEqual(reasons, {"tag_merge"})
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_unknown_tag_raises(self, mock_exemplars, mock_tags):
+        """Unknown tag raises KeyError."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.invalidation import invalidate_cache_for_tag
+
+        with self.assertRaises(KeyError):
+            invalidate_cache_for_tag("Nonexistent.Tag", self.db_path)
+
+    # --- invalidate_cache_for_tags (bulk) ---
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_bulk_multiple_tags(self, mock_exemplars, mock_tags):
+        """Bulk invalidation marks multiple tag branches as stale."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.invalidation import invalidate_cache_for_tags
+
+        invalidate_cache_for_tags(
+            ["Problem.Cause", "Problem.Impact"],
+            self.db_path,
+            "bulk_test",
+        )
+
+        import duckdb
+
+        con = duckdb.connect(str(self.db_path))
+        stale_tags = set(
+            row[0]
+            for row in con.execute(
+                "SELECT tag FROM traversal_cache WHERE stale = TRUE"
+            ).fetchall()
+        )
+        con.close()
+        expected = {
+            "Problem.Cause",
+            "Problem.Cause.Scope",
+            "Problem.Impact",
+            "Problem.Impact.Scope",
+        }
+        self.assertEqual(stale_tags, expected)
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_invalidate_bulk_single_transaction(self, mock_exemplars, mock_tags):
+        """Bulk invalidation commits atomically — all or nothing."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        import duckdb
+
+        # Pre-seed a log entry to verify rollback doesn't affect prior data
+        con = duckdb.connect(str(self.db_path))
+        con.execute(
+            "INSERT INTO invalidation_log (id, tag, reason) VALUES "
+            "(999, 'pre_seed', 'setup')"
+        )
+        con.close()
+
+        from ontology.invalidation import invalidate_cache_for_tags
+
+        # Unknown tag should cause rollback of entire batch
+        with self.assertRaises(KeyError):
+            invalidate_cache_for_tags(
+                ["Problem.Cause", "Unknown.Tag"],
+                self.db_path,
+                "should_rollback",
+            )
+
+        con = duckdb.connect(str(self.db_path))
+        # Pre-seed entry should still exist
+        pre_seed = con.execute(
+            "SELECT tag FROM invalidation_log WHERE id = 999"
+        ).fetchone()
+        # Problem.Cause should NOT have been marked stale
+        stale = con.execute(
+            "SELECT stale FROM traversal_cache WHERE tag = 'Problem.Cause'"
+        ).fetchone()[0]
+        # No entries for the rollback batch
+        rollback_entries = con.execute(
+            "SELECT COUNT(*) FROM invalidation_log WHERE reason = 'should_rollback'"
+        ).fetchone()[0]
+        con.close()
+
+        self.assertIsNotNone(pre_seed)
+        self.assertFalse(stale)
+        self.assertEqual(rollback_entries, 0)
+
+    # --- Integration with get_cached_subtree ---
+
+    @patch("ontology.dag.load_tags")
+    @patch("ontology.cache.load_exemplars")
+    def test_get_cached_subtree_recomputes_after_invalidate(
+        self, mock_exemplars, mock_tags
+    ):
+        """After invalidation, get_cached_subtree recomputes and clears stale."""
+        mock_tags.return_value = _make_tags_lf(_standard_tree())
+        mock_exemplars.return_value = _make_exemplars_lf(_standard_exemplars())
+        self._build_cache()
+
+        from ontology.cache import get_cached_subtree
+        from ontology.invalidation import invalidate_cache_for_tag
+
+        invalidate_cache_for_tag("Problem.Cause", self.db_path)
+
+        # Trigger recompute
+        result = get_cached_subtree("Problem.Cause", self.db_path)
+
+        self.assertEqual(result["tag"], "Problem.Cause")
+        self.assertEqual(result["ancestors"], ["Problem"])
+
+        import duckdb
+
+        con = duckdb.connect(str(self.db_path))
+        stale = con.execute(
+            "SELECT stale FROM traversal_cache WHERE tag = 'Problem.Cause'"
+        ).fetchone()[0]
+        con.close()
+        self.assertFalse(stale)
 
 
 if __name__ == "__main__":

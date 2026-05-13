@@ -10,6 +10,7 @@ def _ensure_sequences(con: duckdb.DuckDBPyConnection) -> None:
     """Create sequences used for auto-incrementing primary keys."""
     con.execute("CREATE SEQUENCE IF NOT EXISTS nodes_id_seq START 1;")
     con.execute("CREATE SEQUENCE IF NOT EXISTS ua_seq START 1;")
+    con.execute("CREATE SEQUENCE IF NOT EXISTS il_seq START 1;")
 
 
 def _create_nodes_table(con: duckdb.DuckDBPyConnection) -> None:
@@ -74,6 +75,30 @@ def _create_session_state_table(con: duckdb.DuckDBPyConnection) -> None:
         );
     """
     )
+
+
+def _create_invalidation_log_table(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the invalidation_log audit table."""
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS invalidation_log (
+            id INTEGER DEFAULT nextval('il_seq') PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            tag VARCHAR NOT NULL,
+            reason VARCHAR NOT NULL
+        );
+    """
+    )
+    try:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS "
+            "idx_invalidation_log_timestamp ON invalidation_log(timestamp);"
+        )
+    except Exception as e:
+        logger.warning(
+            "Could not create index on invalidation_log.timestamp",
+            extra={"error": str(e)},
+        )
 
 
 def _create_user_actions_table(con: duckdb.DuckDBPyConnection) -> None:
