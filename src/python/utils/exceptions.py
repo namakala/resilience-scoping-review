@@ -70,3 +70,17 @@ class ConfigurationError(Exception):
 
     def __init__(self, message: str = "", *args: Any) -> None:
         super().__init__(message or "Configuration error", *args)
+
+
+class ParseError(Exception):
+    """Raised when LLM response parsing fails (invalid JSON, missing
+    wrapper key, schema validation error)."""
+
+    def __init__(
+        self,
+        message: str = "",
+        response_text: str | None = None,
+        *args: Any,
+    ) -> None:
+        self.response_text = response_text
+        super().__init__(message or "Failed to parse LLM response", *args)

@@ -9,12 +9,14 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
 
 from inference.groq_client import (  # noqa: E402
+    build_messages,
     get_client,
     get_model,
     get_sync_client,
     reset_client,
     set_client,
 )
+from inference.prompts import PromptBundle  # noqa: E402
 from utils.exceptions import ConfigurationError  # noqa: E402
 
 
@@ -127,6 +129,51 @@ class TestGroqClient(unittest.TestCase):
         async_client = get_client()
         sync_client = get_sync_client()
         self.assertIsNot(async_client, sync_client)
+
+
+class TestBuildMessages(unittest.TestCase):
+    """Tests for build_messages() role-structured array construction."""
+
+    def test_system_and_user(self):
+        msgs = build_messages(system="sys", user="usr")
+        self.assertEqual(len(msgs), 2)
+        self.assertEqual(msgs[0]["role"], "system")
+        self.assertEqual(msgs[0]["content"], "sys")
+        self.assertEqual(msgs[1]["role"], "user")
+        self.assertEqual(msgs[1]["content"], "usr")
+
+    def test_with_fewshot(self):
+        msgs = build_messages(
+            system="sys",
+            user="usr",
+            fewshot=[
+                {"user": "ex1", "assistant": "resp1"},
+                {"user": "ex2", "assistant": "resp2"},
+            ],
+        )
+        self.assertEqual(len(msgs), 6)
+        self.assertEqual(msgs[0]["role"], "system")
+        self.assertEqual(msgs[1]["role"], "user")
+        self.assertEqual(msgs[1]["content"], "ex1")
+        self.assertEqual(msgs[2]["role"], "assistant")
+        self.assertEqual(msgs[2]["content"], "resp1")
+        self.assertEqual(msgs[3]["role"], "user")
+        self.assertEqual(msgs[3]["content"], "ex2")
+        self.assertEqual(msgs[4]["role"], "assistant")
+        self.assertEqual(msgs[4]["content"], "resp2")
+        self.assertEqual(msgs[5]["role"], "user")
+        self.assertEqual(msgs[5]["content"], "usr")
+
+    def test_empty_fewshot(self):
+        msgs = build_messages(system="sys", user="usr", fewshot=[])
+        self.assertEqual(len(msgs), 2)
+        self.assertEqual(msgs[0]["role"], "system")
+        self.assertEqual(msgs[1]["role"], "user")
+
+    def test_from_prompt_bundle(self):
+        bundle = PromptBundle(system="sys", user="usr")
+        msgs = build_messages(bundle.system, bundle.user)
+        self.assertEqual(len(msgs), 2)
 
 
 if __name__ == "__main__":

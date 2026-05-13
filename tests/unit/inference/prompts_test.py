@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
 
 from inference.prompts import (  # noqa: E402
+    PromptBundle,
     render_code_prompt,
     render_interpretation_prompt,
     render_theme_prompt,
@@ -30,10 +31,14 @@ class TestPromptTemplates(unittest.TestCase):
         for key in keys:
             self.assertIn(key, text, msg=f"Missing expected key: {key}")
 
+    def assert_is_prompt_bundle(self, obj):
+        """Assert the return value is a PromptBundle."""
+        self.assertIsInstance(obj, PromptBundle)
+
     # -- code_inference.j2 ------------------------------------------------
 
     def test_code_prompt_renders_with_exemplars(self):
-        prompt = render_code_prompt(
+        bundle = render_code_prompt(
             ontology_path=["root", "tag1", "subtag"],
             tag_description="Codes related to adaptive capacity",
             existing_codes=[
@@ -50,16 +55,26 @@ class TestPromptTemplates(unittest.TestCase):
                 }
             ],
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
-            ["code_name", "definition", "supporting_quote", "related_existing_codes"],
+            bundle.system,
+            [
+                "code_name",
+                "definition",
+                "supporting_quote",
+                "related_existing_codes",
+                "exemplar_id",
+            ],
         )
-        self.assertIn("E001", prompt)
-        self.assertIn("Coping Strategy", prompt)
+        # Verify wrapper object structure in system prompt
+        self.assertIn('"codes"', bundle.system)
+        self.assertIn("E001", bundle.user)
+        self.assertIn("Coping Strategy", bundle.user)
 
     def test_code_prompt_empty_existing_codes(self):
-        prompt = render_code_prompt(
+        bundle = render_code_prompt(
             ontology_path=["root", "tag1"],
             tag_description="A test tag",
             existing_codes=[],
@@ -71,26 +86,30 @@ class TestPromptTemplates(unittest.TestCase):
                 }
             ],
         )
-        self.assert_no_unrendered_placeholders(prompt)
-        self.assertIn("No existing codes", prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
+        self.assertIn("No existing codes", bundle.user)
 
     def test_code_prompt_empty_exemplars(self):
-        prompt = render_code_prompt(
+        bundle = render_code_prompt(
             ontology_path=["root"],
             tag_description="Empty tag",
             existing_codes=[],
             exemplars=[],
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
-            ["code_name", "definition", "supporting_quote"],
+            bundle.system,
+            ["code_name", "definition", "supporting_quote", "exemplar_id"],
         )
 
     # -- theme_inference.j2 ------------------------------------------------
 
     def test_theme_prompt_renders_with_codes(self):
-        prompt = render_theme_prompt(
+        bundle = render_theme_prompt(
             tag_name="Adaptive Capacity",
             tag_description="Community ability to adapt",
             ontology_path=["root", "tag1"],
@@ -109,17 +128,20 @@ class TestPromptTemplates(unittest.TestCase):
                 },
             ],
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
+            bundle.system,
             ["theme_name", "narrative", "code_ids"],
         )
-        self.assertIn("C001", prompt)
-        self.assertIn("C002", prompt)
-        self.assertIn("Adaptive Capacity", prompt)
+        self.assertIn('"themes"', bundle.system)
+        self.assertIn("C001", bundle.user)
+        self.assertIn("C002", bundle.user)
+        self.assertIn("Adaptive Capacity", bundle.user)
 
     def test_theme_prompt_single_code(self):
-        prompt = render_theme_prompt(
+        bundle = render_theme_prompt(
             tag_name="Isolated Tag",
             tag_description="Tag with only one code",
             ontology_path=["root"],
@@ -132,16 +154,18 @@ class TestPromptTemplates(unittest.TestCase):
                 }
             ],
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
+            bundle.system,
             ["theme_name", "code_ids"],
         )
 
     # -- interpretation_synthesis.j2 ---------------------------------------
 
     def test_interpretation_prompt_renders(self):
-        prompt = render_interpretation_prompt(
+        bundle = render_interpretation_prompt(
             tag_hierarchy=[
                 ["root", "tag1"],
                 ["root", "tag2"],
@@ -164,9 +188,11 @@ class TestPromptTemplates(unittest.TestCase):
                 ],
             },
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
+            bundle.system,
             [
                 "interpretation_name",
                 "narrative",
@@ -174,20 +200,23 @@ class TestPromptTemplates(unittest.TestCase):
                 "key_insights",
             ],
         )
-        self.assertIn("Community Cohesion", prompt)
-        self.assertIn("External Support", prompt)
-        self.assertIn("tag1", prompt)
-        self.assertIn("tag2", prompt)
+        self.assertIn('"interpretations"', bundle.system)
+        self.assertIn("Community Cohesion", bundle.user)
+        self.assertIn("External Support", bundle.user)
+        self.assertIn("tag1", bundle.user)
+        self.assertIn("tag2", bundle.user)
 
     def test_interpretation_prompt_empty_themes(self):
-        prompt = render_interpretation_prompt(
+        bundle = render_interpretation_prompt(
             tag_hierarchy=[["root", "tag1"]],
             ontology_subtree="root\\n  tag1",
             themes_by_tag={},
         )
-        self.assert_no_unrendered_placeholders(prompt)
+        self.assert_is_prompt_bundle(bundle)
+        self.assert_no_unrendered_placeholders(bundle.system)
+        self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
-            prompt,
+            bundle.system,
             ["interpretation_name", "narrative", "key_insights"],
         )
 

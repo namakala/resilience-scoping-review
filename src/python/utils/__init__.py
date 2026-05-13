@@ -9,6 +9,7 @@ from .exceptions import (
     CircuitBreakerOpenError,
     ConfigurationError,
     GroqAPIError,
+    ParseError,
     RetryExhaustedError,
     ShutdownRequestedError,
 )
@@ -23,6 +24,7 @@ __all__ = [
     "CircuitBreakerOpenError",
     "ShutdownRequestedError",
     "ConfigurationError",
+    "ParseError",
     "make_retry",
     "make_circuit_breaker",
     "graceful_shutdown",

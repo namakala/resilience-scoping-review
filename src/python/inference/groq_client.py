@@ -1,19 +1,25 @@
 """Groq async + sync client singleton for LLM inference.
 
-Usage:
-    from inference.groq_client import get_client, get_sync_client, get_model
+Provides low-level client access (get_client, get_sync_client) and a
+high-level :func:`complete` that builds a properly role-structured
+messages array from a :class:`PromptBundle`.
 
-    client = get_client()
-    model = get_model()
-    response = await client.chat.completions.create(
-        messages=[{"role": "user", "content": "Hello"}],
-        model=model,
-        max_tokens=5,
+Usage:
+    from inference.groq_client import (
+        get_client, get_sync_client, get_model,
+        build_messages, complete,
     )
+    from inference.prompts import render_code_prompt
+
+    bundle = render_code_prompt(...)
+    reply = complete(bundle)
+    print(reply.choices[0].message.content)
 """
 
 from config import groq_api_key, groq_max_retries, groq_model, groq_timeout
 from groq import AsyncGroq, Groq
+
+from .prompts import PromptBundle
 
 __all__ = [
     "get_client",
@@ -21,6 +27,8 @@ __all__ = [
     "get_model",
     "set_client",
     "reset_client",
+    "build_messages",
+    "complete",
 ]
 
 _client: AsyncGroq | None = None
@@ -67,3 +75,82 @@ def reset_client() -> None:
     global _client, _sync_client
     _client = None
     _sync_client = None
+
+
+def build_messages(
+    system: str,
+    user: str,
+    fewshot: list[dict] | None = None,
+) -> list[dict]:
+    """Build a messages array with proper Groq-supported roles.
+
+    Produces::
+
+        [{"role": "system", "content": <system>},
+         {"role": "user", "content": <fewshot[0].user>},
+         {"role": "assistant", "content": <fewshot[0].assistant>},
+         ...,
+         {"role": "user", "content": <user>}]
+
+    Parameters
+    ----------
+    system : str
+        System prompt (role, schema, rules).
+    user : str
+        User prompt (batch-specific data).
+    fewshot : list[dict] | None
+        Optional few-shot demonstrations; each dict must have
+        ``"user"`` and ``"assistant"`` keys.
+
+    Returns
+    -------
+    list[dict]
+        Messages array ready for ``client.chat.completions.create``.
+    """
+    messages: list[dict] = [{"role": "system", "content": system}]
+    if fewshot:
+        for ex in fewshot:
+            messages.append({"role": "user", "content": ex["user"]})
+            messages.append({"role": "assistant", "content": ex["assistant"]})
+    messages.append({"role": "user", "content": user})
+    return messages
+
+
+def complete(
+    prompt: PromptBundle,
+    model: str | None = None,
+    temperature: float = 0.0,
+    response_format: dict | None = None,
+):
+    """Send a :class:`PromptBundle` to Groq and return the completion.
+
+    Assembles a role-structured messages array, sets JSON output mode
+    and zero temperature by default.
+
+    Parameters
+    ----------
+    prompt : PromptBundle
+        Split system/user/fewshot prompt content.
+    model : str | None
+        Model override; uses ``get_model()`` if not given.
+    temperature : float
+        Sampling temperature (default ``0.0`` for deterministic).
+    response_format : dict | None
+        Groq ``response_format`` parameter; defaults to
+        ``{"type": "json_object"}``.
+
+    Returns
+    -------
+    ChatCompletion
+        The full Groq completion object. Access the text via
+        ``.choices[0].message.content``.
+    """
+    messages = build_messages(prompt.system, prompt.user, prompt.fewshot)
+    client = get_sync_client()
+    model = model or get_model()
+    return client.chat.completions.create(
+        messages=messages,
+        model=model,
+        temperature=temperature,
+        response_format=response_format or {"type": "json_object"},
+    )

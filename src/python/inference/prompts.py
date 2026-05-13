@@ -2,20 +2,25 @@
 
 Usage:
     from inference.prompts import (
+        PromptBundle,
         render_code_prompt,
         render_theme_prompt,
         render_interpretation_prompt,
     )
 
-    prompt = render_code_prompt(
+    bundle = render_code_prompt(
         ontology_path=["root", "tag1"],
         tag_description="...",
         existing_codes=[...],
         exemplars=[...],
     )
+    # bundle.system  -> system prompt (role, schema, rules)
+    # bundle.user    -> user prompt (ontology, exemplars, codes)
+    # bundle.fewshot -> optional few-shot demonstrations
 """
 
 import os
+from dataclasses import dataclass
 from typing import cast
 
 from jinja2 import Environment, FileSystemLoader
@@ -27,8 +32,28 @@ _env = Environment(
 )
 
 
-def render_code_prompt(**context) -> str:
-    """Render the code inference prompt template.
+@dataclass
+class PromptBundle:
+    """A fully rendered prompt split by message role.
+
+    Attributes
+    ----------
+    system : str
+        System prompt content (role, schema, rules).
+    user : str
+        User prompt content (batch-specific data).
+    fewshot : list[dict] | None
+        Optional few-shot demonstrations as alternating
+        ``{"user": "...", "assistant": "..."}`` pairs.
+    """
+
+    system: str
+    user: str
+    fewshot: list[dict] | None = None
+
+
+def render_code_prompt(**context) -> PromptBundle:
+    """Render code inference system + user prompts.
 
     Parameters
     ----------
@@ -41,15 +66,19 @@ def render_code_prompt(**context) -> str:
 
     Returns
     -------
-    str
-        Rendered prompt text.
+    PromptBundle
+        Split system and user prompt content.
     """
-    template = _env.get_template("code_inference.j2")
-    return cast(str, template.render(**context))
+    system_tpl = _env.get_template("code_inference_system.j2")
+    user_tpl = _env.get_template("code_inference_user.j2")
+    return PromptBundle(
+        system=cast(str, system_tpl.render()),
+        user=cast(str, user_tpl.render(**context)),
+    )
 
 
-def render_theme_prompt(**context) -> str:
-    """Render the theme inference prompt template.
+def render_theme_prompt(**context) -> PromptBundle:
+    """Render theme inference system + user prompts.
 
     Parameters
     ----------
@@ -63,15 +92,19 @@ def render_theme_prompt(**context) -> str:
 
     Returns
     -------
-    str
-        Rendered prompt text.
+    PromptBundle
+        Split system and user prompt content.
     """
-    template = _env.get_template("theme_inference.j2")
-    return cast(str, template.render(**context))
+    system_tpl = _env.get_template("theme_inference_system.j2")
+    user_tpl = _env.get_template("theme_inference_user.j2")
+    return PromptBundle(
+        system=cast(str, system_tpl.render()),
+        user=cast(str, user_tpl.render(**context)),
+    )
 
 
-def render_interpretation_prompt(**context) -> str:
-    """Render the interpretation synthesis prompt template.
+def render_interpretation_prompt(**context) -> PromptBundle:
+    """Render interpretation synthesis system + user prompts.
 
     Parameters
     ----------
@@ -84,8 +117,12 @@ def render_interpretation_prompt(**context) -> str:
 
     Returns
     -------
-    str
-        Rendered prompt text.
+    PromptBundle
+        Split system and user prompt content.
     """
-    template = _env.get_template("interpretation_synthesis.j2")
-    return cast(str, template.render(**context))
+    system_tpl = _env.get_template("interpretation_synthesis_system.j2")
+    user_tpl = _env.get_template("interpretation_synthesis_user.j2")
+    return PromptBundle(
+        system=cast(str, system_tpl.render()),
+        user=cast(str, user_tpl.render(**context)),
+    )
