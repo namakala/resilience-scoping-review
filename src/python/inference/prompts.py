@@ -52,11 +52,17 @@ class PromptBundle:
     fewshot: list[dict] | None = None
 
 
-def render_code_prompt(**context) -> PromptBundle:
+def render_code_prompt(
+    fewshot: list[dict] | None = None,
+    **context,
+) -> PromptBundle:
     """Render code inference system + user prompts.
 
     Parameters
     ----------
+    fewshot :
+        Optional few-shot demonstrations as alternating
+        ``{"user": ..., "assistant": ...}`` pairs.
     **context :
         Must include:
         - ontology_path : list[str]
@@ -74,14 +80,21 @@ def render_code_prompt(**context) -> PromptBundle:
     return PromptBundle(
         system=cast(str, system_tpl.render()),
         user=cast(str, user_tpl.render(**context)),
+        fewshot=fewshot,
     )
 
 
-def render_theme_prompt(**context) -> PromptBundle:
+def render_theme_prompt(
+    fewshot: list[dict] | None = None,
+    **context,
+) -> PromptBundle:
     """Render theme inference system + user prompts.
 
     Parameters
     ----------
+    fewshot :
+        Optional few-shot demonstrations as alternating
+        ``{"user": ..., "assistant": ...}`` pairs.
     **context :
         Must include:
         - tag_name : str
@@ -100,14 +113,21 @@ def render_theme_prompt(**context) -> PromptBundle:
     return PromptBundle(
         system=cast(str, system_tpl.render()),
         user=cast(str, user_tpl.render(**context)),
+        fewshot=fewshot,
     )
 
 
-def render_interpretation_prompt(**context) -> PromptBundle:
+def render_interpretation_prompt(
+    fewshot: list[dict] | None = None,
+    **context,
+) -> PromptBundle:
     """Render interpretation synthesis system + user prompts.
 
     Parameters
     ----------
+    fewshot :
+        Optional few-shot demonstrations as alternating
+        ``{"user": ..., "assistant": ...}`` pairs.
     **context :
         Must include:
         - tag_hierarchy : list[list[str]]
@@ -125,4 +145,5 @@ def render_interpretation_prompt(**context) -> PromptBundle:
     return PromptBundle(
         system=cast(str, system_tpl.render()),
         user=cast(str, user_tpl.render(**context)),
+        fewshot=fewshot,
     )

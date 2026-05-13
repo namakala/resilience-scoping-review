@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
 description: "Manages Groq batch inference, prompt templates, and structured output parsing"
-updated_at: "2026-05-13"
+updated_at: "2026-05-14"
 ---
 
 # Inference & LLM Layer
@@ -32,6 +32,24 @@ Group exemplars by parent tag to maintain contextual coherence. Each batch conta
 - Extracted keyword lists
 
 Larger batches reduce API calls but risk coherence loss. Smaller batches improve quality at higher cost. Batches submitted sequentially.
+
+## Few-Shot Examples
+
+Curated examples loaded from ``src/python/inference/fewshot/*.json``
+via ``load_fewshot()`` in ``fewshot_loader.py``. Each JSON file
+contains ``{"user": ..., "assistant": ...}`` pairs mirroring the
+rendered prompt format. Examples span two domains (resilience scoping
+review and universal healthcare coverage). Default: 2 examples per
+call. Configurable via ``FEWSHOT_ENABLED``, ``FEWSHOT_COUNT``,
+``FEWSHOT_SHUFFLE`` env vars.
+
+Examples injected as alternating ``user``/``assistant`` message pairs
+by ``build_messages()``, between ``system`` and the actual ``user``
+message. No changes to Jinja2 templates needed.
+
+Future enhancement: replace static JSON pool with dynamic retrieval
+from previously approved inference results once critical mass (>50
+pairs) is available.
 
 ## Prompt Engineering
 

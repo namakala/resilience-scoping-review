@@ -120,3 +120,23 @@ def processed_data_path() -> Path:
 def bm25_tokenizer_config() -> str:
     """Comma-separated tokenizer pipeline toggles."""
     return _optional_str("BM25_TOKENIZER_CONFIG", "lowercase,split_by_space")
+
+
+# ── Few-Shot ───────────────────────────────────────────────────────────────
+
+
+def fewshot_enabled() -> bool:
+    """Global toggle for few-shot demonstrations."""
+    raw = os.getenv("FEWSHOT_ENABLED", "true")
+    return raw.lower() not in ("false", "0", "no")
+
+
+def fewshot_count() -> int:
+    """Number of few-shot examples per inference call."""
+    return _optional_int("FEWSHOT_COUNT", 2)
+
+
+def fewshot_shuffle() -> bool:
+    """Randomize few-shot example selection order."""
+    raw = os.getenv("FEWSHOT_SHUFFLE", "true")
+    return raw.lower() in ("true", "1", "yes")

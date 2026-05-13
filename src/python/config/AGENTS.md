@@ -1,7 +1,7 @@
 ---
 title: "Configuration Layer"
 description: "Centralized env var loading with dotenv, typed accessors, defaults, and validation"
-updated_at: "2026-05-13"
+updated_at: "2026-05-14"
 ---
 
 # Configuration Layer
@@ -19,6 +19,7 @@ All settings documented in `.env.example`. Key groups:
 - **Processing:** `batch_size()`, `log_level()`
 - **Paths:** `data_path()`, `tags_path()`, `processed_data_path()`
 - **BM25:** `bm25_tokenizer_config()`
+- **Few-Shot:** `fewshot_enabled()`, `fewshot_count()`, `fewshot_shuffle()`
 
 ## Design
 

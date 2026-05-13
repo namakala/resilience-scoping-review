@@ -109,6 +109,10 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [ ] @docs/plan/69-security-and-secrets.md
 - [ ] @docs/plan/70-final-validation-checklist.md
 
+## Phase 12 — Few-Shot Enhancement (71)
+
+- [ ] @docs/plan/71-dynamic-fewshot-retrieval.md
+
 ---
 
 ## How to Use
@@ -125,4 +129,4 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - `[x]` — Implemented and tested
 - `[~]` — In progress (optional)
 
-**Total features:** 71
+**Total features:** 72

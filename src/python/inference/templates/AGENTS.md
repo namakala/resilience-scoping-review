@@ -1,7 +1,7 @@
 ---
 title: "Prompt Template Layer"
 description: "Jinja2 templates for LLM prompts with system/user role separation"
-updated_at: "2026-05-13"
+updated_at: "2026-05-14"
 ---
 
 # Prompt Template Layer
@@ -24,7 +24,9 @@ roles. No `example_user` or `developer`. The inference layer builds:
    alternating with user messages to show the expected output pattern.
 
 Few-shot uses standard multi-turn format: `user` → `assistant` pairs
-in the messages array. No special roles needed.
+in the messages array. No special roles needed. Curated examples live
+in ``src/python/inference/fewshot/*.json`` and are loaded by
+``load_fewshot()`` at call time (see ``fewshot_loader.py``).
 
 Use `response_format={"type": "json_object"}` on every inference call
 (Groq API parameter). Templates still describe the expected JSON shape
@@ -73,7 +75,9 @@ subtree, themes grouped by tag.
 - No fluff: avoid "fairly", "quite", "just", "simply".
 - Positive framing: "Respond with" not "Do not include".
 - Leading word: open the expected JSON fence in the template.
-- Few-shot examples: use alternating `user`/`assistant` message pairs.
+- Few-shot examples: loaded from JSON via ``load_fewshot()``; use
+  alternating `user`/`assistant` message pairs. See ``fewshot_loader.py``
+  and ``fewshot/*.json``.
 
 ## References
 

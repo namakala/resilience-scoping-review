@@ -220,6 +220,73 @@ class TestPromptTemplates(unittest.TestCase):
             ["interpretation_name", "narrative", "key_insights"],
         )
 
+    # -- few-shot integration ------------------------------------------------
+
+    def _sample_fewshot(self):
+        return [
+            {"user": "Example input", "assistant": '{"codes": []}'},
+            {"user": "Another input", "assistant": '{"themes": []}'},
+        ]
+
+    def test_code_prompt_with_fewshot(self):
+        bundle = render_code_prompt(
+            fewshot=self._sample_fewshot(),
+            ontology_path=["root"],
+            tag_description="Test",
+            existing_codes=[],
+            exemplars=[{"id": "E001", "content": "test", "keywords": ["t"]}],
+        )
+        self.assertIsNotNone(bundle.fewshot)
+        self.assertEqual(len(bundle.fewshot), 2)
+        self.assertEqual(bundle.fewshot[0]["user"], "Example input")
+
+    def test_code_prompt_without_fewshot_defaults_none(self):
+        bundle = render_code_prompt(
+            ontology_path=["root"],
+            tag_description="Test",
+            existing_codes=[],
+            exemplars=[{"id": "E001", "content": "test", "keywords": ["t"]}],
+        )
+        self.assertIsNone(bundle.fewshot)
+
+    def test_theme_prompt_with_fewshot(self):
+        bundle = render_theme_prompt(
+            fewshot=self._sample_fewshot(),
+            tag_name="Test",
+            tag_description="Test tag",
+            ontology_path=["root"],
+            codes=[{"id": "C001", "name": "C", "definition": "D", "exemplar_count": 1}],
+        )
+        self.assertIsNotNone(bundle.fewshot)
+        self.assertEqual(len(bundle.fewshot), 2)
+
+    def test_theme_prompt_without_fewshot_defaults_none(self):
+        bundle = render_theme_prompt(
+            tag_name="Test",
+            tag_description="Test tag",
+            ontology_path=["root"],
+            codes=[{"id": "C001", "name": "C", "definition": "D", "exemplar_count": 1}],
+        )
+        self.assertIsNone(bundle.fewshot)
+
+    def test_interpretation_prompt_with_fewshot(self):
+        bundle = render_interpretation_prompt(
+            fewshot=self._sample_fewshot(),
+            tag_hierarchy=[["root", "t1"]],
+            ontology_subtree="root\n  t1",
+            themes_by_tag={"t1": []},
+        )
+        self.assertIsNotNone(bundle.fewshot)
+        self.assertEqual(len(bundle.fewshot), 2)
+
+    def test_interpretation_prompt_without_fewshot_defaults_none(self):
+        bundle = render_interpretation_prompt(
+            tag_hierarchy=[["root", "t1"]],
+            ontology_subtree="root\n  t1",
+            themes_by_tag={"t1": []},
+        )
+        self.assertIsNone(bundle.fewshot)
+
 
 if __name__ == "__main__":
     unittest.main()
