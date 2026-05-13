@@ -6,6 +6,7 @@ from .embedding_generation import generate_exemplar_embeddings
 from .index_builder import build_index
 from .keyword_embedding import generate_keyword_embeddings
 from .keyword_extraction import extract_keywords
+from .neighbors import clear_neighbor_cache, find_neighbors
 from .persistence import load_bm25, save_bm25
 from .retrieval import hybrid_retrieve
 from .similarity import compute_similarity
@@ -34,6 +35,9 @@ __all__ = [
     "generate_keyword_embeddings",
     # Hybrid retrieval
     "hybrid_retrieve",
+    # Neighbor discovery
+    "find_neighbors",
+    "clear_neighbor_cache",
     # Similarity computation
     "compute_similarity",
     # Keyword extraction
