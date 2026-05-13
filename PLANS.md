@@ -51,7 +51,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [x] @docs/plan/30-groq-client-initialization.md
 - [x] @docs/plan/31-prompt-template-engine.md
-- [ ] @docs/plan/32-batch-grouping-by-tag.md
+- [x] @docs/plan/32-batch-grouping-by-tag.md
 - [ ] @docs/plan/33-structured-output-parser.md
 - [ ] @docs/plan/34-token-tracking-middleware.md
 - [ ] @docs/plan/35-retry-and-rate-limit-handling.md

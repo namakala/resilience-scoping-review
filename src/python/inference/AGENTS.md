@@ -1,6 +1,6 @@
 ---
 title: "Inference & LLM Layer"
-description: "Manages Groq batch inference, prompt templates, and structured output parsing"
+description: "Manages Groq batch inference, prompt templates, structured output parsing, and tag-based batching"
 updated_at: "2026-05-14"
 ---
 
@@ -23,15 +23,26 @@ Generate semantic artifacts (codes, themes, interpretations) from exemplars and 
 
 ## Batching Strategy (ADR-010)
 
-Group exemplars by parent tag to maintain contextual coherence. Each batch contains:
+Group exemplars by parent tag into fixed-size batches using
+`src/python/inference/batching.py`.
 
-- Tag name and hierarchical path (ancestors up to root)
-- Tag description from ontology
-- Existing codes in that tag (for consistency)
-- Grouped exemplars (default 15 per batch)
-- Extracted keyword lists
+`group_by_tag(items, max_per_batch=15, prefix="tag")` takes any iterable
+of `BatchableItem` objects (must expose `.tag: str` and `.id: int | str`),
+groups by `.tag`, sorts by `.id`, splits into chunks of `max_per_batch`,
+and returns `list[Batch]`.
 
-Larger batches reduce API calls but risk coherence loss. Smaller batches improve quality at higher cost. Batches submitted sequentially.
+The `Batch` dataclass carries: `tag`, `items`, `batch_index`,
+`total_batches`, `item_count` (computed), and a `batch_id` property
+(format: `{prefix}_{tag}_batch_{index:02d}`).
+
+Usage: code inference batches exemplars, theme inference batches
+approved codes, interpretation batches themes by tag-span combination.
+Items with an empty/falsy tag are silently skipped. Tags with more than
+max_per_batch items split into multiple batches; the last batch may be
+smaller.
+
+Larger batches reduce API calls but risk coherence loss. Smaller
+batches improve quality at higher cost. Batches submitted sequentially.
 
 ## Few-Shot Examples
 

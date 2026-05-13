@@ -1,5 +1,6 @@
 """Inference layer — Groq client, prompt templates, LLM orchestration."""
 
+from .batching import Batch, BatchableItem, group_by_tag
 from .fewshot_loader import load_fewshot
 from .groq_client import build_messages, complete, get_client, get_model
 from .parsing import (
@@ -18,6 +19,8 @@ from .prompts import (
 )
 
 __all__ = [
+    "Batch",
+    "BatchableItem",
     "CodeInference",
     "InterpretationInference",
     "PromptBundle",
@@ -26,6 +29,7 @@ __all__ = [
     "complete",
     "get_client",
     "get_model",
+    "group_by_tag",
     "load_fewshot",
     "parse_code_response",
     "parse_interpretation_response",

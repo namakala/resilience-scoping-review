@@ -482,7 +482,13 @@ Inference batches shall:
 * group exemplars by tag,
 * include ontology context,
 * include existing codes and themes,
-* use structured JSON outputs.
+* use structured JSON outputs,
+* be implemented via the ``Batch`` dataclass (tag, items, batch_index,
+  total_batches, item_count, batch_id property),
+* accept items implementing ``BatchableItem`` Protocol (``.tag``,
+  ``.id``),
+* split tags exceeding 15 items into multiple batches,
+* preserve item order by ``.id`` within each batch.
 
 The LLM shall act as:
 
