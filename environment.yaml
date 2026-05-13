@@ -42,6 +42,7 @@ dependencies:
   - pre-commit
   - pytest
   - tenacity
+  - keybert
   - pip:
     - apache-hamilton
     - circuitbreaker
