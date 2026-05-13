@@ -1,7 +1,7 @@
 ---
 title: "21 — constraint-validator"
 description: "Enforce ADR-013: one-code-one-theme, single-tag-per-theme, contiguous span"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 3
 ---
 
@@ -33,10 +33,31 @@ Enforce ADR-013 structural invariants via `validate_constraint(entity, action)`.
 
 ---
 
-## Implementation Notes
+## Module Structure
 
-- Module: `src/python/ontology/constraints.py`
-- Error type: `class ConstraintError(ValueError): pass`
+Three-file split (each <160 lines, satisfying STANDARDS.md 300-line limit):
+
+- **`src/python/ontology/constraints.py`** — Public API: error codes, `ConstraintError`,
+  `_resolve_graph`/`_resolve_tag_dag` helpers, `validate_constraint()` dispatch.
+  Re-exports `is_contiguous_subtree` from `contiguity.py`.
+
+- **`src/python/ontology/rules.py`** — Six rule implementations as public functions
+  (`validate_code_approval`, `validate_theme_approval`, etc.) with `__all__` control.
+  **Not re-exported** from `__init__.py` — thus not part of the package public API.
+  Importable for testing: `from ontology.rules import validate_code_approval`.
+
+- **`src/python/ontology/contiguity.py`** — Standalone contiguous-subtree check:
+  `is_contiguous_subtree()`, `_missing_intermediates()`. Shared with Feature 50.
+  No imports from sibling ontology modules (lazy imports `dag.get_tag_dag`).
+
+## Import Order (avoids circular dependency)
+
+Error codes + `ConstraintError` are **defined first** in `constraints.py` before the
+`from .rules import ...` line. When `rules.py` executes `from .constraints import ...`,
+those symbols are already in the partially-initialized module — safe.
+
+## Rule Details
+
 - Rule 1: check on code approval — query theme membership; code already assigned to exactly one theme (enforced at creation time via tag inheritance)
 - Rule 2: on theme approval — fetch constituent codes via `composed-of` edges; verify all have same `tag` attribute; count ≥2
 - Rule 3: on theme approval — check no other theme in same tag already assigned to an interpretation (one-theme-per-interpretation means each theme belongs to exactly one interpretation, not that interpretation has only one theme — clarify policy)
