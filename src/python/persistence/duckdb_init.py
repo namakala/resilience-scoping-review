@@ -16,6 +16,7 @@ from .duckdb_migrations import migrate_schema
 from .duckdb_schema import (
     _create_edges_table,
     _create_embedding_cache_table,
+    _create_invalidation_log_table,
     _create_nodes_table,
     _create_session_state_table,
     _create_traversal_cache_table,
@@ -59,6 +60,7 @@ def initialize_database(
         _create_session_state_table(con)
         _create_user_actions_table(con)
         _create_embedding_cache_table(con)
+        _create_invalidation_log_table(con)
 
         # Record current schema version if not yet set
         from .duckdb_connection import _set_schema_version_if_missing

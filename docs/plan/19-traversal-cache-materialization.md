@@ -1,7 +1,7 @@
 ---
 title: "19 — traversal-cache-materialization"
 description: "Precompute and store ancestors, descendants, subtree aggregates in DuckDB"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 3
 ---
 
@@ -37,9 +37,13 @@ Precompute and store in DuckDB `traversal_cache` table: for each tag, store arra
 
 - Module: `src/python/ontology/cache.py`
 - Table schema: `tag TEXT PRIMARY KEY, ancestors JSON, descendants JSON, subtree_exemplars JSON, subtree_codes JSON, subtree_themes JSON, stale BOOLEAN DEFAULT FALSE`
-- Compute on startup: iterate all tags → compute via NetworkX traversal → join with exemplars table
+- Feature 18 (`ontology.traversal`) implements in-memory `lru_cache` for traversal ops via NetworkX; Feature 19 is a separate persistence layer on top, not a replacement
+- This feature builds on top of Feature 18's public API (`get_ancestors`, `get_descendants`, `get_subtree`) for computation, then stores results in DuckDB
+- Compute on startup: iterate all tags → call `get_ancestors(tag)`, `get_descendants(tag)` → store results in DuckDB
 - `subtree_exemplar_ids`: find all exemplars whose tag is in `get_subtree(tag)`
-- `get_cached_subtree(tag)`: read row; if `stale=True`, recompute and update
+- `get_cached_subtree(tag)`: read row from DuckDB; if row missing or `stale=True`, recompute using Feature 18 functions and update
+- `invalidate_cache_for_tag(tag)`: sets `stale=TRUE` for that tag (used by Feature 20)
+- `clear_duckdb_cache()`: deletes all rows from traversal_cache (test cleanup / full rebuild)
 - Batch query: `SELECT * FROM traversal_cache WHERE tag IN (?, ?, ...)`
 
 ---

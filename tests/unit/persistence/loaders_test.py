@@ -343,12 +343,13 @@ class TestArtifactLoaders(unittest.TestCase):
         lf = load_tags()
         schema = lf.collect_schema()
 
-        expected_names = {"tag", "parent", "description", "depth"}
+        expected_names = {"tag", "parent", "description", "n_contents", "depth"}
         self.assertEqual(set(schema.names()), expected_names)
 
         self.assertEqual(schema["tag"], pl.Categorical)
         self.assertEqual(schema["parent"], pl.String)
         self.assertEqual(schema["description"], pl.String)
+        self.assertEqual(schema["n_contents"], pl.Int64)
         self.assertEqual(schema["depth"], pl.Int64)
 
     def test_schema_compliance_keywords_when_present(self) -> None:

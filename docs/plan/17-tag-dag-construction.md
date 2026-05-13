@@ -1,7 +1,7 @@
 ---
 title: "17 — tag-dag-construction"
 description: "Load tags.parquet; build NetworkX DAG; compute depth; validate acyclic"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 3
 ---
 
