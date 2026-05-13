@@ -12,6 +12,7 @@ __all__ = [
     "CircuitBreakerOpenError",
     "ShutdownRequestedError",
     "StateError",
+    "ConfigurationError",
 ]
 
 
@@ -62,3 +63,10 @@ class StateError(Exception):
 
     def __init__(self, message: str = "", *args: Any) -> None:
         super().__init__(message or "Workflow state error", *args)
+
+
+class ConfigurationError(Exception):
+    """Raised when required configuration is missing or invalid."""
+
+    def __init__(self, message: str = "", *args: Any) -> None:
+        super().__init__(message or "Configuration error", *args)

@@ -7,6 +7,7 @@ exceptions, retry, circuit breaker, and graceful shutdown.
 from .circuit_breaker import make_circuit_breaker
 from .exceptions import (
     CircuitBreakerOpenError,
+    ConfigurationError,
     GroqAPIError,
     RetryExhaustedError,
     ShutdownRequestedError,
@@ -21,6 +22,7 @@ __all__ = [
     "RetryExhaustedError",
     "CircuitBreakerOpenError",
     "ShutdownRequestedError",
+    "ConfigurationError",
     "make_retry",
     "make_circuit_breaker",
     "graceful_shutdown",
