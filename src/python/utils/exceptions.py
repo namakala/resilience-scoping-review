@@ -11,6 +11,7 @@ __all__ = [
     "RetryExhaustedError",
     "CircuitBreakerOpenError",
     "ShutdownRequestedError",
+    "StateError",
 ]
 
 
@@ -53,3 +54,11 @@ class ShutdownRequestedError(KeyboardInterrupt):
 
     def __init__(self, message: str = "") -> None:
         super().__init__(message or "Shutdown requested via signal handler")
+
+
+class StateError(Exception):
+    """Raised when workflow state operations fail
+    (validation, corruption, DB errors)."""
+
+    def __init__(self, message: str = "", *args: Any) -> None:
+        super().__init__(message or "Workflow state error", *args)

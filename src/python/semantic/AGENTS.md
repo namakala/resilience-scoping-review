@@ -67,6 +67,24 @@ Also used by HITL review to suggest semantic neighbors for codes.
 
 Embedding model fixed at `all-MiniLM-L6-v2` (384 dimensions, CPU-friendly). All retrieval queries must respect tag-based scope unless context requires full-ontology search. Top-k results always sorted descending.
 
+## BM25 Configuration
+
+The BM25 index behavior is configurable via environment variables:
+
+- **`PROCESSED_DATA_PATH`** — Base directory for processed artifacts (default: `data/processed`). The index file is stored as `bm25_index.pkl` within this directory. This variable is shared across the persistence layer and controls the location of all Parquet caches and the BM25 index.
+
+- **`BM25_TOKENIZER_CONFIG`** — Comma-separated toggles controlling the keyword tokenization pipeline. Order matters; toggles are applied sequentially. Valid toggles:
+  - `lowercase` — Convert text to lowercase before further processing.
+  - `strip_punctuation` — Remove all punctuation characters (via `string.punctuation`).
+  - `split_by_space` — Split on whitespace (required; produces token list).
+  - `remove_stopword` — Filter out a minimal built-in English stopword list.
+
+  Default: `lowercase,split_by_space`. Example: `lowercase,strip_punctuation,split_by_space,remove_stopword` for full preprocessing.
+
+Both variables should be defined in the `.env` file. Changes to `BM25_TOKENIZER_CONFIG` require rebuilding the index via `build_index()`.
+
+---
+
 ## References
 
 Implements ADR-005 (Embedding Strategy) and ADR-006 (Retrieval Strategy). See `@ADR.md` for full rationale.

@@ -1,4 +1,7 @@
 # Import modules
+import os
+from pathlib import Path
+
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 
@@ -22,8 +25,11 @@ for index, row in tbl.iterrows():
 # Transform the placeholder dictionary to a data frame
 tbl_sim = pd.DataFrame(sims)
 
-# Write a csv file
-tbl_sim.to_csv("data/processed/coding-similarity.csv", sep=",", index=False)
+# Write a csv file to the processed data directory
+processed_base = Path(os.getenv("PROCESSED_DATA_PATH", "data/processed"))
+output_path = processed_base / "coding-similarity.csv"
+output_path.parent.mkdir(parents=True, exist_ok=True)
+tbl_sim.to_csv(output_path, sep=",", index=False)
 
 # Set MC and HC interpretation values
 MC = [
