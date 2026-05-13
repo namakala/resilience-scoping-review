@@ -1,7 +1,7 @@
 ---
 title: "12 — node-insertion-api"
 description: "create_node() – insert node into DuckDB and NetworkX atomically"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 2
 ---
 
@@ -35,7 +35,7 @@ Function `create_node(node_type: str, name: str, definition: str, tag: str, stat
 
 ## Implementation Notes
 
-- Module: `src/python/graph/crud.py`
+- Module: `src/python/graph/node_crud.py`
 - SQL: `INSERT INTO nodes (type, name, definition, tag, status, data_json) VALUES (?, ?, ?, ?, ?, ?)`
 - Duplicate check: `SELECT 1 FROM nodes WHERE type=? AND name=? LIMIT 1`
 - `data_json = json.dumps(data_dict)`; store as TEXT

@@ -1,7 +1,8 @@
 ---
 title: "15 — basic-traversal"
 description: "get_children, get_parents, get_path, get_successors, get_predecessors"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
+status: implemented
 phase: 2
 ---
 

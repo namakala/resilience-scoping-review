@@ -1,7 +1,7 @@
 ---
 title: "16 — graph-transactional-updates"
 description: "Atomic batch operations across DuckDB and NetworkX"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 2
 ---
 

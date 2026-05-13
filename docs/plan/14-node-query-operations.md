@@ -1,7 +1,7 @@
 ---
 title: "14 — node-query-operations"
 description: "get_node, get_nodes_by_type_and_tag, get_node_by_name"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 2
 ---
 
@@ -43,3 +43,24 @@ Query functions: `get_node(node_id)`, `get_nodes_by_type_and_tag(node_type, tag)
 ---
 
 **References:** ADR-004
+
+## Implementation Completion
+
+**Completed:** 2026-05-13
+
+All acceptance criteria satisfied:
+
+- `get_node` raises `KeyError` if node_id not found.
+- `get_nodes_by_type_and_tag` returns results sorted by `node_id` ascending.
+- `get_node_by_name` disambiguates by type; raises `LookupError` if multiple matches without type filter; raises `KeyError` if no match.
+- DuckDB index `idx_nodes_type_tag` created lazily on first query. Performance test: <10ms for 10,000 nodes (verified: benchmark passes).
+- Results include all node attributes: id, type, name, definition, tag, status, data_json (deserialized), created_at, updated_at.
+
+Module: `src/python/graph/queries.py`. Public API re-exported via `__init__.py`. 17 unit tests in `tests/unit/graph/queries_test.py`.
+
+**Files modified/created:**
+- Created `src/python/graph/queries.py`
+- Updated `src/python/graph/__init__.py`
+- Created `tests/unit/graph/queries_test.py`
+
+**Git:** Not committed (user discretion).

@@ -90,3 +90,5 @@ Provides graph and validation services to:
 ## Data Storage
 
 Nodes and edges stored in DuckDB tables with primary key constraints. In-memory NetworkX copy constructed at startup for fast traversal operations. Changes propagated to both representations synchronously.
+
+Full node/edge schemas: `@docs/feature/graph-data-model.md`

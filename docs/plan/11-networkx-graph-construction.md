@@ -1,7 +1,7 @@
 ---
 title: "11 — networkx-graph-construction"
 description: "Build in-memory NetworkX DiGraph from DuckDB nodes and edges"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 2
 ---
 
@@ -35,11 +35,22 @@ On system startup, load all nodes and edges from DuckDB tables `nodes` and `edge
 
 ## Implementation Notes
 
-- Module: `src/python/graph/networkx_wrapper.py`
-- Query: `SELECT * FROM nodes` → iterate rows → `G.add_node(node_id, **attrs)`
-- Query: `SELECT * FROM edges` → `G.add_edge(source_id, target_id, **attrs)`
-- Cache graph as global singleton; rebuild on demand
-- Use `nx.readwrite.json_graph` for debugging serialization
+**Module split into three focused files under `src/python/graph/`:**
+
+- `singleton.py` — singleton lifecycle: `_graph` global, `get_graph(db_path)` lazy init, `rebuild_graph(db_path)` force refresh
+- `builder.py` — pure construction: `build_graph(con)` queries nodes/edges, populates DiGraph, deserializes edge metadata JSON
+- `sync.py` — explicit sync: `sync_node(node_id, db_path)` and `sync_edge(src, tgt, type, db_path)` for post-mutation updates
+
+**Public API (re-exported via `__init__.py`):**
+`get_graph`, `rebuild_graph`, `sync_node`, `sync_edge`, `build_graph` (testing/advanced)
+
+**Node attributes:** `type` (code/theme/interpretation/tag), `name`, `definition`, `tag`, `status`
+
+**Edge attributes:** `type` (parent-child/contains/derived-from/composed-of/spans/neighbor), `metadata` (dict or raw string)
+
+**Performance:** Bulk `SELECT` + NetworkX `add_nodes_from`/`add_edges_from` → <5s for 10k nodes
+
+**Testing:** Unit tests in `tests/unit/graph/`; integration tests in `tests/integration/graph/`
 
 ---
 

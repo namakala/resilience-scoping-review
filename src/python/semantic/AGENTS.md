@@ -83,6 +83,10 @@ The BM25 index behavior is configurable via environment variables:
 
 Both variables should be defined in the `.env` file. Changes to `BM25_TOKENIZER_CONFIG` require rebuilding the index via `build_index()`.
 
+## Graph Reference
+
+Graph data model and node/edge schemas: `@docs/feature/graph-data-model.md`
+
 ---
 
 ## References
