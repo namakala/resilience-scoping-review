@@ -1,4 +1,7 @@
-"""BM25 index exceptions."""
+"""Semantic-layer exceptions.
+
+Includes BM25 index errors and embedding cache errors.
+"""
 
 
 class BM25IndexError(Exception):
@@ -9,5 +12,11 @@ class BM25IndexError(Exception):
 
 class IndexCorruptedError(BM25IndexError):
     """Raised when stored index corpus_hash differs from current keywords."""
+
+    pass
+
+
+class CacheMissError(Exception):
+    """Raised when a required embedding is not found in the cache."""
 
     pass

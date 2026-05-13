@@ -7,6 +7,7 @@ from .index_builder import build_index
 from .keyword_embedding import generate_keyword_embeddings
 from .keyword_extraction import extract_keywords
 from .persistence import load_bm25, save_bm25
+from .similarity import compute_similarity
 
 __all__ = [
     # BM25 index management
@@ -30,9 +31,12 @@ __all__ = [
     # Embedding generation
     "generate_exemplar_embeddings",
     "generate_keyword_embeddings",
+    # Similarity computation
+    "compute_similarity",
     # Keyword extraction
     "extract_keywords",
     # Exceptions
     "BM25IndexError",
     "IndexCorruptedError",
+    "CacheMissError",
 ]

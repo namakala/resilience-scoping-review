@@ -19,6 +19,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
@@ -26,6 +27,7 @@ sys.path.insert(
 
 import numpy as np
 import polars as pl
+from conftest import autopatch
 from persistence.duckdb_init import initialize_database
 from persistence.embedding_cache import put_embedding
 from persistence.loaders import clear_cache
@@ -90,9 +92,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- All-new keywords -----------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_all_new_keywords(self, mock_get_hash, mock_gen_embs, mock_load):
         """Three exemplars × 3 keywords = 9 keyword embeddings."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -120,9 +122,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- All cached (skip encoding) ------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_all_cached_skip_encoding(self, mock_get_hash, mock_gen_embs, mock_load):
         """Nine keywords already in cache: all skip encoding."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -170,9 +172,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Mixed stale / cached -------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_some_stale_content_hash(self, mock_get_hash, mock_gen_embs, mock_load):
         """Two keywords cached valid, one stale -> only one regenerated."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -214,9 +216,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Empty keywords (no-op) ------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_empty_keywords(self, mock_get_hash, mock_gen_embs, mock_load):
         """No keywords returns zero counts and skips all work."""
         empty = pl.DataFrame(
@@ -242,9 +244,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Model hash mismatch --------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_model_hash_mismatch(self, mock_get_hash, mock_gen_embs, mock_load):
         """Cache entries with different model_hash are treated as misses."""
         mock_get_hash.return_value = "new_model_hash_v2"
@@ -274,9 +276,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Return dict structure ------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_stats_dict_structure(self, mock_get_hash, mock_gen_embs, mock_load):
         """Return dict contains all expected keys with correct types."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -298,9 +300,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Entity ID format ----------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_entity_id_format(self, mock_get_hash, mock_gen_embs, mock_load):
         """Entity IDs follow f\"{eid}_kw_{i}\" pattern."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -330,9 +332,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Batch boundary ------------------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_batch_boundary(self, mock_get_hash, mock_gen_embs, mock_load):
         """Five keywords with batch_size=2 produce three encode calls."""
         mock_get_hash.return_value = _MODEL_HASH
@@ -357,9 +359,9 @@ class TestKeywordEmbeddingGeneration(unittest.TestCase):
 
     # -- Cache hit on second run ---------------------------------------------
 
-    @mock.patch("semantic.keyword_embedding.load_keywords")
-    @mock.patch("semantic.embedding_generation.generate_embeddings")
-    @mock.patch("semantic.keyword_embedding.get_model_hash")
+    @autopatch("semantic.keyword_embedding.load_keywords")
+    @autopatch("semantic.embedding_generation.generate_embeddings")
+    @autopatch("semantic.keyword_embedding.get_model_hash")
     def test_cache_hit_second_run(self, mock_get_hash, mock_gen_embs, mock_load):
         """Second call uses cache; generate_embeddings called only once."""
         mock_get_hash.return_value = _MODEL_HASH

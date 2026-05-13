@@ -16,12 +16,14 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
 
 import polars as pl
+from conftest import autopatch
 from persistence.loaders import clear_cache, configure_paths
 
 
@@ -63,8 +65,8 @@ class TestKeywordExtraction(unittest.TestCase):
 
     # -- Successful extraction -------------------------------------------------
 
-    @mock.patch("semantic.keyword_extraction.load_exemplars")
-    @mock.patch("semantic.keyword_extraction.KeyBERT")
+    @autopatch("semantic.keyword_extraction.load_exemplars")
+    @autopatch("semantic.keyword_extraction.KeyBERT")
     def test_extracts_keywords(self, mock_keybert_cls, mock_load):
         """Three exemplars × 5 keywords = 15 keyword rows written."""
         mock_load.return_value = _make_exemplar_df(3, seed=1)
@@ -95,8 +97,8 @@ class TestKeywordExtraction(unittest.TestCase):
 
     # -- Immutability guard ----------------------------------------------------
 
-    @mock.patch("semantic.keyword_extraction.load_exemplars")
-    @mock.patch("semantic.keyword_extraction.KeyBERT")
+    @autopatch("semantic.keyword_extraction.load_exemplars")
+    @autopatch("semantic.keyword_extraction.KeyBERT")
     def test_skip_when_exists(self, mock_keybert_cls, mock_load):
         """Existing keywords.parquet skips re-extraction."""
         # Pre-write a file
@@ -130,8 +132,8 @@ class TestKeywordExtraction(unittest.TestCase):
 
     # -- force_rebuild --------------------------------------------------------
 
-    @mock.patch("semantic.keyword_extraction.load_exemplars")
-    @mock.patch("semantic.keyword_extraction.KeyBERT")
+    @autopatch("semantic.keyword_extraction.load_exemplars")
+    @autopatch("semantic.keyword_extraction.KeyBERT")
     def test_force_rebuild_overwrites(self, mock_keybert_cls, mock_load):
         """force_rebuild=True overwrites existing keywords.parquet."""
         # Pre-write a file
@@ -173,7 +175,7 @@ class TestKeywordExtraction(unittest.TestCase):
 
     # -- Empty exemplars ------------------------------------------------------
 
-    @mock.patch("semantic.keyword_extraction.load_exemplars")
+    @autopatch("semantic.keyword_extraction.load_exemplars")
     def test_empty_exemplars(self, mock_load):
         """No exemplars produces empty keywords.parquet."""
         empty = pl.DataFrame(
@@ -198,8 +200,8 @@ class TestKeywordExtraction(unittest.TestCase):
 
     # -- Short/empty content --------------------------------------------------
 
-    @mock.patch("semantic.keyword_extraction.load_exemplars")
-    @mock.patch("semantic.keyword_extraction.KeyBERT")
+    @autopatch("semantic.keyword_extraction.load_exemplars")
+    @autopatch("semantic.keyword_extraction.KeyBERT")
     def test_empty_content_skipped(self, mock_keybert_cls, mock_load):
         """Exemplar with empty content produces no keywords for that row."""
         df = pl.DataFrame(

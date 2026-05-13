@@ -48,6 +48,12 @@ Write tests for all new code.
 Place tests mirroring source structure.
 Keep tests small and independent.
 
+## Mocking
+Mock external dependencies at their interface boundary.
+Use spec-validated mocks that fail when the real API changes.
+Python: prefer autospec=True on @mock.patch.
+R: validate mock signatures match the mocked function's formal arguments.
+
 ## Dependencies
 Minimize external dependencies.
 Declare dependencies explicitly.
