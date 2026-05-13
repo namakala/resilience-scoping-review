@@ -42,7 +42,7 @@ Implement tag traversal functions: `get_ancestors(tag: str) → list[str]` (all 
 - `is_ancestor`: `parent in get_ancestors(child)`
 - `_resolve_tag(tag)` validates existence; raises `KeyError` for unknown tags
 - Cache warm-up at system initialization via first call
-- When Feature 19 is implemented, replace the internal `lru_cache` with DuckDB-backed persistence while keeping the public API unchanged
+- Feature 19 (`ontology.cache`) builds on top of this module, persisting traversal results in DuckDB while keeping the public API unchanged
 
 ---
 

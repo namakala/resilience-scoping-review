@@ -56,7 +56,8 @@ def _create_traversal_cache_table(con: duckdb.DuckDBPyConnection) -> None:
             descendants VARCHAR,  -- JSON array of descendant tag names
             subtree_exemplars VARCHAR,  -- exemplar IDs in subtree
             subtree_codes VARCHAR,  -- code IDs in subtree
-            subtree_themes VARCHAR  -- theme IDs in subtree
+            subtree_themes VARCHAR,  -- theme IDs in subtree
+            stale BOOLEAN DEFAULT FALSE  -- invalidated; needs recompute
         );
     """
     )
