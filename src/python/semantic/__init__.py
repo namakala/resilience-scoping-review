@@ -7,6 +7,7 @@ from .index_builder import build_index
 from .keyword_embedding import generate_keyword_embeddings
 from .keyword_extraction import extract_keywords
 from .persistence import load_bm25, save_bm25
+from .retrieval import hybrid_retrieve
 from .similarity import compute_similarity
 
 __all__ = [
@@ -31,6 +32,8 @@ __all__ = [
     # Embedding generation
     "generate_exemplar_embeddings",
     "generate_keyword_embeddings",
+    # Hybrid retrieval
+    "hybrid_retrieve",
     # Similarity computation
     "compute_similarity",
     # Keyword extraction

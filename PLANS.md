@@ -44,7 +44,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/25-keyword-embedding-generation.md (extraction: keybert; embedding: per-keyword into cache)
 - [x] @docs/plan/26-bm25-index-builder.md
 - [x] @docs/plan/27-embedding-similarity-computation.md
-- [ ] @docs/plan/28-hybrid-retrieval-engine.md
+- [x] @docs/plan/28-hybrid-retrieval-engine.md
 - [ ] @docs/plan/29-neighbor-discovery-service.md
 
 ## Phase 5 — Inference Layer (30–36)
