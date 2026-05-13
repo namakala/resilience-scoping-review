@@ -15,6 +15,7 @@ from .builder import build_graph
 from .edge_crud import create_edge, create_edges
 from .exceptions import ForeignKeyError
 from .node_crud import create_node
+from .queries import get_node, get_node_by_name, get_nodes_by_type_and_tag
 from .singleton import get_graph, rebuild_graph
 from .sync import sync_edge, sync_node
 
@@ -27,5 +28,8 @@ __all__ = [
     "create_node",
     "create_edge",
     "create_edges",
+    "get_node",
+    "get_nodes_by_type_and_tag",
+    "get_node_by_name",
     "ForeignKeyError",
 ]
