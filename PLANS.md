@@ -23,7 +23,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [x] @docs/plan/11-networkx-graph-construction.md
 - [x] @docs/plan/12-node-insertion-api.md
-- [ ] @docs/plan/13-edge-creation-api.md
+- [x] @docs/plan/13-edge-creation-api.md
 - [ ] @docs/plan/14-node-query-operations.md
 - [ ] @docs/plan/15-basic-traversal.md
 - [ ] @docs/plan/16-graph-transactional-updates.md

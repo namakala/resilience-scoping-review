@@ -1,4 +1,4 @@
-"""Unit tests for graph node CRUD operations (create_node).
+"""Unit tests for node CRUD operations (create_node).
 
 Test coverage:
 - Successful node creation with all fields
@@ -24,7 +24,6 @@ sys.path.insert(
 )
 
 import duckdb
-import networkx as nx
 from graph import create_node, get_graph, rebuild_graph
 from persistence.duckdb_connection import get_connection
 from persistence.duckdb_init import initialize_database
@@ -39,7 +38,6 @@ class TestCreateNode(unittest.TestCase):
         self.db_path = self.tmpdir / "test_session.duckdb"
         initialize_database(db_path=self.db_path)
         self.con = duckdb.connect(str(self.db_path))
-        # Reset global singleton between tests
         import graph.singleton as singleton
 
         singleton._graph = None
@@ -56,15 +54,14 @@ class TestCreateNode(unittest.TestCase):
 
     def _query_node(self, node_id: int) -> tuple[Any, ...] | None:
         """Helper: fetch node row from DuckDB."""
-        row: tuple[Any, ...] | None = self.con.execute(
+        return self.con.execute(  # type: ignore[no-any-return]
             "SELECT type, name, definition, tag, status, data_json FROM nodes WHERE id = ?",
             [node_id],
         ).fetchone()
-        return row
 
     def _query_node_data_json(self, node_id: int) -> dict[str, Any] | None:
         """Helper: fetch and deserialize data_json from DuckDB."""
-        row: tuple[Any, ...] | None = self.con.execute(
+        row = self.con.execute(
             "SELECT data_json FROM nodes WHERE id = ?", [node_id]
         ).fetchone()
         if row and row[0] is not None:
@@ -84,7 +81,6 @@ class TestCreateNode(unittest.TestCase):
         self.assertIsInstance(node_id, int)
         self.assertGreater(node_id, 0)
 
-        # Verify DuckDB row
         row = self._query_node(node_id)
         self.assertIsNotNone(row)
         assert row is not None
@@ -113,15 +109,12 @@ class TestCreateNode(unittest.TestCase):
             db_path=self.db_path,
         )
 
-        # Verify storage in DuckDB: data_json is JSON string
         stored = self._query_node_data_json(node_id)
         self.assertEqual(stored, payload)
 
-        # Verify in-memory graph: data_json is a dict (original object)
         G = get_graph(db_path=self.db_path)
         self.assertIn(node_id, G.nodes)
-        attrs = G.nodes[node_id]
-        self.assertEqual(attrs["data_json"], payload)
+        self.assertEqual(G.nodes[node_id]["data_json"], payload)
 
     def test_create_node_all_node_types(self) -> None:
         """create_node works for all node types with appropriate statuses."""
@@ -160,15 +153,14 @@ class TestCreateNode(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             create_node(
                 node_type="code",
-                name="Barrier",  # same name, same type
+                name="Barrier",
                 definition="Second",
-                tag="T2",  # different tag — still rejected
+                tag="T2",
                 status="draft",
                 db_path=self.db_path,
             )
         self.assertIn("already exists", str(cm.exception))
 
-        # Verify only one node in DB
         count_row = self.con.execute("SELECT COUNT(*) FROM nodes").fetchone()
         self.assertEqual(count_row[0], 1)
 
@@ -182,7 +174,6 @@ class TestCreateNode(unittest.TestCase):
             status="draft",
             db_path=self.db_path,
         )
-        # Same name, different type — should succeed
         nid2 = create_node(
             node_type="theme",
             name="Focus",
@@ -219,7 +210,6 @@ class TestCreateNode(unittest.TestCase):
 
     def test_graph_reflects_insert_immediately(self) -> None:
         """After create_node, in-memory graph contains the new node."""
-        # Build graph initially (empty)
         G1 = get_graph(db_path=self.db_path)
         self.assertEqual(G1.number_of_nodes(), 0)
 
@@ -276,12 +266,11 @@ class TestCreateNode(unittest.TestCase):
         self.assertIsNotNone(row)
         assert row is not None
         self.assertIsNotNone(row[0])
-        # String representation of timestamp is non-empty
         self.assertGreater(len(str(row[0])), 0)
 
     def test_invalid_json_in_data_json_raises(self) -> None:
         """Non-JSON-serializable data_json raises ValueError before DB write."""
-        bad_data = {"dt": complex(1, 2)}  # complex is not JSON-serializable
+        bad_data = {"dt": complex(1, 2)}
         with self.assertRaises(ValueError) as cm:
             create_node(
                 node_type="code",
@@ -293,7 +282,6 @@ class TestCreateNode(unittest.TestCase):
                 db_path=self.db_path,
             )
         self.assertIn("JSON-serializable", str(cm.exception))
-        # Confirm no row was inserted
         count = self.con.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
         self.assertEqual(count, 0)
 
@@ -325,7 +313,6 @@ class TestCreateNodeAtomicity(unittest.TestCase):
 
     def test_atomicity_partial_failure_rollback(self) -> None:
         """If an exception occurs mid-transaction, neither DB nor graph changes persist."""
-        # Try using graph_transaction if available; if not, skip
         try:
             from graph.transactions import graph_transaction
         except ImportError:
@@ -333,7 +320,6 @@ class TestCreateNodeAtomicity(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             with graph_transaction(db_path=self.db_path):
-                # First call succeeds
                 nid1 = create_node(
                     node_type="code",
                     name="Node1",
@@ -342,21 +328,17 @@ class TestCreateNodeAtomicity(unittest.TestCase):
                     status="draft",
                     db_path=self.db_path,
                 )
-                # Force a second call that will fail (duplicate)
                 create_node(
                     node_type="code",
-                    name="Node1",  # duplicate
+                    name="Node1",
                     definition="Second",
                     tag="T",
                     status="draft",
                     db_path=self.db_path,
                 )
 
-        # After rollback, DB should have 0 rows (first insert rolled back)
         count = self.con.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
         self.assertEqual(count, 0)
-
-        # Graph should be empty (NetworkX changes rolled back)
         G = get_graph(db_path=self.db_path)
         self.assertEqual(G.number_of_nodes(), 0)
 
