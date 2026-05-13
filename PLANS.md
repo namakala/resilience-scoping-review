@@ -50,7 +50,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 ## Phase 5 — Inference Layer (30–36)
 
 - [x] @docs/plan/30-groq-client-initialization.md
-- [ ] @docs/plan/31-prompt-template-engine.md
+- [x] @docs/plan/31-prompt-template-engine.md
 - [ ] @docs/plan/32-batch-grouping-by-tag.md
 - [ ] @docs/plan/33-structured-output-parser.md
 - [ ] @docs/plan/34-token-tracking-middleware.md

@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
 description: "Manages Groq batch inference, prompt templates, and structured output parsing"
-updated_at: "2026-05-11"
+updated_at: "2026-05-13"
 ---
 
 # Inference & LLM Layer
