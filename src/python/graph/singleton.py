@@ -55,7 +55,8 @@ def rebuild_graph(db_path: Optional[Path] = None) -> nx.DiGraph:
     """Force a full rebuild of the in-memory graph, clearing any cached instance.
 
     Useful after bulk mutations or when explicit refresh is required. The new
-    graph replaces the singleton and is returned.
+    graph replaces the singleton and is returned. Traversal caches are cleared
+    to prevent stale results.
 
     Args:
         db_path: Path to DuckDB file. Defaults to standard session DB location.
@@ -63,6 +64,10 @@ def rebuild_graph(db_path: Optional[Path] = None) -> nx.DiGraph:
     Returns:
         nx.DiGraph: Freshly constructed graph reflecting current DB state.
     """
+    # Lazy import to avoid circular dependency (traversal imports singleton)
+    from .traversal import clear_traversal_cache
+
+    clear_traversal_cache()
     global _graph
     _graph = None
     con = get_connection(db_path)
