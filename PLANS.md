@@ -30,7 +30,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 3 — Ontology Layer (17–22)
 
-- [ ] @docs/plan/17-tag-dag-construction.md
+- [x] @docs/plan/17-tag-dag-construction.md
 - [ ] @docs/plan/18-ontology-traversal-ops.md
 - [ ] @docs/plan/19-traversal-cache-materialization.md
 - [ ] @docs/plan/20-incremental-cache-invalidation.md

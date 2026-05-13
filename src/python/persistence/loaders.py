@@ -124,7 +124,7 @@ def load_tags() -> pl.LazyFrame:
 
     # Keep only required columns per spec: tag, parent, description, depth
     # Drop n_contents and any other artifacts
-    result = enriched.select(["tag", "parent", "description", "depth"])
+    result = enriched.select(["tag", "parent", "description", "n_contents", "depth"])
 
     return result
 
