@@ -10,6 +10,7 @@ DuckDB backend via explicit sync operations after mutations.
 """
 
 from .builder import build_graph
+from .crud import create_node
 from .singleton import get_graph, rebuild_graph
 from .sync import sync_edge, sync_node
 
@@ -19,4 +20,5 @@ __all__ = [
     "sync_node",
     "sync_edge",
     "build_graph",
+    "create_node",
 ]
