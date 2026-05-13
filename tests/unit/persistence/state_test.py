@@ -28,18 +28,20 @@ sys.path.insert(
 )
 
 import duckdb
-from persistence.state import (
+from persistence.state_repository import (
     DEFAULT_STATE,
-    get_dirty_flags,
-    increment_user_action_count,
     load_state,
     reset_state,
     save_state,
+    validate_state,
+)
+from persistence.state_updates import (
+    get_dirty_flags,
+    increment_user_action_count,
     set_config_version,
     set_current_stage,
     set_last_checkpoint,
     update_dirty_flag,
-    validate_state,
 )
 from utils.exceptions import StateError
 
@@ -81,7 +83,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_int(self):
         """Integer values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         for val in [0, 1, -1, 42, 999999]:
             json_str, type_hint = _serialize(val)
@@ -90,7 +92,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_float(self):
         """Float values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         for val in [0.0, 1.5, -3.14, 0.001]:
             json_str, type_hint = _serialize(val)
@@ -100,7 +102,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_str(self):
         """String values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         for val in ["", "hello", "unicode: \u00e9"]:
             json_str, type_hint = _serialize(val)
@@ -109,7 +111,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_bool(self):
         """Boolean values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         for val in [True, False]:
             json_str, type_hint = _serialize(val)
@@ -118,7 +120,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_dict(self):
         """Dict values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         val = {"key": "value", "nested": {"a": 1}}
         json_str, type_hint = _serialize(val)
@@ -127,7 +129,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_list(self):
         """List values survive serialization roundtrip."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         val = [1, "two", True, None]
         json_str, type_hint = _serialize(val)
@@ -136,7 +138,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_roundtrip_none(self):
         """None values serialize to 'null' type."""
-        from persistence.state import _deserialize, _serialize
+        from persistence.state_serialization import _deserialize, _serialize
 
         json_str, type_hint = _serialize(None)
         self.assertEqual(json_str, "null")
@@ -145,7 +147,7 @@ class TestSerializationHelpers(unittest.TestCase):
 
     def test_serialize_unsupported_type_raises(self):
         """Unsupported types raise StateError."""
-        from persistence.state import _serialize
+        from persistence.state_serialization import _serialize
 
         with self.assertRaises(StateError):
             _serialize(set([1, 2, 3]))

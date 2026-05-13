@@ -34,7 +34,12 @@ Implement state persistence in `session_state` table. Manage keys: `current_stag
 
 ## Implementation Notes
 
-- Module: `src/python/persistence/state.py`
+- Modules:
+  - `src/python/persistence/state_constants.py` — constant definitions (`WORKFLOW_KEY`, `DEFAULT_STATE`)
+  - `src/python/persistence/state_serialization.py` — JSON serialization helpers (`_serialize`, `_deserialize`)
+  - `src/python/persistence/state_validator.py` — validation logic (`validate_state`)
+  - `src/python/persistence/state_repository.py` — core I/O operations (`load_state`, `save_state`, `reset_state`)
+  - `src/python/persistence/state_updates.py` — atomic setters and dirty flag management
 - Table: `session_state(key VARCHAR PRIMARY KEY, value VARCHAR NOT NULL, type VARCHAR NOT NULL)` — matches schema in `duckdb_schema.py` (no `updated_at` column)
 - All workflow state stored as a single JSON object under `key='workflow'` with `type='dict'`
 - State dict structure: `{"current_stage": 1, "dirty_flags": {}, "last_checkpoint": null, "config_version": "", "user_action_count": 0}`

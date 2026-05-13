@@ -14,18 +14,15 @@ from .embedding_cache import (
 from .exceptions import ConversionError, DataQualityError, SchemaValidationError
 from .hash_utils import compute_model_hash
 from .loaders import clear_cache, load_exemplars, load_keywords, load_tags
-from .state import (
-    DEFAULT_STATE,
+from .state_constants import DEFAULT_STATE
+from .state_repository import load_state, reset_state, save_state, validate_state
+from .state_updates import (
     get_dirty_flags,
     increment_user_action_count,
-    load_state,
-    reset_state,
-    save_state,
     set_config_version,
     set_current_stage,
     set_last_checkpoint,
     update_dirty_flag,
-    validate_state,
 )
 
 __all__ = [
