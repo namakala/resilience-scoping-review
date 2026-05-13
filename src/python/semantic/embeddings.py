@@ -99,6 +99,33 @@ def generate_embedding(text: str) -> np.ndarray:
     return emb
 
 
+def generate_embeddings(texts: list[str], batch_size: int = 32) -> np.ndarray:
+    """Generate L2-normalized embeddings for a batch of texts.
+
+    More efficient than calling generate_embedding() in a loop because
+    the model processes texts in internal batches.
+
+    Args:
+        texts: List of input texts to embed.
+        batch_size: Internal encode batch size passed to the model.
+
+    Returns:
+        Float32 numpy array of shape (len(texts), EMBEDDING_DIM)
+        with each row L2-normalized to unit length.
+
+    Raises:
+        EmbeddingError: If model inference fails.
+    """
+    model = _get_model()
+    with _lock:
+        try:
+            embs = model.encode(texts, normalize_embeddings=True, batch_size=batch_size)
+        except Exception as e:
+            logger.error("Batch embedding generation failed", extra={"error": str(e)})
+            raise EmbeddingError(f"Failed to generate embeddings: {e}") from e
+    return embs
+
+
 def get_model_hash() -> str:
     """Return model version hash for cache invalidation.
 

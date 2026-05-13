@@ -1,7 +1,7 @@
 ---
 title: "24 — exemplar-embedding-generation"
 description: "Batch-encode all exemplar content; store in embedding_cache; immutable"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 4
 ---
 

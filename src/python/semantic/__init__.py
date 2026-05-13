@@ -2,6 +2,7 @@
 
 from .api import get_index_info, get_scores, get_top_n
 from .cache import clear_cache as clear_bm25_cache
+from .embedding_generation import generate_exemplar_embeddings
 from .embeddings import (
     EMBEDDING_DIM,
     MODEL_CACHE_DIR,
@@ -9,6 +10,7 @@ from .embeddings import (
     EmbeddingError,
     clear_model_cache,
     generate_embedding,
+    generate_embeddings,
     get_model_hash,
     reload_model,
 )
@@ -27,6 +29,7 @@ __all__ = [
     "clear_bm25_cache",
     # Embedding model
     "generate_embedding",
+    "generate_embeddings",
     "get_model_hash",
     "clear_model_cache",
     "reload_model",
@@ -34,6 +37,8 @@ __all__ = [
     "MODEL_NAME",
     "EMBEDDING_DIM",
     "MODEL_CACHE_DIR",
+    # Embedding generation
+    "generate_exemplar_embeddings",
     # Exceptions
     "BM25IndexError",
     "IndexCorruptedError",
