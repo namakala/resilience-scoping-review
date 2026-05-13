@@ -57,6 +57,14 @@ Queries: fetch by type and tag, list descendants, fetch semantic neighborhood, r
 
 All modifications must respect ADR-013 constraints. Node operations may invalidate caches. Edge types are limited to defined set: parent-child, contains, derived-from, composed-of, spans, neighbor.
 
+## Documentation
+
+Full node/edge schemas: `@docs/feature/graph-data-model.md`
+Dual representation and caching: `@docs/feature/graph-dual-representation.md`
+Integration and constraints: `@docs/feature/graph-integration-constraints.md`
+Retrieval and evolution: `@docs/feature/graph-retrieval-evolution.md`
+Usage examples and performance: `@docs/feature/graph-usage-performance.md`
+
 ---
 
 ## Implementation Notes — Feature 11 (Refactored)

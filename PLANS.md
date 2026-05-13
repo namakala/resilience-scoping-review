@@ -5,7 +5,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 ## Phase 0 — Foundation (00–04)
 
 - [x] @docs/plan/00-environment-provisioning.md (verified: env works, imports OK, R 4.3.1)
-- [x] @docs/plan/01-project-scaffolding.md (dirs: tests/{unit,integration,fixtures}, data/output; 7x src/python/*/__init__.py; analyze.py stub; .gitignore updated)
+- [x] @docs/plan/01-project-scaffolding.md (dirs: tests/{unit,integration,fixtures}, data/output; 7x src/python/\*/__init__.py; analyze.py stub; .gitignore updated)
 - [x] @docs/plan/02-pre-commit-config.md (hooks: black/isort/mypy/flake8/pytest; fixtures excluded; pytest as local hook)
 - [x] @docs/plan/03-logging-framework.md (implemented: JSON logging, rotation, sensitive filter; commit 1fa4384)
 - [x] @docs/plan/04-error-handling-utilities.md (implemented: @make_retry with exponential backoff, @make_circuit_breaker with half-open recovery, graceful_shutdown context manager; commit [will be added])
