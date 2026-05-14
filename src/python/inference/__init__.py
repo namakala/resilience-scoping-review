@@ -9,6 +9,7 @@ from .batching import (
 )
 from .code_inference import infer_codes
 from .code_node_creation import create_code_nodes
+from .create_theme_nodes import create_theme_nodes
 from .exemplar_node_creation import ensure_exemplar_nodes
 from .fewshot_loader import load_fewshot
 from .groq_client import build_messages, complete, get_client, get_model
@@ -49,6 +50,7 @@ from .prompts import (
     render_theme_prompt,
 )
 from .retry import TokenLimitError, call_complete_with_retry, infer_batch_with_retry
+from .theme_inference import infer_themes
 from .track_decorator import track_tokens
 from .tracking import (
     TokenTracker,
@@ -63,6 +65,7 @@ __all__ = [
     "Batch",
     "BatchableItem",
     "CodeInference",
+    "create_theme_nodes",
     "DRAFT",
     "GENERATED",
     "InterpretationInference",
@@ -93,6 +96,7 @@ __all__ = [
     "group_items_by_tag",
     "infer_batch_with_retry",
     "infer_codes",
+    "infer_themes",
     "init_inference_status_table",
     "load_fewshot",
     "parse_code_response",
