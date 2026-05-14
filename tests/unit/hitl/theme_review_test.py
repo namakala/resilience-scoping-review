@@ -105,9 +105,10 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
     # ── Approve via prompt ──────────────────────────────────────────────
 
+    @mock.patch("inference.readiness.check_tag_ready")
     @mock.patch("questionary.select")
     @mock.patch("ontology.validate_constraint")
-    def test_approve_via_prompt(self, mock_constraint, mock_select):
+    def test_approve_via_prompt(self, mock_constraint, mock_select, mock_readiness):
         from hitl.theme_review import review_themes
 
         self._insert_draft_theme(1, name="ThemeA", code_ids=[10, 11])
@@ -119,6 +120,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         )
         mock_select.return_value.ask.return_value = "Approve"
         mock_constraint.return_value = None
+        mock_readiness.return_value = False
 
         with (
             mock.patch("hitl.theme_review_display.console.print"),
@@ -129,11 +131,13 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
         self.assertEqual(status, "approved")
+        mock_readiness.assert_called_once_with(mock.ANY, "T1", db_path=mock.ANY)
 
     # ── Reject via prompt ───────────────────────────────────────────────
 
+    @mock.patch("inference.readiness.check_tag_ready")
     @mock.patch("questionary.select")
-    def test_reject_via_prompt(self, mock_select):
+    def test_reject_via_prompt(self, mock_select, mock_readiness):
         from hitl.theme_review import review_themes
 
         self._insert_draft_theme(1, name="ThemeA", code_ids=[10, 11])
@@ -154,6 +158,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
         self.assertEqual(status, "rejected")
+        mock_readiness.assert_called_once_with(mock.ANY, "T1", db_path=mock.ANY)
 
     # ── Defer via prompt ────────────────────────────────────────────────
 
@@ -182,12 +187,13 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
     # ── Edit narrative via prompt ───────────────────────────────────────
 
+    @mock.patch("inference.readiness.check_tag_ready")
     @mock.patch("questionary.select")
     @mock.patch("questionary.text")
     @mock.patch("questionary.checkbox")
     @mock.patch("hitl.theme_review_prompts._get_available_codes_for_tag")
     def test_edit_narrative_via_prompt(
-        self, mock_get_codes, mock_checkbox, mock_text, mock_select
+        self, mock_get_codes, mock_checkbox, mock_text, mock_select, mock_readiness
     ):
         from hitl.theme_review import review_themes
 
@@ -219,6 +225,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
             "SELECT definition FROM nodes WHERE id = 1"
         ).fetchone()[0]
         self.assertEqual(narrative, "new narrative")
+        mock_readiness.assert_called_once_with(mock.ANY, "T1", db_path=mock.ANY)
 
     # ── Approve fails constraint check ──────────────────────────────────
 

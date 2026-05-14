@@ -148,6 +148,18 @@ def handle_approve_theme(
     log_user_action(con, "approve", node_id)
     increment_user_action_count(con)
 
+    # Check if theme approval makes the entire tag subtree interpretation-ready
+    from inference.readiness import check_tag_ready
+
+    if check_tag_ready(con, theme["tag"], db_path=db_path):
+        from .theme_review_display import console
+
+        tag_label = theme["tag"]
+        console.print(
+            f"[bold green]✓ Tag '{tag_label}' is interpretation-ready! "
+            f"All themes in subtree approved.[/bold green]"
+        )
+
 
 def handle_edit_theme(
     con: duckdb.DuckDBPyConnection,
@@ -202,6 +214,11 @@ def handle_edit_theme(
     )
     increment_user_action_count(con)
 
+    # Editing resets theme to draft → re-check subtree readiness
+    from inference.readiness import check_tag_ready
+
+    check_tag_ready(con, theme["tag"], db_path=db_path)
+
 
 def handle_reject_theme(
     con: duckdb.DuckDBPyConnection,
@@ -220,6 +237,11 @@ def handle_reject_theme(
     )
     log_user_action(con, "reject", node_id)
     increment_user_action_count(con)
+
+    # Rejecting a theme breaks subtree readiness → re-check
+    from inference.readiness import check_tag_ready
+
+    check_tag_ready(con, theme["tag"], db_path=db_path)
 
 
 def handle_defer_theme(

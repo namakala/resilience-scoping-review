@@ -184,6 +184,9 @@ def handle_merge_themes(
         tag = source_theme.get("tag", "")
         if tag:
             update_dirty_flag(con, tag)
+            from inference.readiness import check_tag_ready
+
+            check_tag_ready(con, tag, db_path=db_path)
     except Exception:
         if not committed:
             try:
