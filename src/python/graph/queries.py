@@ -1,9 +1,12 @@
 """Read-only node queries against DuckDB.
 
-Provides get_node, get_nodes_by_type_and_tag, and get_node_by_name.
+Provides get_node, get_nodes_by_type_and_tag, get_node_by_name,
+and get_interpretations_by_span_tag.
 Each opens a dedicated connection, ensures indexes, executes, and closes.
 Results returned as plain dicts with deserialized data_json and ISO timestamps.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Optional
@@ -109,6 +112,49 @@ def get_node_by_name(
         raise
     except duckdb.Error:
         logger.exception("get_node_by_name failed")
+        raise
+    finally:
+        if con:
+            con.close()
+
+
+def get_interpretations_by_span_tag(
+    tag: str,
+    db_path: Optional[Path] = None,
+) -> list[dict[str, Any]]:
+    """Return interpretation nodes whose ``tag_spans`` include *tag*.
+
+    Since interpretation nodes store only ``root_tag`` in the ``tag``
+    column, this function checks the ``data_json['tag_spans']`` array
+    for membership. Filters in Python for correctness across DuckDB
+    JSON variants.
+
+    Args:
+        tag: Ontology tag string to search for within ``tag_spans``.
+        db_path: Optional DuckDB path for graph module.
+
+    Returns:
+        List of interpretation node dicts, sorted by node id.
+    """
+    con = None
+    try:
+        con = _get_conn(db_path)
+        rows = con.execute(
+            f"SELECT {NODE_COLUMNS} FROM nodes "
+            "WHERE type = 'interpretation' ORDER BY id",
+        ).fetchall()
+        all_interps = [row_to_dict(r) for r in rows]
+
+        # Filter in Python: check if tag is in data_json['tag_spans']
+        result = []
+        for interp in all_interps:
+            dj = interp.get("data_json") or {}
+            tag_spans = dj.get("tag_spans") or []
+            if tag in tag_spans:
+                result.append(interp)
+        return result
+    except duckdb.Error:
+        logger.exception("get_interpretations_by_span_tag failed")
         raise
     finally:
         if con:

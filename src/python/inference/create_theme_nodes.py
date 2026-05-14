@@ -28,8 +28,8 @@ from utils.logging import get_logger
 
 from .inference_status_crud import set_status
 from .inference_status_types import ENTITY_THEME, GENERATED, STAGE_THEME
+from .name_utils import check_duplicate_theme_names, make_unique_name
 from .parsing import ThemeInference
-from .theme_name_utils import check_duplicate_theme_names, make_unique_theme_name
 from .theme_node_reinfer import load_existing_draft_themes, rename_node_raw
 
 logger = get_logger(__name__)
@@ -135,7 +135,9 @@ def create_theme_nodes(
                 )
 
         for theme in themes:
-            unique_name = make_unique_theme_name(theme.theme_name, used_names)
+            unique_name = make_unique_name(
+                theme.theme_name, used_names, entity_type="theme"
+            )
             used_names.add(unique_name)
 
             data_json = _build_data_json(theme)

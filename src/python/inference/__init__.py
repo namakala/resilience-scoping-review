@@ -28,6 +28,7 @@ from .inference_status_queries import (
 from .inference_status_types import (
     APPROVED,
     DRAFT,
+    ENTITY_INTERPRETATION,
     GENERATED,
     PENDING,
     REJECTED,
@@ -35,6 +36,7 @@ from .inference_status_types import (
     STAGE_INTERPRETATION,
     STAGE_THEME,
 )
+from .interpretation_creation import create_interpretation_nodes
 from .interpretation_postprocess import (
     dedup_interpretation_names,
     flag_overlapping_themes,
@@ -86,9 +88,11 @@ __all__ = [
     "build_tag_hierarchy",
     "check_tag_ready",
     "CodeInference",
+    "create_interpretation_nodes",
     "create_theme_nodes",
     "dedup_interpretation_names",
     "DRAFT",
+    "ENTITY_INTERPRETATION",
     "flag_overlapping_themes",
     "GENERATED",
     "get_ready_tags",
