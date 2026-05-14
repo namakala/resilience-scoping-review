@@ -150,8 +150,36 @@ def group_by_tag(
     return batches
 
 
+def split_batch_in_half(batch: Batch) -> list[Batch]:
+    """Split *batch* items into two roughly equal halves.
+
+    First half gets ``ceil(N/2)`` items; second gets remainder.
+    ``batch_index`` and ``total_batches`` are set appropriately.
+    The original batch's ``_prefix`` is preserved.
+    """
+    items = batch.items
+    mid = (len(items) + 1) // 2
+    half1 = Batch(
+        tag=batch.tag,
+        items=items[:mid],
+        batch_index=0,
+        total_batches=2,
+    )
+    half2 = Batch(
+        tag=batch.tag,
+        items=items[mid:],
+        batch_index=1,
+        total_batches=2,
+    )
+    prefix = getattr(batch, "_prefix", "tag")
+    half1._prefix = prefix
+    half2._prefix = prefix
+    return [half1, half2]
+
+
 __all__ = [
     "Batch",
     "BatchableItem",
     "group_by_tag",
+    "split_batch_in_half",
 ]

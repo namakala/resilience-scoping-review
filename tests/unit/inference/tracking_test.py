@@ -33,13 +33,13 @@ sys.path.insert(
 )
 
 from inference.groq_client import complete
+from inference.track_decorator import track_tokens
 from inference.tracking import (
     TokenTracker,
     UsageRecord,
     format_stage_summary,
     get_tracker,
     reset_tracker,
-    track_tokens,
 )
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

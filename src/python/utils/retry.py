@@ -39,6 +39,7 @@ def make_retry(
         GroqAPIError,
     ),
     logger: Optional[logging.Logger] = None,
+    label: Optional[str] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator factory that retries a function with exponential backoff.
 
@@ -51,6 +52,7 @@ def make_retry(
         backoff: Base backoff multiplier in seconds (must be > 0).
         retry_on: Tuple of exception types that trigger a retry.
         logger: Optional logger for retry audit trail.
+        label: Override for ``func.__name__`` in logs and error messages.
 
     Returns:
         Decorated function with retry logic.
@@ -69,6 +71,8 @@ def make_retry(
         raise ValueError(f"backoff must be > 0, got {backoff}")
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        _name = label or func.__name__
+
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             _logger = logger or logging.getLogger(func.__module__)
@@ -80,7 +84,7 @@ def make_retry(
                     "Retry attempt %d/%d for %s after error: %s",
                     attempt,
                     max_attempts,
-                    func.__name__,
+                    _name,
                     type(last_exc).__name__ if last_exc else "unknown",
                 )
 
@@ -97,7 +101,7 @@ def make_retry(
                 )(func)(*args, **kwargs)
             except TenacityRetryError as e:
                 raise RetryExhaustedError(
-                    f"Function {func.__name__} exhausted after {max_attempts} attempts"
+                    f"Function {_name} exhausted after {max_attempts} attempts"
                 ) from e.__cause__
 
         return wrapper

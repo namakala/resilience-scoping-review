@@ -1,6 +1,6 @@
 ---
 title: "Inference & LLM Layer"
-description: "Manages Groq batch inference, prompt templates, structured output parsing, and tag-based batching"
+description: "Manages Groq batch inference, prompt templates, structured output parsing, tag-based batching, and retry logic"
 updated_at: "2026-05-14"
 ---
 
@@ -20,6 +20,17 @@ Generate semantic artifacts (codes, themes, interpretations) from exemplars and 
 - Parse and validate structured JSON responses using Pydantic schemas
 - Track token consumption and cost per stage
 - Support incremental inference (only new or modified items)
+
+## Retry Logic (Feature 35)
+
+Three-tier retry for Groq API calls via `src/python/inference/retry.py`:
+
+- **Network errors** (timeout, connection): exponential backoff via tenacity (2s, 4s, 8s, max 3 attempts).
+- **Rate limit** (HTTP 429): sleep 60s, retry once.
+- **Token limit** (context-length error): raises `TokenLimitError`; `infer_batch_with_retry()` splits the batch via `split_batch_in_half()` and retries each half.
+- All retries logged per batch_id for audit.
+- Low-level: `call_complete_with_retry()` wraps a single `complete()` call.
+- High-level: `infer_batch_with_retry()` takes a `Batch` + render function, handles all modes.
 
 ## Batching Strategy (ADR-010)
 
@@ -82,7 +93,7 @@ Error handling:
 
 - Network errors: exponential backoff, up to 3 retries
 - Rate limit errors: 60-second pause, then retry
-- Token limit exceeded: split batch, retry halves
+- Token limit exceeded: split batch via `split_batch_in_half()`, retry each half via `infer_batch_with_retry()`
 - Invalid JSON: log error, return empty list, flag for manual retry
 
 ## Output Parsing

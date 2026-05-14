@@ -157,6 +157,32 @@ class TestRetryDecorator(unittest.TestCase):
         with self.assertRaises(RetryExhaustedError):
             custom_failure()
 
+    @patch("time.sleep", return_value=None)
+    def test_label_parameter_appears_in_logs_and_error(self, mock_sleep):
+        """Verify label replaces func.__name__ in logs and error
+        messages."""
+
+        exc = None
+        with self.assertLogs(level="WARNING") as logs:
+            try:
+
+                @make_retry(
+                    max_attempts=2,
+                    backoff=1,
+                    retry_on=(ValueError,),
+                    label="my_batch",
+                )
+                def failing():
+                    raise ValueError("test")
+
+                failing()
+            except RetryExhaustedError as e:
+                exc = e
+
+        self.assertIsNotNone(exc)
+        self.assertIn("my_batch", str(exc))
+        self.assertTrue(any("my_batch" in msg for msg in logs.output))
+
 
 if __name__ == "__main__":
     unittest.main()
