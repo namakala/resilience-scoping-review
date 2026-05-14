@@ -6,12 +6,11 @@ helpers for node updates.  (``handle_merge_themes`` lives in
 ``theme_review_merge.py``.)
 """
 
-import json
 from pathlib import Path
 from typing import Any, Optional
 
 import duckdb
-from graph import create_edge, rebuild_graph, sync_node
+from graph import create_edge, rebuild_graph
 from inference.inference_status_crud import set_status, set_status_draft
 from inference.inference_status_types import (
     APPROVED,
@@ -19,11 +18,16 @@ from inference.inference_status_types import (
     REJECTED,
     STAGE_THEME,
 )
-from persistence.state_updates import increment_user_action_count
 from utils.logging import get_logger
 
-from .edits import invalidate_theme_embedding
-from .user_action_log import log_user_action
+from .invalidation import invalidate_theme_embedding
+from .shared import (
+    _log_and_finish,
+    _update_node_data_json,
+    _update_node_definition,
+    _update_node_status,
+    console,
+)
 
 logger = get_logger(__name__)
 
@@ -35,50 +39,7 @@ __all__ = [
 ]
 
 
-# ── Node update helpers ────────────────────────────────────────────
-
-
-def _update_theme_status(
-    con: duckdb.DuckDBPyConnection,
-    node_id: int,
-    new_status: str,
-    db_path: Optional[Path] = None,
-) -> None:
-    """Update node status in DuckDB and sync the in-memory graph."""
-    con.execute(
-        "UPDATE nodes SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [new_status, node_id],
-    )
-    sync_node(node_id, db_path)
-
-
-def _update_theme_narrative(
-    con: duckdb.DuckDBPyConnection,
-    node_id: int,
-    new_narrative: str,
-    db_path: Optional[Path] = None,
-) -> None:
-    """Update node narrative (stored in ``definition``) and reset status to draft."""
-    con.execute(
-        "UPDATE nodes SET definition = ?, status = 'draft', "
-        "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [new_narrative, node_id],
-    )
-    sync_node(node_id, db_path)
-
-
-def _update_theme_data_json(
-    con: duckdb.DuckDBPyConnection,
-    node_id: int,
-    new_data_json: dict[str, Any],
-    db_path: Optional[Path] = None,
-) -> None:
-    """Update node data_json in DuckDB and sync the in-memory graph."""
-    con.execute(
-        "UPDATE nodes SET data_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-        [json.dumps(new_data_json, ensure_ascii=False), node_id],
-    )
-    sync_node(node_id, db_path)
+# ── Node update helper (unique to themes) ──────────────────────────
 
 
 def _update_theme_codes(
@@ -115,12 +76,7 @@ def handle_approve_theme(
     theme: dict[str, Any],
     db_path: Optional[Path] = None,
 ) -> None:
-    """Approve a theme: validate constraints, set status and inference status.
-
-    Checks ADR-013 constraints via ``validate_constraint`` before
-    approving.  If constraints fail, prints error and returns without
-    modifying state.
-    """
+    """Approve a theme: validate constraints, set status and inference status."""
     node_id = theme["id"]
 
     try:
@@ -128,8 +84,6 @@ def handle_approve_theme(
 
         validate_constraint({"id": node_id, "type": "theme"}, "approve")
     except ConstraintError as exc:
-        from .theme_review_display import console
-
         console.print(f"[red]Constraint violation: {exc}[/red]")
         logger.warning(
             "Theme approve rejected by constraint",
@@ -137,7 +91,7 @@ def handle_approve_theme(
         )
         return
 
-    _update_theme_status(con, node_id, "approved", db_path=db_path)
+    _update_node_status(con, node_id, "approved", db_path=db_path)
     set_status(
         con,
         entity_id=str(node_id),
@@ -145,15 +99,12 @@ def handle_approve_theme(
         stage=STAGE_THEME,
         status=APPROVED,
     )
-    log_user_action(con, "approve", node_id)
-    increment_user_action_count(con)
+    _log_and_finish(con, "approve", node_id)
 
     # Check if theme approval makes the entire tag subtree interpretation-ready
     from inference.readiness import check_tag_ready
 
     if check_tag_ready(con, theme["tag"], db_path=db_path):
-        from .theme_review_display import console
-
         tag_label = theme["tag"]
         console.print(
             f"[bold green]✓ Tag '{tag_label}' is interpretation-ready! "
@@ -168,16 +119,7 @@ def handle_edit_theme(
     new_narrative: str = "",
     new_code_ids: Optional[list[int]] = None,
 ) -> None:
-    """Edit a theme: update narrative and optionally codes, reset to draft.
-
-    Args:
-        con: Active DuckDB connection.
-        theme: Theme dict (expects keys ``id``, ``name``, ``narrative``, ``tag``).
-        db_path: Optional DuckDB path for graph module.
-        new_narrative: Updated narrative text.
-        new_code_ids: Optional updated list of constituent code IDs.
-            ``None`` means codes are unchanged.
-    """
+    """Edit a theme: update narrative and optionally codes, reset to draft."""
     node_id = theme["id"]
     old_narrative = theme.get("narrative", "")
 
@@ -191,12 +133,12 @@ def handle_edit_theme(
 
     old_data_json = theme.get("data_json") or {}
 
-    _update_theme_narrative(con, node_id, new_narrative, db_path=db_path)
+    _update_node_definition(con, node_id, new_narrative, db_path=db_path)
 
     if new_code_ids is not None:
         _update_theme_codes(con, node_id, new_code_ids, db_path=db_path)
         updated_data_json = {**old_data_json, "code_ids": new_code_ids}
-        _update_theme_data_json(con, node_id, updated_data_json, db_path=db_path)
+        _update_node_data_json(con, node_id, updated_data_json, db_path=db_path)
 
     set_status_draft(
         con,
@@ -205,14 +147,13 @@ def handle_edit_theme(
         stage=STAGE_THEME,
     )
     invalidate_theme_embedding(con, node_id, theme.get("tag", ""))
-    log_user_action(
+    _log_and_finish(
         con,
         "edit",
         node_id,
         old_value={"narrative": old_narrative},
         new_value={"narrative": new_narrative},
     )
-    increment_user_action_count(con)
 
     # Editing resets theme to draft → re-check subtree readiness
     from inference.readiness import check_tag_ready
@@ -227,7 +168,7 @@ def handle_reject_theme(
 ) -> None:
     """Reject a theme: set node status and inference status to rejected."""
     node_id = theme["id"]
-    _update_theme_status(con, node_id, "rejected", db_path=db_path)
+    _update_node_status(con, node_id, "rejected", db_path=db_path)
     set_status(
         con,
         entity_id=str(node_id),
@@ -235,8 +176,7 @@ def handle_reject_theme(
         stage=STAGE_THEME,
         status=REJECTED,
     )
-    log_user_action(con, "reject", node_id)
-    increment_user_action_count(con)
+    _log_and_finish(con, "reject", node_id)
 
     # Rejecting a theme breaks subtree readiness → re-check
     from inference.readiness import check_tag_ready
@@ -249,5 +189,4 @@ def handle_defer_theme(
     theme: dict[str, Any],
 ) -> None:
     """Defer a theme: log action only, no status change."""
-    log_user_action(con, "defer", theme["id"])
-    increment_user_action_count(con)
+    _log_and_finish(con, "defer", theme["id"])

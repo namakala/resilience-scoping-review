@@ -9,23 +9,19 @@ from typing import Optional
 
 import duckdb
 
+from .prompts import _handle_merge_interactive_theme as _handle_merge_interactive
+from .prompts import _prompt_edit_codes
+from .prompts import _prompt_edit_text as _prompt_edit_narrative
+from .prompts import _prompt_theme_action
+from .queries import _get_constituent_codes
+from .queries import _get_neighbors_theme as _get_theme_neighbors
+from .queries import _get_pending_themes
+from .shared import console
 from .theme_review_actions import (
     handle_approve_theme,
     handle_defer_theme,
     handle_edit_theme,
     handle_reject_theme,
-)
-from .theme_review_display import console
-from .theme_review_prompts import (
-    _handle_merge_interactive,
-    _prompt_edit_codes,
-    _prompt_edit_narrative,
-    _prompt_theme_action,
-)
-from .theme_review_queries import (
-    _get_constituent_codes,
-    _get_pending_themes,
-    _get_theme_neighbors,
 )
 
 __all__ = ["review_themes"]
@@ -74,9 +70,9 @@ def _review_single_theme(
     db_path: Optional[Path] = None,
 ) -> None:
     """Display, prompt, and dispatch action for a single theme."""
-    from .theme_review_display import (
+    from .display import (
         _display_constituent_codes,
-        _display_theme_neighbors,
+        _display_neighbors_table,
         _display_theme_panel,
     )
 
@@ -86,7 +82,7 @@ def _review_single_theme(
     _display_constituent_codes(codes)
 
     neighbors = _get_theme_neighbors(con, theme["id"], k=3)
-    _display_theme_neighbors(neighbors)
+    _display_neighbors_table("Similar Themes", neighbors)
 
     action = _prompt_theme_action(theme["name"])
 

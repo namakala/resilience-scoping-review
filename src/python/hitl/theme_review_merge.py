@@ -22,7 +22,7 @@ from persistence.embedding_cache import invalidate_entity
 from persistence.state_updates import increment_user_action_count, update_dirty_flag
 from utils.logging import get_logger
 
-from .merge_invalidation import invalidate_interpretations
+from .invalidation import invalidate_interpretations
 from .user_action_log import log_user_action
 
 logger = get_logger(__name__)

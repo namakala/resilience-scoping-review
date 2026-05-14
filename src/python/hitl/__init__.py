@@ -8,11 +8,6 @@ from .code_review_actions import (
     handle_reject,
 )
 from .code_review_merge import handle_merge
-from .edits import (
-    invalidate_code_embedding,
-    invalidate_interpretation_embedding,
-    invalidate_theme_embedding,
-)
 from .interpretation_review import review_interpretations
 from .interpretation_review_actions import (
     handle_approve_interpretation,
@@ -21,6 +16,11 @@ from .interpretation_review_actions import (
     handle_reject_interpretation,
 )
 from .interpretation_review_split import handle_split_interpretation
+from .invalidation import (
+    invalidate_code_embedding,
+    invalidate_interpretation_embedding,
+    invalidate_theme_embedding,
+)
 from .theme_review import review_themes
 from .theme_review_actions import (
     handle_approve_theme,

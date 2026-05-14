@@ -74,13 +74,20 @@ Check rejected if constraints violated. Error message includes remediation sugge
 
 ## Module Map
 
-- **`code_review.py`** — Interactive CLI orchestration (review loops, prompt dispatch)
-- **`code_review_actions.py`** — Simple action handlers (approve, edit, reject, defer)
-- **`code_review_merge.py`** — Merge orchestration with transaction management
-- **`merge_invalidation.py`** — Downstream cache invalidation (theme→draft, interpretation→draft)
-- **`code_review_prompts.py`** — `questionary` prompts and interactive merge flow
-- **`code_review_display.py`** — `rich` panels and tables for terminal UI
-- **`code_review_queries.py`** — Database queries for pending items and neighbors
+- **`code_review.py`** — Interactive CLI orchestration for code review
+- **`theme_review.py`** — Interactive CLI orchestration for theme review
+- **`interpretation_review.py`** — Interactive CLI orchestration for interpretation review
+- **`code_review_actions.py`** — Action handlers (approve, edit, reject, defer) for codes
+- **`theme_review_actions.py`** — Action handlers for themes
+- **`interpretation_review_actions.py`** — Action handlers for interpretations
+- **`code_review_merge.py`** — Merge orchestration for codes with transaction management
+- **`theme_review_merge.py`** — Merge orchestration for themes
+- **`interpretation_review_split.py`** — Split orchestration for interpretations
+- **`shared.py`** — Shared utilities (console, node update helpers, common action patterns)
+- **`queries.py`** — Database queries for all entity types (consolidated)
+- **`display.py`** — `rich` panels, tables, and trees for all entity types (consolidated)
+- **`prompts.py`** — `questionary` prompts and interactive flows for all entity types (consolidated)
+- **`invalidation.py`** — Embedding invalidation and downstream cascade (theme→draft, interpretation→draft)
 - **`user_action_log.py`** — Audit table CRUD
 
 ## Integration

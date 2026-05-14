@@ -82,7 +82,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
     def test_no_pending_themes_returns_early(self):
         from hitl.theme_review import review_themes
 
-        with mock.patch("hitl.theme_review_display.console.print") as mock_print:
+        with mock.patch("hitl.shared.console.print") as mock_print:
             review_themes(self.con, db_path=self.db_path)
             mock_print.assert_called_once()
             msg = str(mock_print.call_args[0][0])
@@ -98,7 +98,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
             "hitl.theme_review._review_single_theme",
             side_effect=KeyboardInterrupt(),
         ):
-            with mock.patch("hitl.theme_review_display.console.print") as mock_print:
+            with mock.patch("hitl.shared.console.print") as mock_print:
                 review_themes(self.con, db_path=self.db_path)
                 printed = [str(c[0][0]) for c in mock_print.call_args_list]
                 self.assertTrue(any("interrupted" in p.lower() for p in printed))
@@ -123,7 +123,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_readiness.return_value = False
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
         ):
@@ -150,7 +150,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Reject"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
         ):
@@ -176,7 +176,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
         ):
@@ -191,7 +191,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
     @mock.patch("questionary.select")
     @mock.patch("questionary.text")
     @mock.patch("questionary.checkbox")
-    @mock.patch("hitl.theme_review_prompts._get_available_codes_for_tag")
+    @mock.patch("hitl.prompts._get_available_codes_for_tag")
     def test_edit_narrative_via_prompt(
         self, mock_get_codes, mock_checkbox, mock_text, mock_select, mock_readiness
     ):
@@ -215,7 +215,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_checkbox.return_value.ask.return_value = [10, 11]
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
         ):
@@ -243,7 +243,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Approve"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
             mock.patch(
@@ -275,7 +275,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.theme_review._review_single_theme") as mock_review,
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
         ):
             review_themes(self.con, tag="T1", db_path=self.db_path)
 
@@ -294,7 +294,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
             mock.patch("hitl.theme_review._get_theme_neighbors") as mock_neighbors,
         ):
@@ -320,7 +320,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Approve"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
             mock.patch(
@@ -382,7 +382,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Merge"
 
         with (
-            mock.patch("hitl.theme_review_display.console.print") as mock_print,
+            mock.patch("hitl.shared.console.print") as mock_print,
             mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
         ):

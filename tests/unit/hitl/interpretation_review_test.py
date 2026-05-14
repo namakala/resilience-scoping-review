@@ -124,9 +124,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
     def test_no_pending_interpretations_returns_early(self):
         from hitl.interpretation_review import review_interpretations
 
-        with mock.patch(
-            "hitl.interpretation_review_display.console.print"
-        ) as mock_print:
+        with mock.patch("hitl.shared.console.print") as mock_print:
             review_interpretations(self.con, db_path=self.db_path)
             mock_print.assert_called_once()
             msg = str(mock_print.call_args[0][0])
@@ -142,9 +140,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
             "hitl.interpretation_review._review_single_interpretation",
             side_effect=KeyboardInterrupt(),
         ):
-            with mock.patch(
-                "hitl.interpretation_review_display.console.print"
-            ) as mock_print:
+            with mock.patch("hitl.shared.console.print") as mock_print:
                 review_interpretations(self.con, db_path=self.db_path)
                 printed = [str(c[0][0]) for c in mock_print.call_args_list]
                 self.assertTrue(any("interrupted" in p.lower() for p in printed))
@@ -169,7 +165,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_constraint.return_value = None
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
@@ -208,7 +204,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Reject"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
@@ -242,7 +238,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
@@ -288,7 +284,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_text.return_value.ask.return_value = "new narrative"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
@@ -335,7 +331,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Approve"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
@@ -389,7 +385,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
             mock.patch(
                 "hitl.interpretation_review._review_single_interpretation"
             ) as mock_review,
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
         ):
             review_interpretations(self.con, tag="T1", db_path=self.db_path)
 
@@ -415,14 +411,12 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_neighbors",
                 return_value=[],
             ),
-            mock.patch(
-                "hitl.interpretation_review_display._display_evidence_chain"
-            ) as mock_display,
+            mock.patch("hitl.display._display_evidence_chain") as mock_display,
         ):
             review_interpretations(self.con, db_path=self.db_path)
 
@@ -439,7 +433,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.interpretation_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch(
                 "hitl.interpretation_review._get_interpretation_themes",
                 return_value=[],
@@ -552,7 +546,7 @@ class TestInterpretationReviewActions(unittest.TestCase):
             "Tags do not form a contiguous subtree.",
         )
 
-        with mock.patch("hitl.interpretation_review_display.console.print"):
+        with mock.patch("hitl.shared.console.print"):
             handle_approve_interpretation(self.con, interp, db_path=self.db_path)
 
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]

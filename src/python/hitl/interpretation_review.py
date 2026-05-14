@@ -15,19 +15,13 @@ from .interpretation_review_actions import (
     handle_edit_interpretation,
     handle_reject_interpretation,
 )
-from .interpretation_review_display import console
-from .interpretation_review_prompts import (
-    _handle_split_interactive,
-    _prompt_edit_narrative,
-    _prompt_interpretation_action,
-)
-from .interpretation_review_queries import (
-    _get_code_exemplars,
-    _get_interpretation_neighbors,
-    _get_interpretation_themes,
-    _get_pending_interpretations,
-    _get_theme_codes,
-)
+from .prompts import _handle_split_interactive
+from .prompts import _prompt_edit_text as _prompt_edit_narrative
+from .prompts import _prompt_interpretation_action
+from .queries import _get_code_exemplars, _get_interpretation_themes
+from .queries import _get_neighbors_interpretation as _get_interpretation_neighbors
+from .queries import _get_pending_interpretations, _get_theme_codes
+from .shared import console
 
 __all__ = ["review_interpretations"]
 
@@ -77,10 +71,10 @@ def _review_single_interpretation(
     db_path: Optional[Path] = None,
 ) -> None:
     """Display, prompt, and dispatch action for a single interpretation."""
-    from .interpretation_review_display import (
+    from .display import (
         _display_evidence_chain,
-        _display_interpretation_neighbors,
         _display_interpretation_panel,
+        _display_neighbors_table,
     )
 
     _display_interpretation_panel(interp)
@@ -100,7 +94,7 @@ def _review_single_interpretation(
 
     # Show neighbor interpretations
     neighbors = _get_interpretation_neighbors(con, interp["id"], k=3)
-    _display_interpretation_neighbors(neighbors)
+    _display_neighbors_table("Neighbor Interpretations", neighbors)
 
     # Prompt for action
     action = _prompt_interpretation_action(interp["name"])
