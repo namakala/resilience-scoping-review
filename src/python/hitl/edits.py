@@ -12,7 +12,10 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ["invalidate_code_embedding"]
+__all__ = [
+    "invalidate_code_embedding",
+    "invalidate_theme_embedding",
+]
 
 
 def invalidate_code_embedding(
@@ -36,4 +39,28 @@ def invalidate_code_embedding(
     logger.debug(
         "Code embedding invalidated",
         extra={"code_id": code_id, "tag": tag},
+    )
+
+
+def invalidate_theme_embedding(
+    con: duckdb.DuckDBPyConnection,
+    theme_id: int,
+    tag: str,
+) -> None:
+    """Invalidate a theme's embedding cache and mark its tag branch as dirty.
+
+    Called after a theme edit or merge to ensure the next pipeline run
+    regenerates the embedding for this theme and re-processes its tag.
+
+    Args:
+        con: Active DuckDB connection.
+        theme_id: ID of the theme node.
+        tag: Ontology tag associated with the theme.
+    """
+    invalidate_entity(con, str(theme_id), "theme")
+    if tag:
+        update_dirty_flag(con, tag)
+    logger.debug(
+        "Theme embedding invalidated",
+        extra={"theme_id": theme_id, "tag": tag},
     )

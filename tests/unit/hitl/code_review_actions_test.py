@@ -112,7 +112,9 @@ class TestCodeReviewActions(unittest.TestCase):
 
     # ── Approve ──────────────────────────────────────────────────────────
 
-    def test_approve_updates_status_and_inference(self):
+    @patch("ontology.validate_constraint")
+    def test_approve_updates_status_and_inference(self, mock_validate):
+        mock_validate.return_value = None
         self._create_code_node(1)
         code = self._code_dict(1)
         handle_approve(self.con, code, db_path=self.db_path)
@@ -125,6 +127,29 @@ class TestCodeReviewActions(unittest.TestCase):
             "WHERE entity_id = '1' AND entity_type = 'code' AND stage = 'code'"
         ).fetchone()[0]
         self.assertEqual(inf_status, "approved")
+
+    @patch("ontology.validate_constraint")
+    @patch("hitl.code_review_actions.logger")
+    def test_approve_fails_constraint_validator(self, mock_logger, mock_validate):
+        """handle_approve rejects code when constraint validation fails."""
+        from ontology import ConstraintError
+
+        self._create_code_node(1)
+        code = self._code_dict(1)
+        mock_validate.side_effect = ConstraintError(
+            "CONSTRAINT_CODE_MULTI_THEME",
+            "Code '1' already belongs to approved theme 'T1'.",
+        )
+
+        handle_approve(self.con, code, db_path=self.db_path)
+
+        status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
+        self.assertEqual(status, "draft")
+        mock_logger.warning.assert_called_once()
+        self.assertEqual(
+            mock_logger.warning.call_args[1]["extra"]["constraint_type"],
+            "CONSTRAINT_CODE_MULTI_THEME",
+        )
 
     # ── Edit ─────────────────────────────────────────────────────────────
 

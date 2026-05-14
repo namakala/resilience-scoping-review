@@ -83,8 +83,31 @@ def handle_approve(
     code: dict[str, Any],
     db_path: Optional[Path] = None,
 ) -> None:
-    """Approve a code: set node status and inference status to approved."""
+    """Approve a code: validate constraints, set node status and inference status.
+
+    Checks ADR-013 constraints via ``validate_constraint`` before
+    approving.  If constraints fail, prints error and returns without
+    modifying state.
+    """
     node_id = code["id"]
+
+    try:
+        from ontology import ConstraintError, validate_constraint
+
+        validate_constraint(
+            {"id": node_id, "type": "code", "tag": code.get("tag", "")},
+            "approve",
+        )
+    except ConstraintError as exc:
+        from .code_review_display import console
+
+        console.print(f"[red]Constraint violation: {exc}[/red]")
+        logger.warning(
+            "Code approve rejected by constraint",
+            extra={"error": str(exc), "constraint_type": exc.code},
+        )
+        return
+
     _update_node_status(con, node_id, "approved", db_path=db_path)
     set_status(
         con,

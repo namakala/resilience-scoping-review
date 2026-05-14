@@ -1,8 +1,9 @@
 ---
 title: "46 — theme-approval-enables-interpretation"
 description: "When all themes for a tag subtree approved, mark tag span ready"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 7
+status: completed
 ---
 
 # Feature 46: theme-approval-enables-interpretation
@@ -44,5 +45,60 @@ When all themes for a tag subtree are approved (no draft/rejected themes), mark 
 - Interpretation synthesis (Feature 47) queries ready tags and pairs contiguous subtrees
 
 ---
+
+## Completion Summary
+
+**Completed:** 2026-05-14
+
+All acceptance criteria satisfied:
+
+- After last theme for tag X approved, `interpretation_ready_tags` includes X and all ancestor tags (subtree consolidated) ✓
+- If a theme is later edited or rejected, tag removed from ready list until all themes re-approved ✓
+- Merge triggers `check_tag_ready` re-evaluation for affected tag ✓
+- Ready status visible in HITL dashboard via "Tag 'X' is interpretation-ready!" console message ✓
+- 844 passed, 0 failed (no regressions)
+
+### Files Created
+
+| File | Description |
+|---|---|
+| `src/python/inference/readiness.py` | Core readiness module: `check_tag_ready`, `remove_tag_from_ready`, `get_ready_tags`, `is_tag_in_ready_list` |
+| `tests/unit/inference/readiness_test.py` | 10 unit tests for readiness logic |
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `src/python/hitl/theme_review_actions.py` | Added `check_tag_ready` after approve, edit, and reject |
+| `src/python/hitl/theme_review_merge.py` | Added `check_tag_ready` after successful merge |
+| `src/python/inference/__init__.py` | Exported readiness functions |
+| `tests/unit/hitl/theme_review_test.py` | Added mock assertions for `check_tag_ready` in approve, edit, reject tests |
+
+### Algorithm
+
+```
+check_tag_ready(tag):
+    1. subtree = get_subtree(tag)         # {tag} ∪ descendants
+    2. For each subtree_tag in subtree:
+         a. Get distinct theme statuses for subtree_tag
+         b. If any status in {'draft', 'rejected'}:
+              → remove_tag_from_ready(tag + ancestors)
+              → return False
+         c. If no themes for subtree_tag → continue (vacuous)
+    3. All subtree tags fully approved → tag is ready
+    4. ancestors = get_ancestors(tag)
+    5. Add {tag} ∪ ancestors to interpretation_ready_tags
+    6. update_dirty_flag(tag, True)
+    7. return True
+```
+
+### Edge Cases Covered
+
+| Case | Behavior |
+|---|---|
+| Tag with 0 themes in subtree | Vacuously ready (nothing to block) |
+| Empty subtag doesn't block | Subtag with zero themes → continue |
+| Root tag ready | `get_ancestors(root)` returns `[]`; only root added |
+| `remove_tag_from_ready` on non-ready tag | Idempotent no-op |
 
 **References:** ADR-007 (Incremental — readiness propagates to interpretation stage)
