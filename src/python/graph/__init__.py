@@ -16,7 +16,12 @@ from .builder import build_graph
 from .edge_crud import create_edge, create_edges
 from .exceptions import CycleError, ForeignKeyError
 from .node_crud import create_node
-from .queries import get_node, get_node_by_name, get_nodes_by_type_and_tag
+from .queries import (
+    get_interpretations_by_span_tag,
+    get_node,
+    get_node_by_name,
+    get_nodes_by_type_and_tag,
+)
 from .singleton import get_graph, rebuild_graph
 from .sync import sync_edge, sync_node
 from .transactions import GraphTransactionError, graph_transaction
@@ -41,6 +46,7 @@ __all__ = [
     "get_node",
     "get_nodes_by_type_and_tag",
     "get_node_by_name",
+    "get_interpretations_by_span_tag",
     "ForeignKeyError",
     "CycleError",
     "GraphTransactionError",

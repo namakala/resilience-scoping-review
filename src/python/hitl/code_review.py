@@ -15,13 +15,12 @@ from .code_review_actions import (
     handle_edit,
     handle_reject,
 )
-from .code_review_display import console
-from .code_review_prompts import (
-    _handle_merge_interactive,
-    _prompt_action,
-    _show_more_context,
-)
-from .code_review_queries import _get_neighbors, _get_pending_codes
+from .prompts import _handle_merge_interactive_code as _handle_merge_interactive
+from .prompts import _prompt_code_action as _prompt_action
+from .prompts import _show_more_context
+from .queries import _get_neighbors_code as _get_neighbors
+from .queries import _get_pending_codes
+from .shared import console
 
 __all__ = ["review_codes"]
 
@@ -64,12 +63,12 @@ def _review_single_code(
     db_path: Optional[Path] = None,
 ) -> None:
     """Display, prompt, and dispatch action for a single code."""
-    from .code_review_display import _display_code_panel, _display_neighbors
+    from .display import _display_code_panel, _display_neighbors_table
 
     _display_code_panel(code)
 
     neighbors = _get_neighbors(con, code["id"])
-    _display_neighbors(neighbors)
+    _display_neighbors_table("Semantic Neighbors", neighbors)
 
     action = _prompt_action(code["name"])
 

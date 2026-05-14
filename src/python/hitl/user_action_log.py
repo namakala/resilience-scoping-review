@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 __all__ = ["log_user_action"]
 
-VALID_ACTIONS = frozenset({"approve", "edit", "merge", "reject", "defer"})
+VALID_ACTIONS = frozenset({"approve", "edit", "merge", "reject", "defer", "split"})
 
 
 def log_user_action(
@@ -30,7 +30,7 @@ def log_user_action(
     Args:
         con: Active DuckDB connection.
         action_type: One of ``approve``, ``edit``, ``merge``, ``reject``,
-            ``defer``.
+            ``defer``, ``split``.
         entity_id: Affected graph node ID.
         old_value: Optional JSON-serializable snapshot of prior state.
         new_value: Optional JSON-serializable snapshot of new state.

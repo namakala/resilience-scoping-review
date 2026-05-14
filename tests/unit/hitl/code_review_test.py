@@ -63,7 +63,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
     def test_no_pending_codes_returns_early(self):
         from hitl.code_review import review_codes
 
-        with mock.patch("hitl.code_review_display.console.print") as mock_print:
+        with mock.patch("hitl.shared.console.print") as mock_print:
             review_codes(self.con, db_path=self.db_path)
             mock_print.assert_called_once()
             msg = str(mock_print.call_args[0][0])
@@ -79,7 +79,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
             "hitl.code_review._review_single_code",
             side_effect=KeyboardInterrupt(),
         ):
-            with mock.patch("hitl.code_review_display.console.print") as mock_print:
+            with mock.patch("hitl.shared.console.print") as mock_print:
                 review_codes(self.con, db_path=self.db_path)
                 printed = [str(c[0][0]) for c in mock_print.call_args_list]
                 self.assertTrue(any("interrupted" in p.lower() for p in printed))
@@ -100,7 +100,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Approve"
 
         with (
-            mock.patch("hitl.code_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.code_review._get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)
@@ -122,7 +122,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Reject"
 
         with (
-            mock.patch("hitl.code_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.code_review._get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)
@@ -144,7 +144,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Defer"
 
         with (
-            mock.patch("hitl.code_review_display.console.print"),
+            mock.patch("hitl.shared.console.print"),
             mock.patch("hitl.code_review._get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)

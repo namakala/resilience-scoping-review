@@ -1,7 +1,7 @@
 ---
 title: "51 — interpretation-approval-finalizes"
 description: "Approve marks interpretation final; invalidates caches; completes branch"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 8
 ---
 

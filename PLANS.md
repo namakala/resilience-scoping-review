@@ -75,11 +75,11 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 8 — Interpretation Synthesis & Review (47–51)
 
-- [ ] @docs/plan/47-interpretation-synthesis-service.md
-- [ ] @docs/plan/48-interpretation-node-creation.md
-- [ ] @docs/plan/49-interpretation-hitl-cli.md
-- [ ] @docs/plan/50-multi-tag-span-validation.md
-- [ ] @docs/plan/51-interpretation-approval-finalizes.md
+- [x] @docs/plan/47-interpretation-synthesis-service.md
+- [x] @docs/plan/48-interpretation-node-creation.md
+- [x] @docs/plan/49-interpretation-hitl-cli.md
+- [x] @docs/plan/50-multi-tag-span-validation.md
+- [x] @docs/plan/51-interpretation-approval-finalizes.md
 
 ## Phase 9 — Pipeline Orchestration (52–57)
 

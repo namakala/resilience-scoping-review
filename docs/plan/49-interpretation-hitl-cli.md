@@ -1,8 +1,9 @@
 ---
 title: "49 — interpretation-hitl-cli"
 description: "Rich CLI for interpretation review: approve/edit/split/reject/defer"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 8
+status: completed
 ---
 
 # Feature 49: interpretation-hitl-cli

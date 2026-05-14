@@ -28,6 +28,7 @@ from .inference_status_queries import (
 from .inference_status_types import (
     APPROVED,
     DRAFT,
+    ENTITY_INTERPRETATION,
     GENERATED,
     PENDING,
     REJECTED,
@@ -35,6 +36,18 @@ from .inference_status_types import (
     STAGE_INTERPRETATION,
     STAGE_THEME,
 )
+from .interpretation_creation import create_interpretation_nodes
+from .interpretation_postprocess import (
+    dedup_interpretation_names,
+    flag_overlapping_themes,
+    validate_theme_ids_exist,
+)
+from .interpretation_span_grouping import (
+    build_ontology_subtree,
+    build_tag_hierarchy,
+    group_ready_tags_into_spans,
+)
+from .interpretation_synthesis import synthesize_interpretations
 from .parsing import (
     CodeInference,
     InterpretationInference,
@@ -57,6 +70,7 @@ from .readiness import (
 )
 from .retry import TokenLimitError, call_complete_with_retry, infer_batch_with_retry
 from .theme_inference import infer_themes
+from .theme_loading_for_interpretation import load_approved_themes
 from .track_decorator import track_tokens
 from .tracking import (
     TokenTracker,
@@ -70,14 +84,22 @@ __all__ = [
     "APPROVED",
     "Batch",
     "BatchableItem",
+    "build_ontology_subtree",
+    "build_tag_hierarchy",
     "check_tag_ready",
     "CodeInference",
+    "create_interpretation_nodes",
     "create_theme_nodes",
+    "dedup_interpretation_names",
     "DRAFT",
+    "ENTITY_INTERPRETATION",
+    "flag_overlapping_themes",
     "GENERATED",
     "get_ready_tags",
+    "group_ready_tags_into_spans",
     "InterpretationInference",
     "is_tag_in_ready_list",
+    "load_approved_themes",
     "PENDING",
     "PromptBundle",
     "REJECTED",
@@ -85,10 +107,12 @@ __all__ = [
     "STAGE_CODE",
     "STAGE_INTERPRETATION",
     "STAGE_THEME",
+    "synthesize_interpretations",
     "ThemeInference",
     "TokenLimitError",
     "TokenTracker",
     "UsageRecord",
+    "validate_theme_ids_exist",
     "batch_set_status",
     "build_messages",
     "call_complete_with_retry",

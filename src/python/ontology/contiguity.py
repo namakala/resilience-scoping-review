@@ -30,6 +30,17 @@ def is_contiguous_subtree(
     between the LCA (lowest common ancestor) and each member is also in
     the set. A single tag or empty set is trivially contiguous.
 
+    Policy (downward-closed / LCA-based):
+    - Sibling leaf tags without their shared parent ARE considered
+      contiguous, because no intermediate nodes exist on the paths from
+      the LCA to each tag.  E.g. ``{"Problem.Cause", "Problem.Impact"}``
+      passes (LCA = ``Problem``, no intermediate nodes to check).
+    - A gap between ancestor and descendant IS non-contiguous.
+      E.g. ``{"Problem", "Problem.Impact.Scope"}`` fails (missing
+      ``Problem.Impact`` on the path).
+    - Tags from disjoint ontology roots ARE non-contiguous (no common
+      ancestor exists).
+
     Args:
         tags: Set of ontology tag strings.
         tag_dag: Ontology DAG. Defaults to the singleton.

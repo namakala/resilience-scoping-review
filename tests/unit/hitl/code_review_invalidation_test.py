@@ -24,7 +24,7 @@ import duckdb
 import numpy as np
 from hitl.code_review_actions import handle_edit
 from hitl.code_review_merge import handle_merge
-from hitl.edits import invalidate_code_embedding
+from hitl.invalidation import invalidate_code_embedding
 from inference.inference_status_crud import init_inference_status_table
 from persistence.duckdb_init import initialize_database
 from persistence.state_updates import get_dirty_flags

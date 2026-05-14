@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
 description: "Groq batch inference: prompts, parsing, batching, retry, status tracking, and code inference service"
-updated_at: "2026-05-14"
+updated_at: "2026-05-15"
 ---
 
 # Inference & LLM Layer
@@ -48,9 +48,12 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 **`code_inference.py`:** Load pending exemplars → `group_by_tag(15)` → `run_batches(con, batches, _process_code_batch, STAGE_CODE)`. Per batch: fetch tag context + existing codes → load fewshot → `infer_batch_with_retry(render_fn, temperature=code_temperature())` → `parse_code_response` → dedup by exemplar_id → validate missing/extra IDs → `mark_success`/`mark_failure`. Returns `list[CodeInference]`.
 
-**Theme** (planned): Approved codes → `group_by_tag(5)` → infer(theme_temperature) → `parse_theme_response` → flag <2-code themes.
+**`interpretation_synthesis.py`:** Ready tags → `group_ready_tags_into_spans` → load approved themes per span → `run_batches(con, batches, _process_interpretation_span, STAGE_INTERPRETATION)`. Per span: build prompt context (tag hierarchy, ontology subtree, themes by tag) via `interpretation_span_grouping.py` pure functions → load fewshot → `infer_batch_with_retry(temperature=interpretation_temperature())` → `parse_interpretation_response` → `dedup_interpretation_names` + `flag_overlapping_themes` + `validate_theme_ids_exist` → `mark_success` per theme. Returns `list[InterpretationInference]`.
 
-**Interpretation** (planned): Contiguous tag spans → fetch approved themes → infer(interpretation_temperature) → `parse_interpretation_response`. Pre-flight: `is_contiguous_subtree`.
+**Supporting modules:**
+- `interpretation_span_grouping.py` — Pure DAG functions: `group_ready_tags_into_spans`, `build_tag_hierarchy`, `build_ontology_subtree`. No DB dependency.
+- `theme_loading_for_interpretation.py` — `load_approved_themes(tag)`, `load_approved_themes_grouped(tags)`. Loads approved themes from graph.
+- `interpretation_postprocess.py` — Pure validators: `dedup_interpretation_names`, `flag_overlapping_themes`, `validate_theme_ids_exist`.
 
 ## Design Notes
 
