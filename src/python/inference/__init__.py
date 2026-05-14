@@ -1,6 +1,7 @@
 """Inference layer — Groq client, prompt templates, LLM orchestration."""
 
 from .batching import Batch, BatchableItem, group_by_tag, split_batch_in_half
+from .code_inference import infer_codes
 from .fewshot_loader import load_fewshot
 from .groq_client import build_messages, complete, get_client, get_model
 from .inference_status_crud import (
@@ -80,6 +81,7 @@ __all__ = [
     "get_tracker",
     "group_by_tag",
     "infer_batch_with_retry",
+    "infer_codes",
     "init_inference_status_table",
     "load_fewshot",
     "parse_code_response",

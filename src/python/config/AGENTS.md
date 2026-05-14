@@ -15,6 +15,8 @@ All settings documented in `.env.example`. Key groups:
 
 - **Groq/LLM:** `groq_api_key()` (required), `groq_model()`, `groq_timeout()`,
   `groq_max_retries()`
+- **Inference Temperatures:** `code_temperature()`, `theme_temperature()`,
+  `interpretation_temperature()`
 - **Embedding:** `embedding_model()`, `model_cache_dir()`
 - **Processing:** `batch_size()`, `log_level()`
 - **Paths:** `data_path()`, `tags_path()`, `processed_data_path()`

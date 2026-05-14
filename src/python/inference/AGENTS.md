@@ -1,137 +1,63 @@
 ---
 title: "Inference & LLM Layer"
-description: "Manages Groq batch inference, prompt templates, structured output parsing, tag-based batching, retry logic, and incremental inference tracking"
+description: "Groq batch inference: prompts, parsing, batching, retry, status tracking, and code inference service"
 updated_at: "2026-05-14"
 ---
 
 # Inference & LLM Layer
 
-Handles all LLM interactions. Prepares batches, constructs prompts, calls Groq API, parses structured JSON outputs.
+Batch LLM inference, prompt templating, structured output parsing, and incremental status tracking for code / theme / interpretation generation.
 
-## Purpose
+## Module Map
 
-Generate semantic artifacts (codes, themes, interpretations) from exemplars and keywords via LLM reasoning. Ensure outputs are constrained, consistent, and structurally valid.
+- `batching.py` — `group_by_tag(items, N)` → `list[Batch]`
+- `code_inference.py` — `infer_codes(con, tag)` → `list[CodeInference]`
+- `prompts.py` + `templates/` — Jinja2 rendering (code/theme/interpretation)
+- `parsing.py` — fence stripping, JSON parse, Pydantic validation
+- `retry.py` — network retry, rate-limit sleep, token-limit batch splitting
+- `groq_client.py` — `complete(bundle)` → `ChatCompletion`
+- `batch_processor.py` — `run_batches()` shared loop + `record_tokens()`
+- `tag_context.py` — `get_tag_metadata(tag)` shared by all services
+- `status_updates.py` — `mark_success()`, `mark_failure()` shared by all services
+- `tracking.py` — `TokenTracker` singleton, cost estimation, log writer
+- `fewshot_loader.py` — `load_fewshot(type)` from `fewshot/*.json`
+- `inference_status_*.py` — DuckDB-backed lifecycle table (pending→generated→approved)
 
-## Core Responsibilities
+## Infrastructure
 
-- Batch exemplars and codes for efficient API utilization
-- Template prompts with ontology context and existing artifacts
-- Call Groq API with retry logic and rate-limit handling
-- Parse and validate structured JSON responses using Pydantic schemas
-- Track token consumption and cost per stage
- - Support incremental inference (only new or modified items) via inference_status tracker
- - Expose get_pending_items() to filter items needing re-inference each stage
+- **Retry:** Network errors → exponential backoff. 429 → 60s sleep. Token limit → split batch in half, retry recursively.
+- **Batching:** `group_by_tag(items, max_per_batch)`. Items need `.tag` + `.id`. Deterministic by tag then id.
+- **Token tracking:** `TokenTracker` records per-call usage, aggregates stage/session totals, writes JSON log, warns on cost threshold.
 
-## Retry Logic (Feature 35)
+## Prompts
 
-Three-tier retry for Groq API calls via `src/python/inference/retry.py`:
+- `render_code_prompt`, `render_theme_prompt`, `render_interpretation_prompt`
+- Each splits system (role + schema) and user (batch data). Few-shot pairs inserted between them.
+- Config: `FEWSHOT_ENABLED` / `FEWSHOT_COUNT`, `CODE_TEMPERATURE` / `THEME_TEMPERATURE` / `INTERPRETATION_TEMPERATURE`
 
-- **Network errors** (timeout, connection): exponential backoff via tenacity (2s, 4s, 8s, max 3 attempts).
-- **Rate limit** (HTTP 429): sleep 60s, retry once.
-- **Token limit** (context-length error): raises `TokenLimitError`; `infer_batch_with_retry()` splits the batch via `split_batch_in_half()` and retries each half.
-- All retries logged per batch_id for audit.
-- Low-level: `call_complete_with_retry()` wraps a single `complete()` call.
-- High-level: `infer_batch_with_retry()` takes a `Batch` + render function, handles all modes.
+## Status
 
-## Batching Strategy (ADR-010)
+- `inference_status` table: `(entity_id, entity_type, stage) → pending → generated → approved → draft/rejected`
+- `get_pending_items(stage, tag)` → entities needing inference. `set_status()` transitions states.
 
-Group exemplars by parent tag into fixed-size batches using
-`src/python/inference/batching.py`.
+## Services
 
-`group_by_tag(items, max_per_batch=15, prefix="tag")` takes any iterable
-of `BatchableItem` objects (must expose `.tag: str` and `.id: int | str`),
-groups by `.tag`, sorts by `.id`, splits into chunks of `max_per_batch`,
-and returns `list[Batch]`.
+**`code_inference.py`:** Load pending exemplars → `group_by_tag(15)` → `run_batches(con, batches, _process_code_batch, STAGE_CODE)`. Per batch: fetch tag context + existing codes → load fewshot → `infer_batch_with_retry(render_fn, temperature=code_temperature())` → `parse_code_response` → dedup by exemplar_id → validate missing/extra IDs → `mark_success`/`mark_failure`. Returns `list[CodeInference]`.
 
-The `Batch` dataclass carries: `tag`, `items`, `batch_index`,
-`total_batches`, `item_count` (computed), and a `batch_id` property
-(format: `{prefix}_{tag}_batch_{index:02d}`).
+**Theme** (planned): Approved codes → `group_by_tag(5)` → infer(theme_temperature) → `parse_theme_response` → flag <2-code themes.
 
-Usage: code inference batches exemplars, theme inference batches
-approved codes, interpretation batches themes by tag-span combination.
-Items with an empty/falsy tag are silently skipped. Tags with more than
-max_per_batch items split into multiple batches; the last batch may be
-smaller.
+**Interpretation** (planned): Contiguous tag spans → fetch approved themes → infer(interpretation_temperature) → `parse_interpretation_response`. Pre-flight: `is_contiguous_subtree`.
 
-Larger batches reduce API calls but risk coherence loss. Smaller
-batches improve quality at higher cost. Batches submitted sequentially.
+## Design Notes
 
-## Few-Shot Examples
+**Closure→partial:** `render_fn` was nested inside `infer_codes` loop, recreated every iteration. Extracted to module-level function; context passed via `functools.partial` making captures visible at call site.
 
-Curated examples loaded from ``src/python/inference/fewshot/*.json``
-via ``load_fewshot()`` in ``fewshot_loader.py``. Each JSON file
-contains ``{"user": ..., "assistant": ...}`` pairs mirroring the
-rendered prompt format. Examples span two domains (resilience scoping
-review and universal healthcare coverage). Default: 2 examples per
-call. Configurable via ``FEWSHOT_ENABLED``, ``FEWSHOT_COUNT``,
-``FEWSHOT_SHUFFLE`` env vars.
+**Shared orchestrator:** Batch loop + try/except repeated across services. Extracted to `batch_processor.run_batches()`. Each service provides a focused `_process_*_batch()` with only its specific logic.
 
-Examples injected as alternating ``user``/``assistant`` message pairs
-by ``build_messages()``, between ``system`` and the actual ``user``
-message. No changes to Jinja2 templates needed.
+**Public shared modules:** `tag_context` and `status_updates` extracted because all three services need them. Public modules (no underscore) with public functions — per CPython `urllib` cross-module convention.
 
-Future enhancement: replace static JSON pool with dynamic retrieval
-from previously approved inference results once critical mass (>50
-pairs) is available.
-
-## Prompt Engineering
-
-Three prompt types, all demanding structured JSON output:
-
-**Code inference prompt:** Provides context (ontology path, tag description, existing codes) and lists exemplars with keywords. Instructs LLM to generate one code per exemplar, with name, definition, supporting quote, and related existing codes. Emphasizes distinctiveness and ground truth.
-
-**Theme inference prompt:** Provides codes for a single tag. Asks LLM to group related codes into themes. Each theme includes name, narrative, and list of code_ids. Enforces 2–5 codes per theme for coherence.
-
-**Interpretation synthesis prompt:** Provides themes from multiple tags, hierarchical context, and ontology subtree structure. Asks LLM to synthesize cross-cutting interpretations with narrative and key insights.
-
-Prompts avoid over-specification. LLM acts as constrained interpreter, not ontology designer.
-
-## API Integration
-
-Groq client uses OpenAI GPT OSS 120B. API key loaded from environment (GROQ_API_KEY). Client configured with timeout and retry middleware.
-
-Error handling:
-
-- Network errors: exponential backoff, up to 3 retries
-- Rate limit errors: 60-second pause, then retry
-- Token limit exceeded: split batch via `split_batch_in_half()`, retry each half via `infer_batch_with_retry()`
-- Invalid JSON: log error, return empty list, flag for manual retry
-
-## Output Parsing
-
-Raw LLM response text stripped of markdown fences. Parsed with `json.loads`. Each item validated against Pydantic schema:
-
-- `CodeInference`: exemplar_id, code_name, definition, supporting_quote, related_existing_codes
-- `ThemeInference`: theme_name, narrative, code_ids
-- `InterpretationInference`: interpretation_name, narrative, theme_ids, key_insights
-
-Validation failures raise errors. HITL layer may later edit parsed outputs.
-
-## Incremental Inference Status (Feature 36)
-
-Track inference progress per entity per stage via ``inference_status``
-table in the DuckDB session database.
-
-``src/python/inference/inference_status.py`` manages the lifecycle:
-
-- **Statuses:** ``pending`` (initial), ``generated`` (after infer),
-  ``approved`` (after HITL), ``rejected``, ``draft`` (after edit).
-- **Key functions:** ``set_status()``, ``set_status_draft()``,
-  ``get_pending_items(stage, tag=None)``, ``batch_set_status()``,
-  ``get_stage_summary()``, ``get_status()``.
-- ``get_pending_items()`` returns entity IDs with status ``pending``
-  or ``draft``. Used by batch-grouping (Feature 32) before inference.
-- ``set_status_draft()`` increments ``attempts``; called by HITL edits.
-- Table created idempotently via ``init_inference_status_table()``.
-
-## Token Tracking
-
-Each response logs input and output token counts. Cumulated per session. Cost estimation uses Groq pricing (input $0.15/1M tokens, output ~$0.6/1M tokens). Typical stage costs: code inference (50–200K tokens), theme inference (30–100K), interpretation (10–30K).
-
-## Constraints
-
-LLM never modifies ontology structure. All tag assignments validated against loaded ontology. No open-ended text responses accepted — only JSON matching schema.
+**Config-driven temperature:** Hardcoded 0.3/0.4/0.5 → `*_TEMPERATURE` env vars following existing fewshot/config pattern.
 
 ## References
 
-Implements ADR-010 (LLM Inference Strategy). See `@ADR.md` for detailed constraints and rationale.
+Implements ADR-010. See `@ADR.md` for rationale.
