@@ -132,7 +132,8 @@ def handle_approve_theme(
 
         console.print(f"[red]Constraint violation: {exc}[/red]")
         logger.warning(
-            "Theme approve rejected by constraint", extra={"error": str(exc)}
+            "Theme approve rejected by constraint",
+            extra={"error": str(exc), "constraint_type": exc.code},
         )
         return
 

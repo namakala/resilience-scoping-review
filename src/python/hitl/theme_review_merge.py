@@ -120,6 +120,16 @@ def handle_merge_themes(
             f"Both entities must be the same type.",
         )
 
+    source_tag = source_theme.get("tag", "")
+    target_tag = target_theme.get("tag", "")
+    if source_tag and target_tag and source_tag != target_tag:
+        raise ConstraintError(
+            "CONSTRAINT_TAG_MISMATCH",
+            f"Cannot merge theme '{source_theme.get('name', source_id)}' "
+            f"(tag: {source_tag}) into theme '{target_theme.get('name', target_id)}' "
+            f"(tag: {target_tag}). Both themes must have the same tag.",
+        )
+
     G = get_graph(db_path)
     try:
         validate_constraint(

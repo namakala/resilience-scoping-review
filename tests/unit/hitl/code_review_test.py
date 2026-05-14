@@ -87,9 +87,11 @@ class TestCodeReviewOrchestration(unittest.TestCase):
     # ── Approve via prompt ───────────────────────────────────────────────
 
     @mock.patch("questionary.select")
-    def test_approve_via_prompt(self, mock_select):
+    @mock.patch("ontology.validate_constraint")
+    def test_approve_via_prompt(self, mock_validate, mock_select):
         from hitl.code_review import review_codes
 
+        mock_validate.return_value = None
         self._insert_draft_code(1, name="CodeA")
         self.con.execute(
             "INSERT INTO inference_status (entity_id, entity_type, stage, status) "

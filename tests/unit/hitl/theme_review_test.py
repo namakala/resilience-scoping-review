@@ -295,6 +295,74 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         mock_neighbors.assert_called_once_with(mock.ANY, 1, k=3)
 
+    # ── Approve logs constraint_type for audit ──────────────────────────
+
+    @mock.patch("questionary.select")
+    @mock.patch("hitl.theme_review_actions.logger")
+    def test_approve_logs_constraint_type(self, mock_logger, mock_select):
+        """Constraint approval failure logs constraint_type code in structured extra."""
+        from hitl.theme_review import review_themes
+        from ontology import ConstraintError
+
+        self._insert_draft_theme(1, name="ThemeA", code_ids=[10])
+        self._insert_mock_code(10, "CodeA", "T1")
+        self.con.execute(
+            "INSERT INTO inference_status (entity_id, entity_type, stage, status) "
+            "VALUES ('1', 'theme', 'theme', 'generated')"
+        )
+        mock_select.return_value.ask.return_value = "Approve"
+
+        with (
+            mock.patch("hitl.theme_review_display.console.print"),
+            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch(
+                "ontology.validate_constraint",
+                side_effect=ConstraintError(
+                    "CONSTRAINT_MIN_CODES",
+                    "Theme has 1 code(s); at least 2 are required.",
+                ),
+            ),
+        ):
+            review_themes(self.con, db_path=self.db_path)
+
+        mock_logger.warning.assert_called_once()
+        _call_args = mock_logger.warning.call_args
+        self.assertIn("constraint_type", _call_args[1]["extra"])
+        self.assertEqual(
+            _call_args[1]["extra"]["constraint_type"], "CONSTRAINT_MIN_CODES"
+        )
+
+    # ── Merge themes with different tags rejected ───────────────────────
+
+    @mock.patch("hitl.theme_review_merge.get_node")
+    def test_merge_themes_different_tags_rejected(self, mock_get_node):
+        """Merging two themes with different tags raises CONSTRAINT_TAG_MISMATCH."""
+        from hitl.theme_review_merge import handle_merge_themes
+        from ontology.constraints import CONSTRAINT_TAG_MISMATCH, ConstraintError
+
+        source = {
+            "id": 1,
+            "name": "ThemeA",
+            "tag": "T1",
+            "type": "theme",
+            "status": "draft",
+            "data_json": {},
+        }
+        target = {
+            "id": 2,
+            "name": "ThemeB",
+            "tag": "T2",
+            "type": "theme",
+            "status": "draft",
+        }
+        mock_get_node.return_value = target
+
+        with self.assertRaises(ConstraintError) as ctx:
+            handle_merge_themes(self.con, source, target_id=2, db_path=self.db_path)
+
+        self.assertEqual(ctx.exception.code, CONSTRAINT_TAG_MISMATCH)
+
     # ── Merge abort when no candidates ──────────────────────────────────
 
     @mock.patch("questionary.select")

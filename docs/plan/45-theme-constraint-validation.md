@@ -1,14 +1,12 @@
 ---
 title: "45 — theme-constraint-validation"
 description: "Block approval if codes span multiple tags or <2 codes"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 7
+status: completed
 ---
 
 # Feature 45: theme-constraint-validation
-
-
----
 
 ## Description
 
@@ -18,11 +16,11 @@ Before approving a theme, validate: (1) ≥2 codes assigned, (2) all codes share
 
 ## Acceptance Criteria
 
-- Approval blocked if codes span multiple tags; error: "CONSTRAINT_TAG_MISMATCH: Theme 'X' contains codes from multiple tags: [A, B]. All codes must belong to the same tag."
-- Approval blocked if <2 codes; error: "CONSTRAINT_MIN_CODES: Theme requires at least 2 codes; got N."
-- Edit action that removes codes triggers same validation on subsequent approval attempt
-- Merge of two themes with different tags rejected
-- Constraint errors logged with `constraint_type` code for audit
+- Approval blocked if codes span multiple tags; error: "CONSTRAINT_TAG_MISMATCH: Theme 'X' contains codes from multiple tags: [A, B]. All codes must belong to the same tag." ✓
+- Approval blocked if <2 codes; error: "CONSTRAINT_MIN_CODES: Theme requires at least 2 codes; got N." ✓
+- Edit action that removes codes triggers same validation on subsequent approval attempt ✓
+- Merge of two themes with different tags rejected ✓
+- Constraint errors logged with `constraint_type` code for audit ✓
 
 ---
 
@@ -33,16 +31,26 @@ Before approving a theme, validate: (1) ≥2 codes assigned, (2) all codes share
 
 ---
 
-## Implementation Notes
+## Files Modified
 
-- Module: `src/python/ontology/constraints.py` (same as Feature 21 but called in theme flow)
-- In `approve_theme(theme_id)` function:
-  1. Fetch theme node; get constituent code_ids via `composed-of` edges
-  2. Fetch each code's `tag` attribute; collect unique tags
-  3. If len(unique_tags) > 1 → raise `ConstraintError("TAG_MISMATCH", f"Theme contains codes from tags: {unique_tags}")`
-  4. If len(code_ids) < 2 → raise `ConstraintError("MIN_CODES", ...)`
-- In `theme-hitl-cli`, call validator before executing approve action; catch error and display to user
-- Same validator used in theme-inference-service (Feature 42) to pre-filter LLM output; but HITL is final gate
+| File | Change |
+|---|---|
+| `src/python/hitl/theme_review_merge.py` | Added tag-mismatch check before merge; raises `CONSTRAINT_TAG_MISMATCH` when source and target tags differ |
+| `src/python/hitl/theme_review_actions.py` | Added `constraint_type=exc.code` to logger `extra` dict for structured audit logging |
+| `src/python/hitl/code_review_actions.py` | Added `validate_constraint()` call to `handle_approve()` — closes Feature 21 integration gap for code approval constraint checks |
+
+## Files Created
+
+None. All changes were modifications to existing files.
+
+## Tests
+
+| File | Tests Added |
+|---|---|
+| `tests/unit/hitl/theme_review_test.py` | `test_approve_logs_constraint_type`, `test_merge_themes_different_tags_rejected` |
+| `tests/unit/hitl/code_review_actions_test.py` | `test_approve_fails_constraint_validator` |
+
+**Test result:** 834 passed, 0 failed (no regressions)
 
 ---
 
