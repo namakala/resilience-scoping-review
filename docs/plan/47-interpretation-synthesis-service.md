@@ -1,7 +1,7 @@
 ---
 title: "47 — interpretation-synthesis-service"
 description: "Batch LLM across multiple tags' themes to synthesize cross-cutting interpretations"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 8
 ---
 
