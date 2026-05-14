@@ -1,6 +1,6 @@
 ---
 title: "Inference & LLM Layer"
-description: "Manages Groq batch inference, prompt templates, structured output parsing, tag-based batching, and retry logic"
+description: "Manages Groq batch inference, prompt templates, structured output parsing, tag-based batching, retry logic, and incremental inference tracking"
 updated_at: "2026-05-14"
 ---
 
@@ -19,7 +19,8 @@ Generate semantic artifacts (codes, themes, interpretations) from exemplars and 
 - Call Groq API with retry logic and rate-limit handling
 - Parse and validate structured JSON responses using Pydantic schemas
 - Track token consumption and cost per stage
-- Support incremental inference (only new or modified items)
+ - Support incremental inference (only new or modified items) via inference_status tracker
+ - Expose get_pending_items() to filter items needing re-inference each stage
 
 ## Retry Logic (Feature 35)
 
@@ -105,6 +106,23 @@ Raw LLM response text stripped of markdown fences. Parsed with `json.loads`. Eac
 - `InterpretationInference`: interpretation_name, narrative, theme_ids, key_insights
 
 Validation failures raise errors. HITL layer may later edit parsed outputs.
+
+## Incremental Inference Status (Feature 36)
+
+Track inference progress per entity per stage via ``inference_status``
+table in the DuckDB session database.
+
+``src/python/inference/inference_status.py`` manages the lifecycle:
+
+- **Statuses:** ``pending`` (initial), ``generated`` (after infer),
+  ``approved`` (after HITL), ``rejected``, ``draft`` (after edit).
+- **Key functions:** ``set_status()``, ``set_status_draft()``,
+  ``get_pending_items(stage, tag=None)``, ``batch_set_status()``,
+  ``get_stage_summary()``, ``get_status()``.
+- ``get_pending_items()`` returns entity IDs with status ``pending``
+  or ``draft``. Used by batch-grouping (Feature 32) before inference.
+- ``set_status_draft()`` increments ``attempts``; called by HITL edits.
+- Table created idempotently via ``init_inference_status_table()``.
 
 ## Token Tracking
 

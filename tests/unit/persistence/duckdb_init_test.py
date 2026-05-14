@@ -99,6 +99,7 @@ class TestDuckDBInitialization(unittest.TestCase):
                 "user_actions",
                 "embedding_cache",
                 "invalidation_log",
+                "inference_status",
             }
             self.assertEqual(expected, table_names)
         finally:

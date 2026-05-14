@@ -129,6 +129,23 @@ def _create_user_actions_table(con: duckdb.DuckDBPyConnection) -> None:
         )
 
 
+def _create_inference_status_table(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the inference_status table if it does not exist."""
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS inference_status (
+            entity_id VARCHAR NOT NULL,
+            entity_type VARCHAR NOT NULL,
+            stage VARCHAR NOT NULL,
+            status VARCHAR NOT NULL DEFAULT 'pending',
+            last_attempt_at TIMESTAMP,
+            attempts INTEGER DEFAULT 0,
+            PRIMARY KEY (entity_id, entity_type, stage)
+        );
+    """
+    )
+
+
 def _create_embedding_cache_table(con: duckdb.DuckDBPyConnection) -> None:
     """Create the embedding_cache table for cached embeddings
     with content-hash invalidation."""
