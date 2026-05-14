@@ -39,6 +39,7 @@ class CodeInference(BaseModel):
     definition: str
     supporting_quote: str
     related_existing_codes: list[str] = Field(default_factory=list)
+    tag: str = ""
 
 
 class ThemeInference(BaseModel):

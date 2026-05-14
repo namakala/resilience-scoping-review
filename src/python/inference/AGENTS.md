@@ -10,8 +10,10 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 ## Module Map
 
-- `batching.py` — `group_by_tag(items, N)` → `list[Batch]`
+- `batching.py` — `group_by_tag(items, N)` → `list[Batch]`; `group_items_by_tag(items)` → `dict[str, list]`
 - `code_inference.py` — `infer_codes(con, tag)` → `list[CodeInference]`
+- `code_node_creation.py` — `create_code_nodes(con, codes)` → `list[int]`
+- `exemplar_node_creation.py` — `ensure_exemplar_nodes(con, ids, tag)` → `dict[str, int]`
 - `prompts.py` + `templates/` — Jinja2 rendering (code/theme/interpretation)
 - `parsing.py` — fence stripping, JSON parse, Pydantic validation
 - `retry.py` — network retry, rate-limit sleep, token-limit batch splitting
