@@ -15,11 +15,11 @@ from .code_review_actions import (
     handle_edit,
     handle_reject,
 )
-from .prompts import _handle_merge_interactive_code as _handle_merge_interactive
-from .prompts import _prompt_code_action as _prompt_action
-from .prompts import _show_more_context
-from .queries import _get_neighbors_code as _get_neighbors
-from .queries import _get_pending_codes
+from .prompts_codes import handle_merge_interactive_code as handle_merge_interactive
+from .prompts_codes import prompt_code_action as prompt_action
+from .prompts_codes import show_more_context
+from .queries_codes import get_neighbors_code as get_neighbors
+from .queries_codes import get_pending_codes
 from .shared import console
 
 __all__ = ["review_codes"]
@@ -40,7 +40,7 @@ def review_codes(
         con: Active DuckDB connection.
         db_path: Path to DuckDB file (needed by graph sync operations).
     """
-    pending = _get_pending_codes(con)
+    pending = get_pending_codes(con)
     if not pending:
         console.print("[bold green]No pending codes to review.[/bold green]")
         return
@@ -67,10 +67,10 @@ def _review_single_code(
 
     _display_code_panel(code)
 
-    neighbors = _get_neighbors(con, code["id"])
+    neighbors = get_neighbors(con, code["id"])
     _display_neighbors_table("Semantic Neighbors", neighbors)
 
-    action = _prompt_action(code["name"])
+    action = prompt_action(code["name"])
 
     if action == "approve":
         handle_approve(con, code, db_path=db_path)
@@ -87,7 +87,7 @@ def _review_single_code(
             handle_edit(con, code, db_path=db_path, new_definition=new_def)
             console.print(f"[green]Code '{code['name']}' updated.[/green]")
     elif action == "merge":
-        _handle_merge_interactive(con, code, db_path=db_path)
+        handle_merge_interactive(con, code, db_path=db_path)
     elif action == "reject":
         handle_reject(con, code, db_path=db_path)
         console.print(f"[red]Code '{code['name']}' rejected.[/red]")
@@ -95,5 +95,5 @@ def _review_single_code(
         handle_defer(con, code, db_path=db_path)
         console.print(f"[dim]Code '{code['name']}' deferred.[/dim]")
     elif action == "more_context":
-        _show_more_context(con, code)
+        show_more_context(con, code)
         _review_single_code(con, code, db_path)

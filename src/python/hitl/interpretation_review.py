@@ -15,12 +15,18 @@ from .interpretation_review_actions import (
     handle_edit_interpretation,
     handle_reject_interpretation,
 )
-from .prompts import _handle_split_interactive
-from .prompts import _prompt_edit_text as _prompt_edit_narrative
-from .prompts import _prompt_interpretation_action
-from .queries import _get_code_exemplars, _get_interpretation_themes
-from .queries import _get_neighbors_interpretation as _get_interpretation_neighbors
-from .queries import _get_pending_interpretations, _get_theme_codes
+from .prompts import prompt_edit_text as prompt_edit_narrative
+from .prompts_interpretations import (
+    handle_split_interactive,
+    prompt_interpretation_action,
+)
+from .queries_codes import get_code_exemplars
+from .queries_interpretations import get_interpretation_themes
+from .queries_interpretations import (
+    get_neighbors_interpretation as get_interpretation_neighbors,
+)
+from .queries_interpretations import get_pending_interpretations
+from .queries_themes import get_theme_codes
 from .shared import console
 
 __all__ = ["review_interpretations"]
@@ -45,7 +51,7 @@ def review_interpretations(
             reviews all draft interpretations.
         db_path: Path to DuckDB file (needed by graph sync operations).
     """
-    pending = _get_pending_interpretations(con, tag=tag)
+    pending = get_pending_interpretations(con, tag=tag)
     if not pending:
         label = f" for tag '{tag}'" if tag else ""
         console.print(
@@ -80,30 +86,30 @@ def _review_single_interpretation(
     _display_interpretation_panel(interp)
 
     # Build and display evidence chain
-    themes = _get_interpretation_themes(con, interp["id"])
+    themes = get_interpretation_themes(con, interp["id"])
     theme_codes_map: dict[int, list[dict]] = {}
     code_exemplars_map: dict[int, list[dict]] = {}
 
     for theme in themes:
-        codes = _get_theme_codes(con, theme["id"])
+        codes = get_theme_codes(con, theme["id"])
         theme_codes_map[theme["id"]] = codes
         for code in codes:
-            code_exemplars_map[code["id"]] = _get_code_exemplars(con, code["id"])
+            code_exemplars_map[code["id"]] = get_code_exemplars(con, code["id"])
 
     _display_evidence_chain(themes, theme_codes_map, code_exemplars_map)
 
     # Show neighbor interpretations
-    neighbors = _get_interpretation_neighbors(con, interp["id"], k=3)
+    neighbors = get_interpretation_neighbors(con, interp["id"], k=3)
     _display_neighbors_table("Neighbor Interpretations", neighbors)
 
     # Prompt for action
-    action = _prompt_interpretation_action(interp["name"])
+    action = prompt_interpretation_action(interp["name"])
 
     if action == "approve":
         handle_approve_interpretation(con, interp, db_path=db_path)
         console.print(f"[green]Interpretation '{interp['name']}' approved.[/green]")
     elif action == "edit":
-        new_narrative = _prompt_edit_narrative(interp.get("narrative", ""))
+        new_narrative = prompt_edit_narrative(interp.get("narrative", ""))
         if new_narrative is not None:
             handle_edit_interpretation(
                 con,
@@ -115,7 +121,7 @@ def _review_single_interpretation(
         else:
             console.print("[yellow]Edit cancelled.[/yellow]")
     elif action == "split":
-        _handle_split_interactive(con, interp, db_path=db_path)
+        handle_split_interactive(con, interp, db_path=db_path)
     elif action == "reject":
         handle_reject_interpretation(con, interp, db_path=db_path)
         console.print(f"[red]Interpretation '{interp['name']}' rejected.[/red]")
