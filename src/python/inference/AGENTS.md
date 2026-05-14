@@ -14,6 +14,8 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 - `code_inference.py` — `infer_codes(con, tag)` → `list[CodeInference]`
 - `code_node_creation.py` — `create_code_nodes(con, codes)` → `list[int]`
 - `exemplar_node_creation.py` — `ensure_exemplar_nodes(con, ids, tag)` → `dict[str, int]`
+- `theme_node_reinfer.py` — `load_existing_draft_themes()`, `rename_node_raw()`
+- `theme_name_utils.py` — `make_unique_theme_name()`, `check_duplicate_theme_names()`
 - `prompts.py` + `templates/` — Jinja2 rendering (code/theme/interpretation)
 - `parsing.py` — fence stripping, JSON parse, Pydantic validation
 - `retry.py` — network retry, rate-limit sleep, token-limit batch splitting
