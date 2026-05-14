@@ -1,12 +1,29 @@
 ---
 title: "Pipeline Module"
 description: "Hamilton DAG construction, node functions, and dependency-based workflow orchestration"
-updated_at: "2026-05-11"
+updated_at: "2026-05-15"
 ---
 
 # Pipeline Module
 
-Defines the computational DAG using Hamilton. Orchestrates embedding, retrieval, and inference with incremental recomputation.
+Defines the computational DAG using Hamilton. Orchestrates embedding, retrieval, inference, review, and export stages with incremental recomputation.
+
+## Constructor
+
+``create_pipeline(config)`` in ``constructor.py`` builds a Hamilton ``Driver`` via ``Builder().with_modules(nodes.*).with_config({'config': config}).build()``. The ``Config`` dataclass (``config.py``) snapshots all env settings at pipeline creation time for typed dependency injection.
+
+## Node Package
+
+``nodes/`` defines 15 stub functions (13 main + 2 supporting) that Hamilton auto-discovers as DAG nodes. Functions are plain Python — no decorators needed. Parameter names matching function names resolve as dependencies. ``config: Config`` is injected via Hamilton's config dict.
+
+## DAG Structure
+
+Three inference chains:
+1. Exemplars → embeddings → BM25 + ontology → retrieval → code inference → code review
+2. Codes → theme inference → theme review
+3. Themes → interpretation synthesis → interpretation review → export
+
+Each node is a pure function. Side effects (persistence, user I/O) occur outside DAG.
 
 ## Purpose
 
