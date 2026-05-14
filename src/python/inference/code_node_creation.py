@@ -57,17 +57,17 @@ def _build_existing_code_map(
     for n in nodes:
         dj = n.get("data_json") or {}
         if isinstance(dj, dict):
-            eid = dj.get("exemplar_id")
-            if eid is not None:
-                code_map[str(eid)].append(n["id"])
+            eids = dj.get("exemplar_ids", [])
+            if eids:
+                code_map[str(eids[0])].append(n["id"])
     return dict(code_map)
 
 
 def _build_data_json(code: CodeInference) -> dict[str, Any]:
     """Build the ``data_json`` payload for a code node."""
     return {
-        "exemplar_id": code.exemplar_id,
-        "supporting_quote": code.supporting_quote,
+        "exemplar_ids": [code.exemplar_id],
+        "supporting_quotes": {code.exemplar_id: code.supporting_quote},
         "related_existing_codes": code.related_existing_codes,
     }
 

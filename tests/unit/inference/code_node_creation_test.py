@@ -70,8 +70,8 @@ class TestCreateCodeNodes(unittest.TestCase):
         self.assertEqual(node["tag"], "T1")
         self.assertEqual(node["status"], "draft")
         self.assertIsInstance(node["data_json"], dict)
-        self.assertEqual(node["data_json"]["exemplar_id"], "1")
-        self.assertEqual(node["data_json"]["supporting_quote"], "quote")
+        self.assertEqual(node["data_json"]["exemplar_ids"], ["1"])
+        self.assertEqual(node["data_json"]["supporting_quotes"], {"1": "quote"})
 
         # contains edge exists
         edges = self.con.execute(
