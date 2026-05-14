@@ -1,5 +1,6 @@
 """HITL validation: interactive CLI for code, theme, and interpretation review."""
 
+from .approvals import approve_interpretation
 from .code_review import review_codes
 from .code_review_actions import (
     handle_approve,
@@ -50,6 +51,7 @@ __all__ = [
     "handle_reject_interpretation",
     "handle_defer_interpretation",
     "handle_split_interpretation",
+    "approve_interpretation",
     "log_user_action",
     "invalidate_code_embedding",
     "invalidate_theme_embedding",

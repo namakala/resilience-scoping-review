@@ -10,13 +10,13 @@ from typing import Any, Optional
 import duckdb
 from inference.inference_status_crud import set_status, set_status_draft
 from inference.inference_status_types import (
-    APPROVED,
     ENTITY_INTERPRETATION,
     REJECTED,
     STAGE_INTERPRETATION,
 )
 from utils.logging import get_logger
 
+from .approvals import approve_interpretation
 from .invalidation import invalidate_interpretation_embedding
 from .shared import (
     _log_and_finish,
@@ -45,7 +45,9 @@ def handle_approve_interpretation(
 ) -> None:
     """Approve an interpretation.
 
-    Validate constraints, set node status and inference status.
+    Validates constraints, then delegates to ``approve_interpretation()``
+    which finalises the interpretation, invalidates caches, and updates
+    session counters.
     """
     node_id = interp["id"]
     dj = interp.get("data_json") or {}
@@ -70,15 +72,14 @@ def handle_approve_interpretation(
         )
         return
 
-    _update_node_status(con, node_id, "approved", db_path=db_path)
-    set_status(
-        con,
-        entity_id=str(node_id),
-        entity_type=ENTITY_INTERPRETATION,
-        stage=STAGE_INTERPRETATION,
-        status=APPROVED,
-    )
-    _log_and_finish(con, "approve", node_id)
+    try:
+        approve_interpretation(con, node_id, db_path=db_path)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        logger.warning(
+            "Interpretation approval failed",
+            extra={"error": str(exc), "node_id": node_id},
+        )
 
 
 def handle_edit_interpretation(
@@ -90,8 +91,21 @@ def handle_edit_interpretation(
     """Edit an interpretation: update narrative, reset to draft, invalidate cache.
 
     Preserves ``tag`` and ``tag_spans`` — scope cannot be changed via edit.
+    Refuses to edit an already-approved interpretation.
     """
     node_id = interp["id"]
+
+    if interp.get("status") == "approved":
+        console.print(
+            "[red]Cannot edit an approved interpretation. "
+            "Create a new interpretation instead.[/red]"
+        )
+        logger.warning(
+            "Edit rejected: interpretation is approved",
+            extra={"node_id": node_id},
+        )
+        return
+
     old_narrative = interp.get("narrative", "")
 
     if not new_narrative.strip():
@@ -127,8 +141,23 @@ def handle_reject_interpretation(
     interp: dict[str, Any],
     db_path: Optional[Path] = None,
 ) -> None:
-    """Reject an interpretation: set node status and inference status to rejected."""
+    """Reject an interpretation: set node status and inference status to rejected.
+
+    Refuses to reject an already-approved interpretation.
+    """
     node_id = interp["id"]
+
+    if interp.get("status") == "approved":
+        console.print(
+            "[red]Cannot reject an approved interpretation. "
+            "Approved interpretations are final.[/red]"
+        )
+        logger.warning(
+            "Reject rejected: interpretation is approved",
+            extra={"node_id": node_id},
+        )
+        return
+
     _update_node_status(con, node_id, "rejected", db_path=db_path)
     set_status(
         con,

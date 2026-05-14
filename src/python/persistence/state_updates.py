@@ -120,6 +120,32 @@ def increment_user_action_count(con: duckdb.DuckDBPyConnection, delta: int = 1) 
     logger.debug("User action count incremented", extra={"delta": delta})
 
 
+def increment_approved_interpretation_count(
+    con: duckdb.DuckDBPyConnection, delta: int = 1
+) -> None:
+    """Increment the approved_interpretation_count by delta.
+
+    Extra keys beyond the five required state fields are allowed and
+    preserved by the state validator.
+
+    Args:
+        con: Active DuckDB connection.
+        delta: Amount to increment (must be positive).
+
+    Raises:
+        StateError: If delta is not positive or state operation fails.
+    """
+    if not isinstance(delta, int) or isinstance(delta, bool) or delta <= 0:
+        raise StateError(f"delta must be a positive integer, got {delta!r}")
+
+    state = load_state(con)
+    state["approved_interpretation_count"] = (
+        state.get("approved_interpretation_count", 0) + delta
+    )
+    save_state(con, state)
+    logger.debug("Approved interpretation count incremented", extra={"delta": delta})
+
+
 def set_config_version(con: duckdb.DuckDBPyConnection, version: str) -> None:
     """Set the config_version string.
 

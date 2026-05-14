@@ -109,9 +109,11 @@ def _display_constituent_codes(
 
 
 def _display_interpretation_panel(interp: dict) -> None:
-    """Render a ``rich.Panel`` with interpretation name, narrative, and tag_spans."""
+    """Render a ``rich.Panel`` with name, narrative, tag_spans, and status."""
     dj = interp.get("data_json") or {}
     tag_spans = dj.get("tag_spans") or []
+    status = interp.get("status", "draft")
+    status_style = "green" if status == "approved" else "yellow"
 
     content = Text()
     content.append(f"{interp['name']}\n", style="bold cyan")
@@ -120,6 +122,7 @@ def _display_interpretation_panel(interp: dict) -> None:
         f"\nTag spans: {', '.join(tag_spans)}\n",
         style="yellow",
     )
+    content.append(f"\nStatus: {status}\n", style=status_style)
 
     panel = Panel(
         content,

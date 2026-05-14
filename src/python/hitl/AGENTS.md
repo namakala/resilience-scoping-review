@@ -89,6 +89,7 @@ Check rejected if constraints violated. Error message includes remediation sugge
 - **`prompts.py`** — `questionary` prompts and interactive flows for all entity types (consolidated)
 - **`invalidation.py`** — Embedding invalidation and downstream cascade (theme→draft, interpretation→draft)
 - **`user_action_log.py`** — Audit table CRUD
+- **`approvals.py`** — Interpretation approval: finalize, invalidate caches, increment counters
 
 ## Integration
 
