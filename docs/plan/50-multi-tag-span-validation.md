@@ -1,8 +1,9 @@
 ---
 title: "50 — multi-tag-span-validation"
 description: "Ensure interpretation tag_spans form a contiguous subtree (LCA-based)"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 8
+status: completed
 ---
 
 # Feature 50: multi-tag-span-validation
@@ -13,6 +14,20 @@ phase: 8
 ## Description
 
 Ensure interpretation's `tag_spans` form a contiguous subtree (connected in ontology DAG). Compute using LCA (lowest common ancestor): all tags must share a single root ancestor, and no intervening tags missing from span. If gap detected (e.g., tags A and C but not B where B is ancestor of C and descendant of A), reject.
+
+---
+
+## Policy Decision: Downward-Closed (LCA-Based)
+
+The contiguity check uses a **downward-closed** (LCA-based) policy:
+
+- Sibling leaf tags **without** their shared parent **are** contiguous, because no intermediate nodes exist on paths from the LCA to each tag.
+  - Example: `{"Problem.Cause", "Problem.Impact"}` → contiguous (LCA = `Problem`, path `Problem→Problem.Cause` has no intermediates, same for `Problem→Problem.Impact`).
+- A gap between ancestor and descendant **is** non-contiguous.
+  - Example: `{"Problem", "Problem.Impact.Scope"}` → non-contiguous (missing `Problem.Impact` on path).
+- Tags from disjoint ontology roots **are** non-contiguous (no common ancestor exists).
+
+This policy was chosen because it aligns with the semantic intuition: sibling children of the same parent naturally form a coherent span even without explicitly including the parent tag.
 
 ---
 

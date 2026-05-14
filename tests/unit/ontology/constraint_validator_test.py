@@ -35,6 +35,7 @@ from ontology.constraints import (
     is_contiguous_subtree,
     validate_constraint,
 )
+from ontology.contiguity import _missing_intermediates
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -1021,6 +1022,73 @@ class TestIsContiguousSubtree(unittest.TestCase):
         tag_dag = _make_chain_dag()
         with self.assertRaises(nx.NetworkXError):
             is_contiguous_subtree({"A", "Unknown"}, tag_dag)
+
+    # ── Feature 50 acceptance-criteria examples ──────────────────────
+
+    def test_ac_example_problem_contiguous(self):
+        """AC: {Problem, Problem.Cause, Problem.Impact} → contiguous."""
+        tag_dag = _make_tag_dag()
+        self.assertTrue(
+            is_contiguous_subtree(
+                {"Problem", "Problem.Cause", "Problem.Impact"}, tag_dag
+            ),
+        )
+
+    def test_ac_example_siblings_no_parent(self):
+        """AC: {Problem.Cause, Problem.Impact} → contiguous (downward-closed policy).
+
+        Sibling leaf tags without their shared parent are contiguous
+        because no intermediate nodes exist on paths from LCA to each tag.
+        """
+        tag_dag = _make_tag_dag()
+        self.assertTrue(
+            is_contiguous_subtree({"Problem.Cause", "Problem.Impact"}, tag_dag),
+        )
+
+    def test_ac_example_noncontiguous_gap(self):
+        """AC: {Problem, Problem.Impact.Scope} → non-contiguous (gap).
+
+        Missing Problem.Impact on path between Problem and
+        Problem.Impact.Scope.
+        """
+        tag_dag = _make_tag_dag()
+        self.assertFalse(
+            is_contiguous_subtree({"Problem", "Problem.Impact.Scope"}, tag_dag),
+        )
+
+
+# ---------------------------------------------------------------------------
+# _missing_intermediates (helper for error messages)
+# ---------------------------------------------------------------------------
+
+
+class TestMissingIntermediates(unittest.TestCase):
+    """_missing_intermediates returns gap tags for non-contiguous sets."""
+
+    def test_empty_set_returns_empty(self):
+        self.assertEqual(_missing_intermediates(set(), _make_chain_dag()), set())
+
+    def test_single_tag_returns_empty(self):
+        self.assertEqual(_missing_intermediates({"A"}, _make_chain_dag()), set())
+
+    def test_contiguous_set_returns_empty(self):
+        self.assertEqual(
+            _missing_intermediates({"A", "A.B"}, _make_chain_dag()),
+            set(),
+        )
+
+    def test_non_contiguous_returns_gap(self):
+        self.assertEqual(
+            _missing_intermediates({"A", "A.B.C"}, _make_chain_dag()),
+            {"A.B"},
+        )
+
+    def test_disjoint_roots_returns_empty(self):
+        """Disjoint tags have no common ancestor—helper returns empty set."""
+        self.assertEqual(
+            _missing_intermediates({"X.X1", "Y.Y1"}, _make_disjoint_tag_dag()),
+            set(),
+        )
 
 
 if __name__ == "__main__":
