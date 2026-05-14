@@ -69,7 +69,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [x] @docs/plan/42-theme-inference-service.md
 - [x] @docs/plan/43-theme-node-creation.md
-- [ ] @docs/plan/44-theme-hitl-cli.md
+- [x] @docs/plan/44-theme-hitl-cli.md
 - [ ] @docs/plan/45-theme-constraint-validation.md
 - [ ] @docs/plan/46-theme-approval-enables-interpretation.md
 
