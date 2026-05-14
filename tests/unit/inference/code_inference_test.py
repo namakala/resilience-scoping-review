@@ -13,9 +13,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "pyt
 from inference.batching import Batch
 from inference.code_inference import (
     _ExemplarRow,
+    _exemplars_to_dicts,
     _get_existing_codes_for_tag,
     _load_pending_exemplars,
-    _prepare_exemplars_dict,
     infer_codes,
 )
 from inference.parsing import CodeInference
@@ -95,14 +95,14 @@ class TestGetExistingCodesForTag(unittest.TestCase):
 
 
 class TestPrepareExemplarsDict(unittest.TestCase):
-    """_prepare_exemplars_dict: convert _ExemplarRow list to dict list."""
+    """_exemplars_to_dicts: convert _ExemplarRow list to dict list."""
 
     def test_structure(self):
         items = [
             _ExemplarRow(id=1, content="c1", keywords=["a"]),
             _ExemplarRow(id=2, content="c2", keywords=[]),
         ]
-        result = _prepare_exemplars_dict(items)
+        result = _exemplars_to_dicts(items)
         expected = [
             {"id": 1, "content": "c1", "keywords": ["a"]},
             {"id": 2, "content": "c2", "keywords": []},

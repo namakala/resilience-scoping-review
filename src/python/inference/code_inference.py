@@ -3,14 +3,6 @@
 Groups pending exemplars by tag into batches, renders prompts with ontology
 context and existing codes, calls Groq with retry logic, parses structured
 responses, updates inference status, and returns CodeInference objects.
-
-Usage:
-    from inference.code_inference import infer_codes
-
-    with duckdb.connect(...) as con:
-        codes = infer_codes(con, tag=None)
-        for c in codes:
-            print(c.code_name, c.definition)
 """
 
 from __future__ import annotations
@@ -46,8 +38,6 @@ __all__ = ["infer_codes"]
 
 @dataclass(frozen=True)
 class _ExemplarRow:
-    """Minimal exemplar data needed for code inference."""
-
     id: int
     content: str
     keywords: list[str]
@@ -56,7 +46,6 @@ class _ExemplarRow:
 def _load_pending_exemplars(
     con: duckdb.DuckDBPyConnection, tag: str | None = None
 ) -> list[_ExemplarRow]:
-    """Load pending exemplars for code inference stage."""
     pending_ids = get_pending_items(con, stage=STAGE_CODE, tag=tag)
     if not pending_ids:
         return []
@@ -67,16 +56,18 @@ def _load_pending_exemplars(
         logger.error("Invalid exemplar_id in inference_status: %s", e)
         raise
 
-    lf = load_exemplars().select(["id", "content", "keywords"])
-    lf = lf.filter(pl.col("id").is_in(exemplar_ids)).sort("id")
-
     rows = []
-    for row in lf.collect().iter_rows(named=True):
+    for row in (
+        load_exemplars()
+        .select(["id", "content", "keywords"])
+        .filter(pl.col("id").is_in(exemplar_ids))
+        .sort("id")
+        .collect()
+        .iter_rows(named=True)
+    ):
         rows.append(
             _ExemplarRow(
-                id=row["id"],
-                content=row["content"],
-                keywords=row["keywords"] or [],
+                id=row["id"], content=row["content"], keywords=row["keywords"] or []
             )
         )
     logger.info(
@@ -88,21 +79,18 @@ def _load_pending_exemplars(
 
 
 def _get_existing_codes_for_tag(tag: str) -> list[dict[str, str]]:
-    """Fetch approved codes for a tag to provide context in the prompt."""
     nodes = get_nodes_by_type_and_tag("code", tag)
-    approved = [n for n in nodes if n.get("status") == "approved"]
-    result = [
+    approved = [
         {"name": n["name"], "definition": n["definition"]}
-        for n in sorted(approved, key=lambda n: n["id"])
+        for n in sorted(
+            (n for n in nodes if n.get("status") == "approved"), key=lambda n: n["id"]
+        )
     ]
-    logger.debug("Found %d approved codes for tag '%s'", len(result), tag)
-    return result
+    logger.debug("Found %d approved codes for tag '%s'", len(approved), tag)
+    return approved
 
 
-def _prepare_exemplars_dict(
-    items: list[_ExemplarRow],
-) -> list[dict[str, Any]]:
-    """Convert batch items to list of exemplar dicts for prompt context."""
+def _exemplars_to_dicts(items: list[_ExemplarRow]) -> list[dict[str, Any]]:
     return [
         {"id": item.id, "content": item.content, "keywords": item.keywords}
         for item in items
@@ -116,68 +104,26 @@ def _render_code_prompt_for_batch(
     tag_description: str,
     existing_codes: list[dict[str, str]],
 ) -> PromptBundle:
-    """Render code inference prompt for a (possibly split) batch."""
     return render_code_prompt(
         fewshot=fewshot,
         ontology_path=ontology_path,
         tag_description=tag_description,
         existing_codes=existing_codes,
-        exemplars=_prepare_exemplars_dict(batch.items),
+        exemplars=_exemplars_to_dicts(batch.items),
     )
 
 
-def _process_code_batch(
-    con: duckdb.DuckDBPyConnection,
-    batch: Batch,
-    tracker,
-) -> list[CodeInference]:
-    """Run code inference for a single batch: fetch context, call LLM, parse, validate.
-
-    Returns the list of successfully generated :class:`CodeInference` objects
-    for this batch. Side effects: updates inference_status via mark_success/mark_failure
-    and records token usage via the tracker.
-    """
-    tag_description, ontology_path = get_tag_metadata(batch.tag)
-    existing_codes = _get_existing_codes_for_tag(batch.tag)
-
-    fewshot = None
-    if fewshot_enabled():
-        fewshot = load_fewshot(
-            "code_inference",
-            count=fewshot_count(),
-            shuffle=fewshot_shuffle(),
-        )
-
-    responses = infer_batch_with_retry(
-        batch=batch,
-        render_fn=partial(
-            _render_code_prompt_for_batch,
-            fewshot=fewshot,
-            ontology_path=ontology_path,
-            tag_description=tag_description,
-            existing_codes=existing_codes,
-        ),
-        temperature=code_temperature(),
-        response_format={"type": "json_object"},
-    )
-
-    all_parsed: list[CodeInference] = []
+def _dedup_and_validate(responses, batch: Batch) -> dict[str, CodeInference]:
+    """Parse LLM responses into CodeInference map; dedup by exemplar_id."""
+    parsed: list[CodeInference] = []
     for resp in responses:
-        all_parsed.extend(parse_code_response(resp.choices[0].message.content))
-        record_tokens(resp, tracker, STAGE_CODE, batch.batch_id)
+        parsed.extend(parse_code_response(resp.choices[0].message.content))
 
-    # dedup by exemplar_id (keep first)
     code_map: dict[str, CodeInference] = {}
-    for c in all_parsed:
+    for c in parsed:
         if c.exemplar_id not in code_map:
             code_map[c.exemplar_id] = c
-        else:
-            logger.debug(
-                "Duplicate code for exemplar %s across batch splits; keeping first",
-                c.exemplar_id,
-            )
 
-    # validate
     batch_ids = {str(it.id) for it in batch.items}
     parsed_ids = set(code_map.keys())
     missing = batch_ids - parsed_ids
@@ -196,13 +142,58 @@ def _process_code_batch(
             len(extra),
             sorted(extra),
         )
+    return code_map
 
-    # update status and collect results
+
+def _log_code_summary(start_time: float, results: list, tracker) -> None:
+    elapsed = time.time() - start_time
+    rate = len(results) / elapsed if elapsed > 0 else 0
+    logger.info(
+        "Code inference complete: %d codes in %.1fs (%.1f codes/sec). %s",
+        len(results),
+        elapsed,
+        rate,
+        format_stage_summary(STAGE_CODE, tracker.stage_summary(STAGE_CODE)),
+    )
+
+
+def _process_code_batch(
+    con: duckdb.DuckDBPyConnection,
+    batch: Batch,
+    tracker,
+) -> list[CodeInference]:
+    tag_description, ontology_path = get_tag_metadata(batch.tag)
+    existing_codes = _get_existing_codes_for_tag(batch.tag)
+
+    fewshot = (
+        load_fewshot("code_inference", count=fewshot_count(), shuffle=fewshot_shuffle())
+        if fewshot_enabled()
+        else None
+    )
+
+    responses = infer_batch_with_retry(
+        batch=batch,
+        render_fn=partial(
+            _render_code_prompt_for_batch,
+            fewshot=fewshot,
+            ontology_path=ontology_path,
+            tag_description=tag_description,
+            existing_codes=existing_codes,
+        ),
+        temperature=code_temperature(),
+        response_format={"type": "json_object"},
+    )
+
+    for resp in responses:
+        record_tokens(resp, tracker, STAGE_CODE, batch.batch_id)
+
+    code_map = _dedup_and_validate(responses, batch)
+
     results: list[CodeInference] = []
     for item in batch.items:
-        eid_str = str(item.id)
-        if eid_str in code_map:
-            c = code_map[eid_str]
+        eid = str(item.id)
+        if eid in code_map:
+            c = code_map[eid]
             c.tag = batch.tag
             mark_success(con, item.id, "exemplar", "code")
             results.append(c)
@@ -215,20 +206,6 @@ def infer_codes(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
 ) -> list[CodeInference]:
-    """Run batch code inference for all pending exemplars.
-
-    For each tag with pending exemplars:
-      1. Fetch pending exemplars grouped by tag (≤15 per batch).
-      2. For each batch: fetch context, call LLM, parse, validate, update status.
-      3. Collect all CodeInference objects.
-
-    Args:
-        con: Active DuckDB connection.
-        tag: Optional tag filter; if None, process all pending exemplars.
-
-    Returns:
-        List of CodeInference objects (all successfully generated codes).
-    """
     start_time = time.time()
     logger.info(
         "Starting code inference%s",
@@ -247,22 +224,7 @@ def infer_codes(
         mark_failure(c, item.id, err)
 
     results, tracker = run_batches(
-        con,
-        batches,
-        _process_code_batch,
-        STAGE_CODE,
-        failure_fn,
+        con, batches, _process_code_batch, STAGE_CODE, failure_fn
     )
-
-    elapsed = time.time() - start_time
-    rate = len(results) / elapsed if elapsed > 0 else 0
-    summary = tracker.stage_summary(STAGE_CODE)
-    logger.info(
-        "Code inference complete: %d codes in %.1fs (%.1f codes/sec). %s",
-        len(results),
-        elapsed,
-        rate,
-        format_stage_summary(STAGE_CODE, summary),
-    )
-
+    _log_code_summary(start_time, results, tracker)
     return results

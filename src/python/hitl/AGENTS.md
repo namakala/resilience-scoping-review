@@ -72,6 +72,17 @@ Review actions must not violate ADR-013 constraints:
 
 Check rejected if constraints violated. Error message includes remediation suggestion.
 
+## Module Map
+
+- **`code_review.py`** — Interactive CLI orchestration (review loops, prompt dispatch)
+- **`code_review_actions.py`** — Simple action handlers (approve, edit, reject, defer)
+- **`code_review_merge.py`** — Merge orchestration with transaction management
+- **`merge_invalidation.py`** — Downstream cache invalidation (theme→draft, interpretation→draft)
+- **`code_review_prompts.py`** — `questionary` prompts and interactive merge flow
+- **`code_review_display.py`** — `rich` panels and tables for terminal UI
+- **`code_review_queries.py`** — Database queries for pending items and neighbors
+- **`user_action_log.py`** — Audit table CRUD
+
 ## Integration
 
 - Calls `@src/python/graph/AGENTS.md` to persist mutations
