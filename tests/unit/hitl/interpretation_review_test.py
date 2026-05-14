@@ -18,6 +18,7 @@ sys.path.insert(
 )
 
 import duckdb
+import networkx as nx
 from inference.inference_status_crud import init_inference_status_table
 from persistence.duckdb_init import initialize_database
 
@@ -627,6 +628,463 @@ class TestInterpretationReviewActions(unittest.TestCase):
 
         handle_defer_interpretation(self.con, interp)
 
+        status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
+        self.assertEqual(status, "draft")
+
+
+def _build_split_test_tag_dag() -> nx.DiGraph:
+    """Build minimal ontology DAG for split contiguity tests.
+
+    Hierarchy::
+
+        Root
+         +-- T1
+         +-- T2
+         |    +-- T2.A
+         +-- T3
+    """
+    G = nx.DiGraph()
+    tags = [
+        ("Root", 0),
+        ("T1", 1),
+        ("T2", 1),
+        ("T2.A", 2),
+        ("T3", 1),
+    ]
+    for tag, depth in tags:
+        G.add_node(tag, depth=depth)
+    G.add_edge("Root", "T1")
+    G.add_edge("Root", "T2")
+    G.add_edge("T2", "T2.A")
+    G.add_edge("Root", "T3")
+    return G
+
+
+class TestInterpretationReviewSplit(unittest.TestCase):
+    """Tests for handle_split_interpretation() in interpretation_review_split.py."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+        init_inference_status_table(self.con)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+        # Mock ontology tag DAG for contiguity checks
+        self.tag_dag = _build_split_test_tag_dag()
+        self._dag_patcher = mock.patch(
+            "ontology.dag.get_tag_dag", return_value=self.tag_dag
+        )
+        self._dag_patcher.start()
+
+    def tearDown(self):
+        self._dag_patcher.stop()
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def _insert_theme(self, theme_id, name="Theme", tag="T1"):
+        dj = json.dumps({"code_ids": []})
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'theme', ?, ?, ?, 'approved', ?)",
+            [theme_id, name, f"{name} narrative", tag, dj],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+
+    def _insert_interpretation(
+        self, interp_id, name="InterpA", narrative="narrative", theme_ids=None
+    ):
+        theme_ids = theme_ids or []
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'interpretation', ?, ?, 'T1', 'draft', '{}')",
+            [interp_id, name, narrative],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+        for tid in theme_ids:
+            self.con.execute(
+                "INSERT INTO edges (source_id, target_id, edge_type) "
+                "VALUES (?, ?, 'spans')",
+                [interp_id, tid],
+            )
+
+    def _interp_dict(self, interp_id):
+        row = self.con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE id = ?",
+            [interp_id],
+        ).fetchone()
+        dj = json.loads(row[4]) if row[4] else {}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "narrative": row[2],
+            "tag": row[3],
+            "data_json": dj,
+            "status": row[5],
+        }
+
+    # ── Tests ────────────────────────────────────────────────────────
+
+    def test_split_two_themes_creates_two_new_nodes(self):
+        """Split an interpretation with 2 themes into 2 new interpretations."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+
+        interp = self._interp_dict(1)
+
+        first_id, second_id = handle_split_interpretation(
+            self.con,
+            interp,
+            first_theme_ids=[10],
+            second_theme_ids=[11],
+            first_name="Interp Part 1",
+            second_name="Interp Part 2",
+            first_narrative="Narrative 1",
+            second_narrative="Narrative 2",
+            db_path=self.db_path,
+        )
+
+        # Original should be merged
+        orig_status = self.con.execute(
+            "SELECT status FROM nodes WHERE id = 1"
+        ).fetchone()[0]
+        self.assertEqual(orig_status, "merged")
+
+        # New nodes should be draft
+        first_status = self.con.execute(
+            "SELECT status FROM nodes WHERE id = ?", [first_id]
+        ).fetchone()[0]
+        self.assertEqual(first_status, "draft")
+        second_status = self.con.execute(
+            "SELECT status FROM nodes WHERE id = ?", [second_id]
+        ).fetchone()[0]
+        self.assertEqual(second_status, "draft")
+
+        # Check spans edges
+        first_themes = self.con.execute(
+            "SELECT target_id FROM edges WHERE source_id = ? AND edge_type = 'spans'",
+            [first_id],
+        ).fetchall()
+        self.assertEqual([r[0] for r in first_themes], [10])
+
+        second_themes = self.con.execute(
+            "SELECT target_id FROM edges WHERE source_id = ? AND edge_type = 'spans'",
+            [second_id],
+        ).fetchall()
+        self.assertEqual([r[0] for r in second_themes], [11])
+
+        # Check derived-from edges
+        derived = self.con.execute(
+            "SELECT target_id FROM edges WHERE source_id = ? AND edge_type = 'derived-from'",
+            [1],
+        ).fetchall()
+        self.assertEqual(sorted([r[0] for r in derived]), sorted([first_id, second_id]))
+
+    def test_split_noncontiguous_tags_raises_valueerror(self):
+        """Split where themes have tags from disjoint branches raises ValueError."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11, 12])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2.A")
+        self._insert_theme(12, "ThemeC", tag="T3")
+
+        interp = self._interp_dict(1)
+
+        with self.assertRaises(ValueError) as ctx:
+            handle_split_interpretation(
+                self.con,
+                interp,
+                first_theme_ids=[10, 11],
+                second_theme_ids=[12],
+                first_name="Bad Split",
+                second_name="Remaining",
+                first_narrative="N1",
+                second_narrative="N2",
+                db_path=self.db_path,
+            )
+        self.assertIn("non-contiguous", str(ctx.exception).lower())
+
+    def test_split_empty_theme_list_raises_valueerror(self):
+        """Passing an empty first_theme_ids raises ValueError."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA")
+        self._insert_theme(11, "ThemeB")
+
+        interp = self._interp_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_interpretation(
+                self.con,
+                interp,
+                first_theme_ids=[],
+                second_theme_ids=[11],
+                first_name="Empty",
+                second_name="Rest",
+                first_narrative="N1",
+                second_narrative="N2",
+                db_path=self.db_path,
+            )
+
+    def test_split_all_themes_to_one_side_raises_valueerror(self):
+        """Passing an empty second_theme_ids raises ValueError."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10])
+        self._insert_theme(10, "ThemeA")
+
+        interp = self._interp_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_interpretation(
+                self.con,
+                interp,
+                first_theme_ids=[10],
+                second_theme_ids=[],
+                first_name="All",
+                second_name="None",
+                first_narrative="N1",
+                second_narrative="N2",
+                db_path=self.db_path,
+            )
+
+    def test_split_data_json_contains_merged_info(self):
+        """Original interpretation gets merged_info in data_json."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+
+        interp = self._interp_dict(1)
+
+        handle_split_interpretation(
+            self.con,
+            interp,
+            first_theme_ids=[10],
+            second_theme_ids=[11],
+            first_name="Part 1",
+            second_name="Part 2",
+            first_narrative="N1",
+            second_narrative="N2",
+            db_path=self.db_path,
+        )
+
+        row = self.con.execute("SELECT data_json FROM nodes WHERE id = 1").fetchone()
+        dj = json.loads(row[0]) if row[0] else {}
+        self.assertIn("merged_info", dj)
+        self.assertEqual(dj["merged_info"]["split_into_first_name"], "Part 1")
+        self.assertEqual(dj["merged_info"]["split_into_second_name"], "Part 2")
+
+    def test_split_action_logged(self):
+        """Split action is recorded in user_actions table."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+
+        interp = self._interp_dict(1)
+
+        handle_split_interpretation(
+            self.con,
+            interp,
+            first_theme_ids=[10],
+            second_theme_ids=[11],
+            first_name="Part 1",
+            second_name="Part 2",
+            first_narrative="N1",
+            second_narrative="N2",
+            db_path=self.db_path,
+        )
+
+        rows = self.con.execute(
+            "SELECT action_type, entity_id FROM user_actions WHERE entity_id = 1"
+        ).fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], "split")
+
+    def test_split_data_json_tag_spans(self):
+        """New interpretations have correct tag_spans in data_json."""
+        from hitl.interpretation_review_split import handle_split_interpretation
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+
+        interp = self._interp_dict(1)
+
+        first_id, second_id = handle_split_interpretation(
+            self.con,
+            interp,
+            first_theme_ids=[10],
+            second_theme_ids=[11],
+            first_name="Part 1",
+            second_name="Part 2",
+            first_narrative="N1",
+            second_narrative="N2",
+            db_path=self.db_path,
+        )
+
+        first_dj = json.loads(
+            self.con.execute(
+                "SELECT data_json FROM nodes WHERE id = ?", [first_id]
+            ).fetchone()[0]
+            or "{}"
+        )
+        self.assertEqual(first_dj.get("tag_spans"), ["T1"])
+
+        second_dj = json.loads(
+            self.con.execute(
+                "SELECT data_json FROM nodes WHERE id = ?", [second_id]
+            ).fetchone()[0]
+            or "{}"
+        )
+        self.assertEqual(second_dj.get("tag_spans"), ["T2"])
+
+
+class TestInterpretationReviewSplitInteractive(unittest.TestCase):
+    """Tests for _handle_split_interactive flow in prompts.py."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+        init_inference_status_table(self.con)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+        self.tag_dag = _build_split_test_tag_dag()
+        self._dag_patcher = mock.patch(
+            "ontology.dag.get_tag_dag", return_value=self.tag_dag
+        )
+        self._dag_patcher.start()
+
+    def tearDown(self):
+        self._dag_patcher.stop()
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def _insert_theme(self, theme_id, name="Theme", tag="T1"):
+        dj = json.dumps({"code_ids": []})
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'theme', ?, ?, ?, 'approved', ?)",
+            [theme_id, name, f"{name} narrative", tag, dj],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+
+    def _insert_interpretation(
+        self, interp_id, name="InterpA", narrative="narrative", theme_ids=None
+    ):
+        theme_ids = theme_ids or []
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'interpretation', ?, ?, 'T1', 'draft', '{}')",
+            [interp_id, name, narrative],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+        for tid in theme_ids:
+            self.con.execute(
+                "INSERT INTO edges (source_id, target_id, edge_type) "
+                "VALUES (?, ?, 'spans')",
+                [interp_id, tid],
+            )
+
+    def _interp_dict(self, interp_id):
+        row = self.con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE id = ?",
+            [interp_id],
+        ).fetchone()
+        dj = json.loads(row[4]) if row[4] else {}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "narrative": row[2],
+            "tag": row[3],
+            "data_json": dj,
+            "status": row[5],
+        }
+
+    @mock.patch("questionary.checkbox")
+    @mock.patch("questionary.text")
+    @mock.patch("questionary.confirm")
+    def test_split_interactive_happy_path(self, mock_confirm, mock_text, mock_checkbox):
+        """Full interactive split flow completes successfully."""
+        from hitl.prompts import _handle_split_interactive
+
+        self._insert_interpretation(1, name="TestInterp", theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+
+        interp = self._interp_dict(1)
+
+        # Simulate user selecting first theme
+        mock_checkbox.return_value.ask.return_value = [10]
+
+        # Each questionary.text() call returns a mock with .ask()
+        text_responses = iter(
+            ["Split Part 1", "Split Part 2", "Narrative 1", "Narrative 2"]
+        )
+
+        def _make_text_mock(*_a, **_kw):
+            m = mock.MagicMock()
+            m.ask.return_value = next(text_responses)
+            return m
+
+        mock_text.side_effect = _make_text_mock
+
+        mock_confirm.return_value.ask.return_value = True
+
+        with mock.patch("hitl.shared.console.print"):
+            _handle_split_interactive(self.con, interp, db_path=self.db_path)
+
+        # Original should be merged
+        orig_status = self.con.execute(
+            "SELECT status FROM nodes WHERE id = 1"
+        ).fetchone()[0]
+        self.assertEqual(orig_status, "merged")
+
+    @mock.patch("questionary.checkbox")
+    def test_split_interactive_cancel_at_theme_selection(self, mock_checkbox):
+        """Cancelling at theme selection prints message and returns."""
+        from hitl.prompts import _handle_split_interactive
+
+        self._insert_interpretation(1, name="TestInterp", theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA")
+        self._insert_theme(11, "ThemeB")
+
+        interp = self._interp_dict(1)
+        mock_checkbox.return_value.ask.return_value = None
+
+        with mock.patch("hitl.shared.console.print") as mock_print:
+            _handle_split_interactive(self.con, interp, db_path=self.db_path)
+            printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list)
+            self.assertIn("cancelled", printed.lower())
+
+        # Status unchanged
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
         self.assertEqual(status, "draft")
 

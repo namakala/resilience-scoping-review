@@ -200,9 +200,9 @@ def handle_split_interpretation(
                 "split_into": [first_id, second_id],
             },
         )
-        increment_user_action_count(con)
         committed = True
         con.execute("COMMIT")
+        increment_user_action_count(con)
 
     except Exception:
         if not committed:
