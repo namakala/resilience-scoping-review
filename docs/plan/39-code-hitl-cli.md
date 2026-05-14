@@ -1,8 +1,9 @@
 ---
 title: "39 — code-hitl-cli"
 description: "Rich + questionary CLI for code review: approve/edit/merge/reject/defer"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 6
+status: completed
 ---
 
 # Feature 39: code-hitl-cli

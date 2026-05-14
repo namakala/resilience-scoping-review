@@ -1,7 +1,7 @@
 ---
 title: "Human-in-the-Loop Validation Layer"
 description: "CLI-based review and mutation workflows for qualitative validation"
-updated_at: "2026-05-11"
+updated_at: "2026-05-14"
 ---
 
 # Human-in-the-Loop Validation Layer
@@ -71,6 +71,17 @@ Review actions must not violate ADR-013 constraints:
 - Cannot approve interpretation with non-contiguous tag span
 
 Check rejected if constraints violated. Error message includes remediation suggestion.
+
+## Module Map
+
+- **`code_review.py`** — Interactive CLI orchestration (review loops, prompt dispatch)
+- **`code_review_actions.py`** — Simple action handlers (approve, edit, reject, defer)
+- **`code_review_merge.py`** — Merge orchestration with transaction management
+- **`merge_invalidation.py`** — Downstream cache invalidation (theme→draft, interpretation→draft)
+- **`code_review_prompts.py`** — `questionary` prompts and interactive merge flow
+- **`code_review_display.py`** — `rich` panels and tables for terminal UI
+- **`code_review_queries.py`** — Database queries for pending items and neighbors
+- **`user_action_log.py`** — Audit table CRUD
 
 ## Integration
 

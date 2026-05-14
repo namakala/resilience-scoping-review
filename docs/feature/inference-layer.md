@@ -22,7 +22,9 @@ Generate semantic artifacts — codes from exemplars, themes from codes, interpr
 
 ## Core Components
 
-**Prompt Engineering** (`prompts.py`, `templates/`): Three prompt bundles — `render_code_prompt` (exemplars → codes, one per exemplar), `render_theme_prompt` (approved codes → grouped themes, 2–5 codes each), `render_interpretation_prompt` (themes across tags → cross-cutting interpretations). Each bundle splits system (role, rules, output schema) and user (batch data) content. Few-shot pairs are inserted between system and user messages.
+**Code Inference Service** (`code_inference.py`): Orchestrates the end-to-end pipeline for generating codes from exemplars. Queries pending exemplars, batches by tag, fetches tag context and existing approved codes, renders prompts with few-shot examples, invokes Groq via `infer_batch_with_retry()`, parses `CodeInference` objects, updates `inference_status` (success → `generated`, failure → leave `pending`), and aggregates token usage.
+
+**Prompt Engineering** (`prompts.py`, `templates/`): Three prompt bundles — `render_code_prompt` (exemplars → codes, one per exemplar), `render_theme_prompt` (approved codes → grouped themes, 2–5 codes each), `render_interpretation_prompt` (themes across tags → cross-cutting interpretations). Each bundle splits system (role, rules, output schema) and user (batch data) content. Few-shot pairs inserted between system and user messages.
 
 **Batch Grouping** (`batching.py`): `group_by_tag(items, max_per_batch=15)` takes any `BatchableItem` (objects with `.tag` and `.id`), groups by `.tag`, sorts by `.id`, and chunks into `Batch` objects. Batches are deterministic and sequentially submitted. The `Batch` dataclass carries `tag`, `items`, `batch_index`, `total_batches`, `item_count`, and a `batch_id` property (`{prefix}_{tag}_batch_{NN}`). `split_batch_in_half(batch)` recursively handles token-limit errors.
 
@@ -40,6 +42,7 @@ Generate semantic artifacts — codes from exemplars, themes from codes, interpr
 
 ## File Organization
 
+- `code_inference.py` — code inference service (`infer_codes()`)
 - `prompts.py` — Jinja2 loader, `PromptBundle`, render functions (code/theme/interpretation)
 - `batching.py` — `BatchableItem` protocol, `Batch` dataclass, `group_by_tag()`, `split_batch_in_half()`
 - `retry.py` — `TokenLimitError`, `call_complete_with_retry()`, `infer_batch_with_retry()`

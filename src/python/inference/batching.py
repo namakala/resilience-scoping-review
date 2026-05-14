@@ -85,6 +85,24 @@ def _chunk_list(items: list, chunk_size: int) -> list[list]:
     return result
 
 
+def group_items_by_tag(items: list) -> dict[str, list]:
+    """Group *items* by ``.tag`` into a plain dict.
+
+    Items with a falsy ``.tag`` get key ``""``. The caller decides
+    how to handle empty tags (raise, skip, etc.).  Insertion order
+    is preserved (Python 3.7+).
+
+    Returns
+    -------
+    dict[str, list]
+        Mapping from tag string to list of items sharing that tag.
+    """
+    groups: dict[str, list] = defaultdict(list)
+    for item in items:
+        groups[item.tag or ""].append(item)
+    return dict(groups)
+
+
 def group_by_tag(
     items: list,
     max_per_batch: int = 15,
@@ -122,11 +140,8 @@ def group_by_tag(
         raise ValueError(f"max_per_batch must be >= 1, got {max_per_batch}")
 
     # Group by tag, preserving insertion order (Python 3.7+)
-    items_by_tag: dict[str, list] = defaultdict(list)
-    for item in items:
-        if not item.tag:
-            continue
-        items_by_tag[item.tag].append(item)
+    items_by_tag = group_items_by_tag(items)
+    items_by_tag.pop("", None)  # group_by_tag silently skips falsy tags
 
     batches: list[Batch] = []
     for tag, tag_items in items_by_tag.items():
@@ -181,5 +196,6 @@ __all__ = [
     "Batch",
     "BatchableItem",
     "group_by_tag",
+    "group_items_by_tag",
     "split_batch_in_half",
 ]

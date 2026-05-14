@@ -35,6 +35,7 @@ dependencies:
   - tqdm
   - black
   - isort
+  - jinja2
   - mypy
   - pre-commit
   - pytest

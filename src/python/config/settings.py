@@ -39,6 +39,24 @@ def _optional_int(key: str, default: int) -> int:
         raise ConfigurationError(f"{key!r} must be an integer, got {raw!r}")
 
 
+def _optional_float(
+    key: str, default: float, lo: float = 0.0, hi: float = 2.0
+) -> float:
+    """Parse a float env var, clamped to [*lo*, *hi*]."""
+    raw = os.getenv(key)
+    if raw is None:
+        return default
+    try:
+        val = float(raw)
+        if not lo <= val <= hi:
+            raise ValueError
+        return val
+    except ValueError:
+        raise ConfigurationError(
+            f"{key!r} must be a float in [{lo}, {hi}], got {raw!r}"
+        )
+
+
 # ── Groq / LLM ─────────────────────────────────────────────────────────────
 
 
@@ -66,6 +84,24 @@ def groq_timeout() -> int:
 def groq_max_retries() -> int:
     """Groq client max retries (initial; custom retry wrapper overrides)."""
     return _optional_int("GROQ_MAX_RETRIES", 2)
+
+
+# ── Inference Temperatures ─────────────────────────────────────────
+
+
+def code_temperature() -> float:
+    """Temperature for code inference LLM calls (default: 0.3)."""
+    return _optional_float("CODE_TEMPERATURE", 0.3)
+
+
+def theme_temperature() -> float:
+    """Temperature for theme inference LLM calls (default: 0.4)."""
+    return _optional_float("THEME_TEMPERATURE", 0.4)
+
+
+def interpretation_temperature() -> float:
+    """Temperature for interpretation synthesis LLM calls (default: 0.5)."""
+    return _optional_float("INTERPRETATION_TEMPERATURE", 0.5)
 
 
 # ── Embedding Model ────────────────────────────────────────────────────────

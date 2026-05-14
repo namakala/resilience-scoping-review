@@ -59,11 +59,11 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 6 — Code Inference & Review (37–41)
 
-- [ ] @docs/plan/37-code-inference-service.md
-- [ ] @docs/plan/38-code-node-creation.md
-- [ ] @docs/plan/39-code-hitl-cli.md
-- [ ] @docs/plan/40-code-merge-action.md
-- [ ] @docs/plan/41-code-edit-embeddings-invalidation.md
+- [x] @docs/plan/37-code-inference-service.md
+- [x] @docs/plan/38-code-node-creation.md
+- [x] @docs/plan/39-code-hitl-cli.md
+- [x] @docs/plan/40-code-merge-action.md
+- [x] @docs/plan/41-code-edit-embeddings-invalidation.md
 
 ## Phase 7 — Theme Inference & Review (42–46)
 
