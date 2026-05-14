@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(
     0,
@@ -162,7 +163,8 @@ class TestCodeReviewActions(unittest.TestCase):
 
     # ── Merge ────────────────────────────────────────────────────────────
 
-    def test_merge_redirects_edges_and_updates_data_json(self):
+    @patch("hitl.code_review_merge.validate_constraint")
+    def test_merge_redirects_edges_and_updates_data_json(self, mock_validate):
         # Code A (source) contains exemplar 10
         self._create_code_node(
             1,
@@ -236,7 +238,8 @@ class TestCodeReviewActions(unittest.TestCase):
         ).fetchone()
         self.assertIsNotNone(df_edge)
 
-    def test_merge_handles_existing_target_connection(self):
+    @patch("hitl.code_review_merge.validate_constraint")
+    def test_merge_handles_existing_target_connection(self, mock_validate):
         """When target already contains the same exemplar, redirect succeeds."""
         self._create_code_node(
             1,
