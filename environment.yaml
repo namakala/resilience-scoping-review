@@ -43,6 +43,7 @@ dependencies:
   - pytest
   - tenacity
   - keybert
+  - python-dotenv
   - pip:
     - apache-hamilton
     - circuitbreaker

@@ -1,18 +1,19 @@
 ---
 title: "Project Agentic Documentation Index"
 description: "Entry point for agentic documentation across all system layers and modules"
-updated_at: "2026-05-11"
+updated_at: "2026-05-13"
 ---
 
 # Local-First Qualitative Thematic Analysis
 
-Reproducible local-execution pipeline for qualitative research. Processes exemplars under hierarchical tags, extracts keywords, and iteratively infers codes, themes, interpretations with HITL validation.
+Reproducible local-execution pipeline for qualitative research. Processes exemplars under hierarchical tags, extracts keywords, iteratively infers codes, themes, interpretations with HITL validation.
 
 ## System Purpose
 
 Ontology-guided thematic analysis. Extracts keywords, generates codes, consolidates themes, synthesizes interpretations. Human validation at each stage. Operates on laptop (8 GB RAM). Uses explicit ontology graphs, vector embeddings, BM25 lexical search, and constrained LLM reasoning.
 
 ## Artifacts
+
 **Immutable** (source of truth, never regenerated without explicit invalidation):
 - Exemplars (id, document, tag, content)
 - Keywords (extracted once per exemplar)
@@ -32,9 +33,9 @@ Five layers under `src/python/`:
 - **Inference** (`@src/python/inference/AGENTS.md`): Groq batching, prompting, JSON parsing
 - **HITL** (`@src/python/hitl/AGENTS.md`): CLI review, user mutations, undo/redo
 
-Two supporting modules:
-- **Graph** (`@src/python/graph/AGENTS.md`): Low-level graph CRUD and persistence
-- **Pipeline** (`@src/python/pipeline/AGENTS.md`): Hamilton DAG construction and orchestration
+Supporting modules:
+- **Graph** (`@src/python/graph/AGENTS.md`): Low-level CRUD
+- **Pipeline** (`@src/python/pipeline/AGENTS.md`): Hamilton DAG orchestration
 
 ## Cross-Cutting Principles
 
@@ -65,24 +66,21 @@ Environment: mamba env from `environment.yml`, also local environment for secret
 
 ## Writing Agentic Documentation
 
-Each AGENTS.md ≤100 lines. YAML frontmatter required (title, description ≤200 chars, updated_at). Use short sentences. No code snippets. Describe algorithmic intent, not implementation. Cross-reference hierarchically only (higher → lower). Derive from `@ADR.md`. Purpose over mechanics.
+Each AGENTS.md ≤100 lines. YAML frontmatter required (title, description ≤200 chars, updated_at). Short sentences. No code snippets. Describe algorithmic intent, not implementation. Cross-reference higher → lower.
 
 ## Implementation Tracking
 
-When implementing a feature:
-1. Read `docs/plan/XX-feature.md`.
-2. Implement, test, verify.
-3. Mark `PLANS.md` as `[x]` with note.
-4. Update `docs/plan/XX-phase.md` if changed.
-5. Update phase `updated_at`.
-
-Add/remove/restructure features: update `PLANS.md` and affected phase files. Keep `PLANS.md` as clean checklist.
+Feature implementation: read plan → implement → test → mark `@PLANS.md` as `[x]` → update `updated_at`. Add/remove features by editing `@PLANS.md` and affected phase files.
 
 ## Standards Compliance
 
 All code must follow `@STANDARDS.md`. Read it before implementing any feature.
 
-When creating multiple files within a new directory, always create or update the `AGENTS.md` in that directory. This maintains architectural context and integration documentation across the system.
+When creating multiple files within a directory, always create or update the `AGENTS.md` in that directory.
+
+## Environment Variables
+
+All env vars documented in `.env.example` and configured via typed accessors in `src/python/config/`. See `@src/python/config/AGENTS.md` for the full settings catalog and conventions. Both files must stay in sync.
 
 ## References
 

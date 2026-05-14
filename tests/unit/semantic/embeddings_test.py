@@ -15,44 +15,55 @@ import threading
 import unittest
 from pathlib import Path
 
-sys.path.insert(
-    0,
-    str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
-)
+# Add project source paths to sys.path to allow direct imports.
+# Order: semantic directory first (for embeddings module), then src/python (for persistence, utils).
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+_SRC_PYTHON = _PROJECT_ROOT / "src" / "python"
+sys.path.insert(0, str(_SRC_PYTHON / "semantic"))  # top-level 'embeddings' module
+sys.path.insert(0, str(_SRC_PYTHON))  # 'persistence', 'utils' etc.
 
+# Import the embeddings module directly (bypasses semantic package __init__)
+import embeddings as _emb_mod  # noqa: E402
 import numpy as np  # noqa: E402
 from persistence.hash_utils import compute_model_hash  # noqa: E402
-from semantic.embeddings import (  # noqa: E402
-    EMBEDDING_DIM,
-    MODEL_NAME,
-    EmbeddingError,
-    _get_model_cache_subdir,
-    clear_model_cache,
-    generate_embedding,
-    get_model_hash,
-    reload_model,
-)
+
+# Re-export symbols needed by tests so references remain clean.
+EMBEDDING_DIM = _emb_mod.EMBEDDING_DIM
+MODEL_NAME = _emb_mod.MODEL_NAME
+EmbeddingError = _emb_mod.EmbeddingError
+_get_model_cache_subdir = _emb_mod._get_model_cache_subdir
+clear_model_cache = _emb_mod.clear_model_cache
+generate_embedding = _emb_mod.generate_embedding
+get_model_hash = _emb_mod.get_model_hash
+reload_model = _emb_mod.reload_model
 
 _TEST_TEXT = (
     "Climate resilience requires adaptive capacity and "
     "community-based resource management strategies."
 )
 
+import pytest  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _manage_embedding_model():
+    """Load model once per session and reset after all tests."""
+    _emb_mod._get_model()  # initialize model (lazy load)
+    yield
+    # teardown: reset singleton but keep disk cache
+    _emb_mod.reload_model(clear_cache=False)
+
 
 class TestEmbeddingsCore(unittest.TestCase):
     """Core embedding functionality with real model (loaded once per session)."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.embedding = generate_embedding(_TEST_TEXT)
-
     def test_shape_and_dtype(self):
-        emb = self.embedding
+        emb = generate_embedding(_TEST_TEXT)
         self.assertEqual(emb.shape, (EMBEDDING_DIM,))
         self.assertEqual(emb.dtype, np.float32)
 
     def test_l2_normalized(self):
-        emb = self.embedding
+        emb = generate_embedding(_TEST_TEXT)
         norm = np.linalg.norm(emb)
         self.assertAlmostEqual(norm, 1.0, places=6)
 
@@ -129,21 +140,26 @@ class TestEmbeddingCacheManagement(unittest.TestCase):
         self.temp_dir = Path(tempfile.mkdtemp())
         self.temp_cache = self.temp_dir / "cache"
         self.temp_cache.mkdir(parents=True, exist_ok=True)
-        import semantic.embeddings as _emb_mod
-
+        # Use the globally imported embeddings module (same as used by tests)
         self.emb_mod = _emb_mod
-        self.orig_cache = _emb_mod.MODEL_CACHE_DIR
+        self.orig_cache = self.emb_mod.MODEL_CACHE_DIR
+        # Save original singleton state to restore after each test
+        self.orig_model = self.emb_mod._model
+        self.orig_model_hash = self.emb_mod._model_hash
 
     def tearDown(self):
         self.emb_mod.MODEL_CACHE_DIR = self.orig_cache
+        # Restore original singleton state (may be None or loaded model)
+        self.emb_mod._model = self.orig_model
+        self.emb_mod._model_hash = self.orig_model_hash
         import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_reload_model_resets_singleton(self):
-        generate_embedding("warmup")
-        self.assertIsNotNone(self.emb_mod._model)
-        self.assertIsNotNone(self.emb_mod._model_hash)
+        # Use a sentinel to represent a loaded model without actually loading
+        self.emb_mod._model = object()
+        self.emb_mod._model_hash = "testhash"
         reload_model()
         self.assertIsNone(self.emb_mod._model)
         self.assertIsNone(self.emb_mod._model_hash)
@@ -155,6 +171,9 @@ class TestEmbeddingCacheManagement(unittest.TestCase):
         (cache_subdir / "blobs").mkdir(exist_ok=True)
         self.emb_mod.MODEL_CACHE_DIR = self.temp_cache
         self.assertTrue(cache_subdir.exists())
+        # Set sentinel to verify singleton is also cleared
+        self.emb_mod._model = object()
+        self.emb_mod._model_hash = "testhash"
         clear_model_cache()
         self.assertFalse(cache_subdir.exists())
         self.assertIsNone(self.emb_mod._model)
@@ -168,7 +187,10 @@ class TestEmbeddingCacheManagement(unittest.TestCase):
         self.assertFalse(cache_subdir.exists())
 
     def test_reload_model_without_clear_keeps_disk_cache(self):
-        generate_embedding("warmup")
+        # The real cache dir exists because the session fixture loaded the model.
+        # Set a sentinel for the model to avoid triggering another load.
+        self.emb_mod._model = object()
+        self.emb_mod._model_hash = "testhash"
         cache_subdir = _get_model_cache_subdir()
         self.assertTrue(
             cache_subdir.exists(),

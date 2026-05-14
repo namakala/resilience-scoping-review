@@ -1,7 +1,7 @@
 ---
 title: "32 — batch-grouping-by-tag"
 description: "Group exemplars/codes/themes by parent tag into batches ≤15"
-updated_at: "2026-05-12"
+updated_at: "2026-05-14"
 phase: 5
 ---
 
@@ -36,9 +36,12 @@ Before LLM inference, group items by their parent tag. For code inference: group
 ## Implementation Notes
 
 - Module: `src/python/inference/batching.py`
-- `Batch` dataclass: `tag: str, items: list, batch_index: int, total_batches: int`
+- `Batch` dataclass: `tag: str, items: list, batch_index: int, total_batches: int, item_count: int (computed)`
+- `batch_id` computed property (format: `{prefix}_{tag}_batch_{index:02d}`)
+- `BatchableItem` Protocol: items must expose `.tag: str` and `.id: int | str`
 - Group: `items_by_tag = defaultdict(list); for item in items: items_by_tag[item.tag].append(item)`
 - Split each tag's list into chunks of `max_per_batch`
+- Items sorted by `.id` ascending within each tag before chunking
 - Return flat list of `Batch` objects
 - Logging: `logger.info("Prepared %d batches for tag %s", len(batches), tag)`
 

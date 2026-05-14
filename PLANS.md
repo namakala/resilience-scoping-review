@@ -49,13 +49,13 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 5 — Inference Layer (30–36)
 
-- [ ] @docs/plan/30-groq-client-initialization.md
-- [ ] @docs/plan/31-prompt-template-engine.md
-- [ ] @docs/plan/32-batch-grouping-by-tag.md
-- [ ] @docs/plan/33-structured-output-parser.md
-- [ ] @docs/plan/34-token-tracking-middleware.md
-- [ ] @docs/plan/35-retry-and-rate-limit-handling.md
-- [ ] @docs/plan/36-incremental-inference-tracker.md
+- [x] @docs/plan/30-groq-client-initialization.md
+- [x] @docs/plan/31-prompt-template-engine.md
+- [x] @docs/plan/32-batch-grouping-by-tag.md
+- [x] @docs/plan/33-structured-output-parser.md
+- [x] @docs/plan/34-token-tracking-middleware.md
+- [x] @docs/plan/35-retry-and-rate-limit-handling.md
+- [x] @docs/plan/36-incremental-inference-tracker.md
 
 ## Phase 6 — Code Inference & Review (37–41)
 
@@ -109,6 +109,10 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [ ] @docs/plan/69-security-and-secrets.md
 - [ ] @docs/plan/70-final-validation-checklist.md
 
+## Phase 12 — Few-Shot Enhancement (71)
+
+- [ ] @docs/plan/71-dynamic-fewshot-retrieval.md
+
 ---
 
 ## How to Use
@@ -125,4 +129,4 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - `[x]` — Implemented and tested
 - `[~]` — In progress (optional)
 
-**Total features:** 71
+**Total features:** 72

@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
-description: "Manages Groq batch inference, prompt templates, and structured output parsing"
-updated_at: "2026-05-11"
+description: "Manages Groq batch inference, prompt templates, structured output parsing, tag-based batching, retry logic, and incremental inference tracking"
+updated_at: "2026-05-14"
 ---
 
 # Inference & LLM Layer
@@ -19,19 +19,60 @@ Generate semantic artifacts (codes, themes, interpretations) from exemplars and 
 - Call Groq API with retry logic and rate-limit handling
 - Parse and validate structured JSON responses using Pydantic schemas
 - Track token consumption and cost per stage
-- Support incremental inference (only new or modified items)
+ - Support incremental inference (only new or modified items) via inference_status tracker
+ - Expose get_pending_items() to filter items needing re-inference each stage
+
+## Retry Logic (Feature 35)
+
+Three-tier retry for Groq API calls via `src/python/inference/retry.py`:
+
+- **Network errors** (timeout, connection): exponential backoff via tenacity (2s, 4s, 8s, max 3 attempts).
+- **Rate limit** (HTTP 429): sleep 60s, retry once.
+- **Token limit** (context-length error): raises `TokenLimitError`; `infer_batch_with_retry()` splits the batch via `split_batch_in_half()` and retries each half.
+- All retries logged per batch_id for audit.
+- Low-level: `call_complete_with_retry()` wraps a single `complete()` call.
+- High-level: `infer_batch_with_retry()` takes a `Batch` + render function, handles all modes.
 
 ## Batching Strategy (ADR-010)
 
-Group exemplars by parent tag to maintain contextual coherence. Each batch contains:
+Group exemplars by parent tag into fixed-size batches using
+`src/python/inference/batching.py`.
 
-- Tag name and hierarchical path (ancestors up to root)
-- Tag description from ontology
-- Existing codes in that tag (for consistency)
-- Grouped exemplars (default 15 per batch)
-- Extracted keyword lists
+`group_by_tag(items, max_per_batch=15, prefix="tag")` takes any iterable
+of `BatchableItem` objects (must expose `.tag: str` and `.id: int | str`),
+groups by `.tag`, sorts by `.id`, splits into chunks of `max_per_batch`,
+and returns `list[Batch]`.
 
-Larger batches reduce API calls but risk coherence loss. Smaller batches improve quality at higher cost. Batches submitted sequentially.
+The `Batch` dataclass carries: `tag`, `items`, `batch_index`,
+`total_batches`, `item_count` (computed), and a `batch_id` property
+(format: `{prefix}_{tag}_batch_{index:02d}`).
+
+Usage: code inference batches exemplars, theme inference batches
+approved codes, interpretation batches themes by tag-span combination.
+Items with an empty/falsy tag are silently skipped. Tags with more than
+max_per_batch items split into multiple batches; the last batch may be
+smaller.
+
+Larger batches reduce API calls but risk coherence loss. Smaller
+batches improve quality at higher cost. Batches submitted sequentially.
+
+## Few-Shot Examples
+
+Curated examples loaded from ``src/python/inference/fewshot/*.json``
+via ``load_fewshot()`` in ``fewshot_loader.py``. Each JSON file
+contains ``{"user": ..., "assistant": ...}`` pairs mirroring the
+rendered prompt format. Examples span two domains (resilience scoping
+review and universal healthcare coverage). Default: 2 examples per
+call. Configurable via ``FEWSHOT_ENABLED``, ``FEWSHOT_COUNT``,
+``FEWSHOT_SHUFFLE`` env vars.
+
+Examples injected as alternating ``user``/``assistant`` message pairs
+by ``build_messages()``, between ``system`` and the actual ``user``
+message. No changes to Jinja2 templates needed.
+
+Future enhancement: replace static JSON pool with dynamic retrieval
+from previously approved inference results once critical mass (>50
+pairs) is available.
 
 ## Prompt Engineering
 
@@ -53,7 +94,7 @@ Error handling:
 
 - Network errors: exponential backoff, up to 3 retries
 - Rate limit errors: 60-second pause, then retry
-- Token limit exceeded: split batch, retry halves
+- Token limit exceeded: split batch via `split_batch_in_half()`, retry each half via `infer_batch_with_retry()`
 - Invalid JSON: log error, return empty list, flag for manual retry
 
 ## Output Parsing
@@ -65,6 +106,23 @@ Raw LLM response text stripped of markdown fences. Parsed with `json.loads`. Eac
 - `InterpretationInference`: interpretation_name, narrative, theme_ids, key_insights
 
 Validation failures raise errors. HITL layer may later edit parsed outputs.
+
+## Incremental Inference Status (Feature 36)
+
+Track inference progress per entity per stage via ``inference_status``
+table in the DuckDB session database.
+
+``src/python/inference/inference_status.py`` manages the lifecycle:
+
+- **Statuses:** ``pending`` (initial), ``generated`` (after infer),
+  ``approved`` (after HITL), ``rejected``, ``draft`` (after edit).
+- **Key functions:** ``set_status()``, ``set_status_draft()``,
+  ``get_pending_items(stage, tag=None)``, ``batch_set_status()``,
+  ``get_stage_summary()``, ``get_status()``.
+- ``get_pending_items()`` returns entity IDs with status ``pending``
+  or ``draft``. Used by batch-grouping (Feature 32) before inference.
+- ``set_status_draft()`` increments ``attempts``; called by HITL edits.
+- Table created idempotently via ``init_inference_status_table()``.
 
 ## Token Tracking
 

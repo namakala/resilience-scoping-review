@@ -1,7 +1,7 @@
 ---
 title: "30 — groq-client-initialization"
 description: "Load GROQ_API_KEY; create async client with timeout/retry"
-updated_at: "2026-05-12"
+updated_at: "2026-05-13"
 phase: 5
 ---
 
@@ -41,5 +41,34 @@ Load `GROQ_API_KEY` from environment (fail-fast if missing). Create Groq async c
 - Dry-run in Feature test: `await client.chat.completions.create(...)` with `max_tokens=1`
 
 ---
+
+## Implementation Completion
+
+**Completed:** 2026-05-13
+
+All acceptance criteria satisfied:
+
+- Created `src/python/config/` package with typed settings for all env vars
+  from `.env.example` (Groq, embedding, processing, paths, BM25)
+- Created `src/python/inference/groq_client.py` with async/sync singleton
+  clients, `get_client()`, `get_sync_client()`, `get_model()`, `set_client()`,
+  `reset_client()`
+- Added `ConfigurationError` to `utils/exceptions.py` for missing/invalid config
+- Added `groq>=1.2.0` and `python-dotenv>=1.0.0` to `pyproject.toml`
+- 25 config tests cover all env var accessors (required, optional, defaults,
+  type validation, fallback chains)
+- 10 groq client tests cover missing key, client creation, singleton,
+  DI injection, reset, independent sync/async, model overrides
+- Full test suite: 520 passed, 0 failures, no regressions
+
+**Deviation from original plan:**
+
+- Added dedicated `config/` package for centralized typed settings rather than
+  inline `os.getenv` calls in `groq_client.py`. Settings functions read from
+  `os.environ` at call time (not cached) for testability.
+- Added `python-dotenv` dependency for automatic `.env` loading at import time.
+- Sync client (`Groq`) alongside async (`AsyncGroq`), both as singletons.
+
+**Git:** Not committed (user discretion).
 
 **References:** ADR-010 (LLM Inference Strategy)
