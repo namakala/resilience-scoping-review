@@ -77,7 +77,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [x] @docs/plan/47-interpretation-synthesis-service.md
 - [x] @docs/plan/48-interpretation-node-creation.md
-- [ ] @docs/plan/49-interpretation-hitl-cli.md
+- [x] @docs/plan/49-interpretation-hitl-cli.md
 - [ ] @docs/plan/50-multi-tag-span-validation.md
 - [ ] @docs/plan/51-interpretation-approval-finalizes.md
 

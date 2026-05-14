@@ -15,6 +15,7 @@ logger = get_logger(__name__)
 __all__ = [
     "invalidate_code_embedding",
     "invalidate_theme_embedding",
+    "invalidate_interpretation_embedding",
 ]
 
 
@@ -63,4 +64,30 @@ def invalidate_theme_embedding(
     logger.debug(
         "Theme embedding invalidated",
         extra={"theme_id": theme_id, "tag": tag},
+    )
+
+
+def invalidate_interpretation_embedding(
+    con: duckdb.DuckDBPyConnection,
+    interp_id: int,
+    tag_spans: list[str],
+) -> None:
+    """Invalidate an interpretation's embedding and mark its tag branches dirty.
+
+    Called after an interpretation edit to ensure the next pipeline run
+    regenerates the embedding for this interpretation and re-processes
+    all tags in its span.
+
+    Args:
+        con: Active DuckDB connection.
+        interp_id: ID of the interpretation node.
+        tag_spans: List of ontology tags in the interpretation's span.
+    """
+    invalidate_entity(con, str(interp_id), "interpretation")
+    for tag in tag_spans:
+        if tag:
+            update_dirty_flag(con, tag)
+    logger.debug(
+        "Interpretation embedding invalidated",
+        extra={"interp_id": interp_id, "tag_spans": tag_spans},
     )
