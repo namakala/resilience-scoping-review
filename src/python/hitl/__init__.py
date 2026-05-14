@@ -8,6 +8,7 @@ from .code_review_actions import (
     handle_reject,
 )
 from .code_review_merge import handle_merge
+from .edits import invalidate_code_embedding
 from .user_action_log import log_user_action
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "handle_reject",
     "handle_defer",
     "log_user_action",
+    "invalidate_code_embedding",
 ]

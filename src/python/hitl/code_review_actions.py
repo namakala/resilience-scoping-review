@@ -13,10 +13,10 @@ import duckdb
 from graph import sync_node
 from inference.inference_status_crud import set_status, set_status_draft
 from inference.inference_status_types import APPROVED, ENTITY_CODE, REJECTED, STAGE_CODE
-from persistence.embedding_cache import invalidate_entity
 from persistence.state_updates import increment_user_action_count
 from utils.logging import get_logger
 
+from .edits import invalidate_code_embedding
 from .user_action_log import log_user_action
 
 logger = get_logger(__name__)
@@ -122,7 +122,7 @@ def handle_edit(
         entity_type=ENTITY_CODE,
         stage=STAGE_CODE,
     )
-    invalidate_entity(con, str(node_id), "code")
+    invalidate_code_embedding(con, node_id, code.get("tag", ""))
     log_user_action(
         con,
         "edit",

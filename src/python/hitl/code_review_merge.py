@@ -17,7 +17,8 @@ from graph.queries import get_node
 from graph.singleton import get_graph
 from graph.transactions import _active_tx_conn, _active_tx_db_path
 from ontology import ConstraintError, validate_constraint
-from persistence.state_updates import increment_user_action_count
+from persistence.embedding_cache import invalidate_entity
+from persistence.state_updates import increment_user_action_count, update_dirty_flag
 from utils.logging import get_logger
 
 from .merge_invalidation import invalidate_interpretations, invalidate_themes
@@ -153,6 +154,10 @@ def handle_merge(
         theme_ids = invalidate_themes(con, source_id, target_id)
         invalidate_interpretations(con, theme_ids)
 
+        # Invalidate code embeddings for both source and target
+        invalidate_entity(con, str(source_id), "code")
+        invalidate_entity(con, str(target_id), "code")
+
         log_user_action(
             con,
             "merge",
@@ -162,6 +167,11 @@ def handle_merge(
         )
         increment_user_action_count(con)
         committed = True
+
+        # Set dirty flag for the tag branch (after transaction is committed)
+        tag = source_code.get("tag", "")
+        if tag:
+            update_dirty_flag(con, tag)
     except Exception:
         if not committed:
             try:
