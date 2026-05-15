@@ -83,6 +83,17 @@ Hamilton batches are prepared per-tag per-stage. Batches respect Groq rate limit
 
 DAG tests verify: correct dependency resolution, selective execution on dirty flags, cache hit accuracy, and graceful degradation on API errors.
 
+## Dirty Flag Propagation
+
+``dirty.py`` provides incremental recomputation for the Hamilton DAG (Feature 55, ADR-007)::
+
+- ``propagate_dirty(con, tag)`` — marks *tag* and all its ontology ancestors dirty in ``session_state.dirty_flags``. When a code/theme is edited under ``Problem.Cause``, ancestors like ``Problem`` are also marked dirty so interpretation nodes spanning the broader subtree recompute.
+- ``set_dirty(con, tag)`` — sets a single tag dirty without upward propagation.
+- ``clear_dirty(con, tag)`` / ``clear_all_dirty(con)`` — clears dirty flags after recomputation.
+- ``is_dirty(tag, dirty_flags)`` / ``any_tag_dirty(tags, dirty_flags)`` — pure functions used by inference nodes to check whether a batch needs processing.
+
+Three inference nodes (``infer_codes``, ``infer_themes``, ``infer_interpretations``) accept ``dirty_flags`` as a Hamilton external input. Batches whose tag is NOT dirty are skipped — the LLM is not called, and cached results are returned from the persistence layer. When ``dirty_flags`` is ``None`` (not provided), all batches are processed (backward-compatible).
+
 ## Wiring Utilities
 
 ``wiring.py`` provides optional DAG validation tools that operate on a built ``Driver``:

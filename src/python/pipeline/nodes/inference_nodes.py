@@ -56,18 +56,33 @@ def infer_codes(
     config: Config,
     existing_codes: list | None = None,
     tag_metadata: dict | None = None,
+    dirty_flags: dict | None = None,
 ) -> list:
     """Run Groq code inference on prepared batches.
 
-    ``existing_codes`` and ``tag_metadata`` are provided by the orchestration
-    layer via Hamilton ``inputs``.
+    ``existing_codes``, ``tag_metadata``, and ``dirty_flags`` are provided
+    by the orchestration layer via Hamilton ``inputs``.  Batches whose tag
+    is NOT dirty are skipped (clean nodes served from cache).
     """
     from inference.groq_client import complete as _complete
     from inference.parsing import parse_code_response
     from inference.prompts import render_code_prompt
+    from pipeline.dirty import is_dirty
 
     results = []
     for batch in prepare_code_batches:
+        batch_tag = getattr(batch, "tag", "")
+        if (
+            dirty_flags is not None
+            and batch_tag
+            and not is_dirty(batch_tag, dirty_flags)
+        ):
+            logger.debug(
+                "Skipping clean code batch",
+                extra={"tag": batch_tag, "batch_id": getattr(batch, "batch_id", "")},
+            )
+            continue
+
         bundle = render_code_prompt(
             fewshot=None,
             ontology_path=[],
@@ -82,7 +97,7 @@ def infer_codes(
             response = _complete(bundle)
             codes = parse_code_response(response.choices[0].message.content)
             for c in codes:
-                c.tag = getattr(batch, "tag", "")
+                c.tag = batch_tag
             results.extend(codes)
         except Exception as e:
             logger.error("Code inference batch failed", extra={"error": str(e)})
@@ -128,14 +143,32 @@ def infer_themes(
     config: Config,
     existing_theme_nodes: list | None = None,
     tag_metadata: dict | None = None,
+    dirty_flags: dict | None = None,
 ) -> list:
-    """Run Groq theme inference on prepared code batches."""
+    """Run Groq theme inference on prepared code batches.
+
+    ``dirty_flags`` is provided by the orchestration layer.  Batches whose
+    tag is NOT dirty are skipped.
+    """
     from inference.groq_client import complete as _complete
     from inference.parsing import parse_theme_response
     from inference.prompts import render_theme_prompt
+    from pipeline.dirty import is_dirty
 
     results = []
     for batch in prepare_theme_batches:
+        batch_tag = getattr(batch, "tag", "")
+        if (
+            dirty_flags is not None
+            and batch_tag
+            and not is_dirty(batch_tag, dirty_flags)
+        ):
+            logger.debug(
+                "Skipping clean theme batch",
+                extra={"tag": batch_tag, "batch_id": getattr(batch, "batch_id", "")},
+            )
+            continue
+
         bundle = render_theme_prompt(
             fewshot=None,
             ontology_path=[],
@@ -180,14 +213,27 @@ def infer_interpretations(
     build_ontology_graph: nx.DiGraph,
     config: Config,
     tag_metadata: dict | None = None,
+    dirty_flags: dict | None = None,
 ) -> list:
-    """Run Groq interpretation inference on theme spans."""
+    """Run Groq interpretation inference on theme spans.
+
+    ``dirty_flags`` is provided by the orchestration layer.  Spans where
+    NONE of the constituent tags are dirty are skipped.
+    """
     from inference.groq_client import complete as _complete
     from inference.parsing import parse_interpretation_response
     from inference.prompts import render_interpretation_prompt
+    from pipeline.dirty import any_tag_dirty
 
     results = []
     for span in prepare_interpretation_spans:
+        if dirty_flags is not None and span and not any_tag_dirty(span, dirty_flags):
+            logger.debug(
+                "Skipping clean interpretation span",
+                extra={"tags": span},
+            )
+            continue
+
         bundle = render_interpretation_prompt(
             fewshot=None,
             tag_hierarchy=[],

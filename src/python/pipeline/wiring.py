@@ -11,7 +11,13 @@ from typing import Any, cast
 from hamilton.driver import Driver
 
 EXTERNAL_INPUTS = frozenset(
-    {"config", "existing_codes", "existing_theme_nodes", "tag_metadata"}
+    {
+        "config",
+        "existing_codes",
+        "existing_theme_nodes",
+        "tag_metadata",
+        "dirty_flags",
+    }
 )
 
 

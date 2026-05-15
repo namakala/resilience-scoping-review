@@ -87,6 +87,7 @@ class TestDagConstruction:
             "existing_codes",
             "existing_theme_nodes",
             "tag_metadata",
+            "dirty_flags",
         }
         fg = dag.graph
         for name, node in fg.nodes.items():

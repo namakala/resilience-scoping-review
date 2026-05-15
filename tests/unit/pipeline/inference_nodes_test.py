@@ -233,3 +233,184 @@ def test_prepare_theme_batches():
 def test_prepare_theme_batches_empty():
     result = prepare_theme_batches([], mock.MagicMock(), CONFIG)
     assert result == []
+
+
+# ── Dirty flag tests (Feature 55) ───────────────────────────────────
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_codes_skips_clean_batch(mock_complete):
+    """infer_codes skips batches whose tag is NOT in dirty_flags."""
+
+    class MockBatch:
+        tag = "A"
+        items = [mock.MagicMock(id=1)]
+
+    result = infer_codes(
+        prepare_code_batches=[MockBatch()],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={},
+    )
+    assert result == []
+    mock_complete.assert_not_called()
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_codes_processes_dirty_batch(mock_complete):
+    """infer_codes processes batches whose tag IS in dirty_flags."""
+    mock_response = mock.MagicMock()
+    mock_response.choices = [mock.MagicMock()]
+    mock_response.choices[0].message.content = json.dumps(
+        {
+            "codes": [
+                {
+                    "exemplar_id": "1",
+                    "code_name": "test",
+                    "definition": "def",
+                    "supporting_quote": "q",
+                    "related_existing_codes": [],
+                }
+            ]
+        }
+    )
+    mock_complete.return_value = mock_response
+
+    class MockBatch:
+        tag = "A"
+        items = [mock.MagicMock(id=1)]
+
+    result = infer_codes(
+        prepare_code_batches=[MockBatch()],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={"A": True},
+    )
+    assert len(result) == 1
+    mock_complete.assert_called_once()
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_codes_mixed_dirty_clean(mock_complete):
+    """With 3 batches (A=dirty, B=clean, C=dirty), only A and C call Groq."""
+    mock_response = mock.MagicMock()
+    mock_response.choices = [mock.MagicMock()]
+    mock_response.choices[0].message.content = json.dumps(
+        {
+            "codes": [
+                {
+                    "exemplar_id": "1",
+                    "code_name": "test",
+                    "definition": "def",
+                    "supporting_quote": "q",
+                    "related_existing_codes": [],
+                }
+            ]
+        }
+    )
+    mock_complete.return_value = mock_response
+
+    class MockBatch:
+        def __init__(self, tag):
+            self.tag = tag
+            self.items = [mock.MagicMock(id=1)]
+
+    result = infer_codes(
+        prepare_code_batches=[MockBatch("A"), MockBatch("B"), MockBatch("C")],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={"A": True, "C": True},
+    )
+    assert len(result) == 2  # Only A and C produced results
+    assert mock_complete.call_count == 2
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_themes_skips_clean_batch(mock_complete):
+    """infer_themes skips batches whose tag is NOT in dirty_flags."""
+
+    class MockBatch:
+        tag = "A"
+        items = [mock.MagicMock()]
+
+    result = infer_themes(
+        prepare_theme_batches=[MockBatch()],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={},
+    )
+    assert result == []
+    mock_complete.assert_not_called()
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_themes_processes_dirty_batch(mock_complete):
+    """infer_themes processes batches whose tag IS in dirty_flags."""
+    mock_response = mock.MagicMock()
+    mock_response.choices = [mock.MagicMock()]
+    mock_response.choices[0].message.content = (
+        '{"themes": [{"theme_name": "T1", "narrative": "N", "code_ids": ["1"]}]}'
+    )
+    mock_complete.return_value = mock_response
+
+    class MockBatch:
+        tag = "A"
+        items = [mock.MagicMock()]
+
+    result = infer_themes(
+        prepare_theme_batches=[MockBatch()],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={"A": True},
+    )
+    assert len(result) == 1
+    mock_complete.assert_called_once()
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_interpretations_skips_clean_span(mock_complete):
+    """infer_interpretations skips spans where NO tag is dirty."""
+    result = infer_interpretations(
+        prepare_interpretation_spans=[["A", "B"]],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={},
+    )
+    assert result == []
+    mock_complete.assert_not_called()
+
+
+@mock.patch("inference.groq_client.complete")
+def test_infer_interpretations_processes_dirty_span(mock_complete):
+    """infer_interpretations processes spans where ANY tag is dirty."""
+    mock_response = mock.MagicMock()
+    mock_response.choices = [mock.MagicMock()]
+    mock_response.choices[0].message.content = json.dumps(
+        {
+            "interpretations": [
+                {
+                    "interpretation_name": "I1",
+                    "narrative": "N",
+                    "theme_ids": ["1"],
+                    "key_insights": ["insight"],
+                }
+            ]
+        }
+    )
+    mock_complete.return_value = mock_response
+
+    result = infer_interpretations(
+        prepare_interpretation_spans=[["A", "B"]],
+        init_groq_client={},
+        build_ontology_graph=mock.MagicMock(),
+        config=CONFIG,
+        dirty_flags={"A": True},
+    )
+    assert len(result) == 1
+    mock_complete.assert_called_once()
