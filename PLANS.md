@@ -92,7 +92,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 10 — Orchestration Layer (58–64)
 
-- [ ] @docs/plan/58-cli-entrypoint.md
+- [x] @docs/plan/58-cli-entrypoint.md (click-based CLI, 3 subcommands, ingest guardrail, 29 tests pass)
 - [ ] @docs/plan/59-state-machine-implementation.md
 - [ ] @docs/plan/60-stage-transition-driver.md
 - [ ] @docs/plan/61-hitl-coordination.md

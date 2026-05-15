@@ -60,7 +60,11 @@ See `@src/python/ontology/AGENTS.md` for validation rules.
 
 ## Quick Reference
 
-Entry point: `python analyze.py --data data/raw/data.csv --tags data/raw/tags.csv`.
+Entry point: `python analyze.py [global-opts] <command> [sub-opts]`.
+Commands: `ingest` (load CSV data), `generate --type code|theme|interpretation` (LLM inference), `review` (HITL TUI).
+No subcommand defaults to review (prompts to generate if no artifacts exist).
+Global options: `--data PATH`, `--tags PATH`, `--env FILE`, `--resume`.
+Config: `.env` + optional `--env FILE` override. Precedence: CLI > --env > .env > defaults.
 Stages: load → embed → index → infer_codes → review_codes → infer_themes → review_themes → infer_interpretations → review_interpretations → export.
 Environment: mamba env from `environment.yml`, also local environment for secrets such as `GROQ_API_KEY`.
 
