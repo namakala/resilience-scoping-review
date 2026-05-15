@@ -134,3 +134,60 @@ def test_build_combined_index_metadata():
     meta = build_combined_index_metadata(bm25, G, CONFIG)
     assert meta["bm25_corpus_size"] == 50
     assert meta["ontology_node_count"] == 1
+
+
+def test_validate_ontology_constraints_cycle():
+    G = nx.DiGraph()
+    G.add_node("A", depth=0)
+    G.add_node("B", depth=1)
+    G.add_edge("A", "B")
+    G.add_edge("B", "A")  # creates cycle
+    result = validate_ontology_constraints(G, CONFIG)
+    assert not result["is_dag"]
+    assert result["node_count"] == 2
+
+
+def test_build_bm25_custom_tokenizer():
+    kw = pl.DataFrame(
+        {
+            "keyword_id": [1],
+            "exemplar_id": [1],
+            "keyword_text": ["STRESS coping"],
+            "frequency": [1],
+        },
+    ).lazy()
+    # Use lowercase + stopword removal
+    cfg = Config(
+        groq_api_key="test",
+        groq_model="test",
+        groq_timeout=30,
+        groq_max_retries=1,
+        code_temperature=0.3,
+        theme_temperature=0.4,
+        interpretation_temperature=0.5,
+        embedding_model="test",
+        model_cache_dir=Path("/tmp/cache"),
+        batch_size=15,
+        log_level="DEBUG",
+        data_path=Path("/tmp/data.csv"),
+        tags_path=Path("/tmp/tags.csv"),
+        processed_data_path=Path("/tmp/processed"),
+        bm25_tokenizer_config="lowercase,split_by_space,remove_stopword",
+        fewshot_enabled=False,
+        fewshot_count=2,
+        fewshot_shuffle=False,
+        token_cost_input_per_million=0.15,
+        token_cost_output_per_million=0.60,
+        max_stage_cost_usd=1.0,
+    )
+    result = build_bm25(kw, cfg)
+    assert (
+        result["metadata"]["tokenizer_config"]
+        == "lowercase,split_by_space,remove_stopword"
+    )
+    # "coping" should survive stopword removal, "STRESS" becomes "stress"
+    # Both should be in the corpus tokens
+    assert len(result["corpus"]) == 1
+    tokens = result["corpus"][0]
+    assert "coping" in tokens
+    assert "stress" in tokens

@@ -116,3 +116,16 @@ def test_prepare_artifact_summary():
     result = prepare_artifact_summary(ex, tg, kw, CONFIG)
     assert result["exemplar_count"] == 2
     assert result["tag_count"] == 1
+
+
+def test_validate_artifact_schemas_missing_columns():
+    ex = _mock_lf({"id": [1]})  # missing document, tag, content, keywords
+    tg = _mock_lf({"tag": ["t"]})  # missing parent, description
+    kw = _mock_lf({"keyword_id": [1]})  # missing exemplar_id, keyword_text
+    result = validate_artifact_schemas(ex, tg, kw, CONFIG)
+    assert not result["exemplars"]["valid"]
+    assert not result["tags"]["valid"]
+    assert not result["keywords"]["valid"]
+    assert "document" in result["exemplars"]["missing_cols"]
+    assert "description" in result["tags"]["missing_cols"]
+    assert "keyword_text" in result["keywords"]["missing_cols"]

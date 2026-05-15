@@ -16,6 +16,12 @@ import numpy as np  # noqa: E402
 import polars as pl  # noqa: E402
 from semantic.index_builder import build_index  # noqa: E402
 from semantic.retrieval.api import hybrid_retrieve  # noqa: E402
+from semantic.retrieval.candidates import resolve_candidate_ids  # noqa: E402
+from semantic.retrieval.scoring import (  # noqa: E402
+    get_bm25_scores_for_candidates,
+    get_depth,
+    get_embedding_scores,
+)
 from semantic.retrieval.weights import select_weights  # noqa: E402
 
 
@@ -53,7 +59,9 @@ def _make_bm25_index(exemplar_keywords: dict[int, list[str]]) -> dict:
             "frequency": pl.Int32,
         },
     ).lazy()
-    return build_index(df)
+    result = build_index(df)
+    assert isinstance(result, dict)
+    return result
 
 
 TAG_DEPTHS = {"root": 0, "root.child": 1, "root.child.grandchild": 2}
@@ -260,6 +268,135 @@ class TestHybridRetrieveNonExemplar(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0][0], 2)
         self.assertEqual(result[1][0], 1)
+
+
+class TestGetBM25Scores(unittest.TestCase):
+    """Direct tests for get_bm25_scores_for_candidates."""
+
+    def setUp(self):
+        lf = pl.DataFrame(
+            {
+                "keyword_id": [1, 2],
+                "exemplar_id": [1, 2],
+                "keyword_text": ["stress", "anxiety"],
+                "frequency": [1, 1],
+            },
+            schema={
+                "keyword_id": pl.Int64,
+                "exemplar_id": pl.Int64,
+                "keyword_text": pl.String,
+                "frequency": pl.Int32,
+            },
+        ).lazy()
+        self.bm25_index = build_index(lf)
+
+    def test_returns_top_k(self):
+        result = get_bm25_scores_for_candidates(
+            ["stress"],
+            {1, 2},
+            k=1,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(len(result), 1)
+        self.assertIn(1, result)
+
+    def test_filters_by_candidate_ids(self):
+        result = get_bm25_scores_for_candidates(
+            ["anxiety"],
+            {2},
+            k=5,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(len(result), 1)
+        self.assertIn(2, result)
+
+    def test_empty_candidate_set(self):
+        result = get_bm25_scores_for_candidates(
+            ["stress"],
+            set(),
+            k=5,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(result, {})
+
+
+class TestGetEmbeddingScores(unittest.TestCase):
+    """Direct tests for get_embedding_scores."""
+
+    def test_cosine_similarity(self):
+        query = np.array([1.0, 0.0], dtype=np.float32)
+        emb_map = {
+            1: np.array([1.0, 0.0], dtype=np.float32),
+            2: np.array([0.0, 1.0], dtype=np.float32),
+        }
+        scores, top_set = get_embedding_scores(query, emb_map, k=2)
+        self.assertIn(1, scores)
+        self.assertIn(2, scores)
+        self.assertGreater(scores[1], scores[2])
+
+    def test_top_k_limits(self):
+        query = np.array([1.0, 0.0], dtype=np.float32)
+        emb_map = {i: np.array([1.0, 0.0], dtype=np.float32) for i in range(1, 6)}
+        _, top_set = get_embedding_scores(query, emb_map, k=3)
+        self.assertEqual(len(top_set), 3)
+
+    def test_empty_map(self):
+        scores, top_set = get_embedding_scores(
+            np.array([1.0, 0.0], dtype=np.float32),
+            {},
+            k=5,
+        )
+        self.assertEqual(scores, {})
+        self.assertEqual(top_set, set())
+
+
+class TestGetDepth(unittest.TestCase):
+    """Direct tests for get_depth."""
+
+    def test_root_depth(self):
+        G = nx.DiGraph()
+        G.add_node("root", depth=0)
+        self.assertEqual(get_depth("root", G), 0)
+
+    def test_known_tag(self):
+        G = nx.DiGraph()
+        G.add_node("root.A.B", depth=2)
+        self.assertEqual(get_depth("root.A.B", G), 2)
+
+    def test_unknown_tag(self):
+        G = nx.DiGraph()
+        self.assertEqual(get_depth("nonexistent", G), 0)
+
+
+class TestResolveCandidateIds(unittest.TestCase):
+    """Direct tests for resolve_candidate_ids."""
+
+    def test_exemplar_returns_all_from_entity_map(self):
+        tag_map = {1: "root.A", 2: "root.A", 3: "root.B"}
+        ids, tag_out = resolve_candidate_ids(
+            candidate_type="exemplar",
+            tag_scope_map={},
+            tag_entity_map=tag_map,
+        )
+        self.assertEqual(ids, {1, 2, 3})
+        self.assertEqual(tag_out, tag_map)
+
+    def test_non_exemplar_uses_scope_map(self):
+        scope = {"root.A": {10, 11}, "root.B": {20}}
+        ids, _ = resolve_candidate_ids(
+            candidate_type="code",
+            tag_scope_map=scope,
+            tag_entity_map={},
+        )
+        self.assertEqual(ids, {10, 11, 20})
+
+    def test_empty_scope(self):
+        ids, _ = resolve_candidate_ids(
+            candidate_type="code",
+            tag_scope_map={},
+            tag_entity_map={},
+        )
+        self.assertEqual(ids, set())
 
 
 if __name__ == "__main__":

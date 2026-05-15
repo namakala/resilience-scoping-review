@@ -83,6 +83,18 @@ Hamilton batches are prepared per-tag per-stage. Batches respect Groq rate limit
 
 DAG tests verify: correct dependency resolution, selective execution on dirty flags, cache hit accuracy, and graceful degradation on API errors.
 
+## Wiring Utilities
+
+``wiring.py`` provides optional DAG validation tools that operate on a built ``Driver``:
+- ``verify_dag_integrity(driver)`` — structured health report (node count, cycles, deps, topological order, orphans, terminals)
+- ``validate_dataflow(driver, final\_vars, inputs, overrides)`` — execution plan validity check wrapping ``Driver.validate_execution()``
+- ``execute_with_overrides(driver, final\_vars, overrides, inputs)`` — override injection for tests and controlled runs
+
+``mermaid.py`` provides Mermaid visualization:
+- ``render_dag_mermaid(driver, path, final_vars, overrides)`` — Mermaid flowchart with layer clustering, override highlighting, and subgraph filtering
+
+The constructor does not depend on either module; consumers import them when validation or visualization is needed.
+
 ## References
 
 Implements ADR-008 (Pipeline Orchestration) and ADR-007 (Incremental Ontology Evolution). See `@ADR.md` for architectural decisions.

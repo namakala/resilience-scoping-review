@@ -131,3 +131,7 @@ def test_verify_embedding_integrity(mock_gen):
     ).lazy()
     result = verify_embedding_integrity(lf, kw, CONFIG)
     assert "exemplars" in result
+    assert "keywords" in result
+    assert result["exemplars"]["dim_ok"] is True
+    assert result["exemplars"]["has_nan"] is False
+    assert result["exemplars"]["count"] == 1

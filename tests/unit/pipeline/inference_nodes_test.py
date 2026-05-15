@@ -20,6 +20,7 @@ from pipeline.nodes.inference_nodes import (  # noqa: E402
     prepare_code_nodes,
     prepare_interpretation_nodes,
     prepare_interpretation_spans,
+    prepare_theme_batches,
     prepare_theme_nodes,
 )
 
@@ -209,3 +210,26 @@ def test_prepare_interpretation_spans():
 
     result = prepare_interpretation_spans(themes, nx.DiGraph(), CONFIG)
     assert len(result) > 0
+
+
+def test_prepare_theme_batches():
+    codes = [
+        {"id": 1, "name": "C1", "tag": "A"},
+        {"id": 2, "name": "C2", "tag": "A"},
+        {"id": 3, "name": "C3", "tag": "B"},
+    ]
+    import networkx as nx
+
+    dag = nx.DiGraph()
+    dag.add_node("A", depth=0)
+    dag.add_node("B", depth=0)
+    result = prepare_theme_batches(codes, dag, CONFIG)
+    assert len(result) == 2
+    for batch in result:
+        assert len(batch.items) <= 5
+        assert hasattr(batch, "tag")
+
+
+def test_prepare_theme_batches_empty():
+    result = prepare_theme_batches([], mock.MagicMock(), CONFIG)
+    assert result == []

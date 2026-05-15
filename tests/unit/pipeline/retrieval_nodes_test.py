@@ -79,6 +79,10 @@ def test_retrieve_code_candidates():
         config=CONFIG,
     )
     assert isinstance(result, list)
+    if result:
+        eid, score = result[0]
+        assert isinstance(eid, int)
+        assert isinstance(score, float)
 
 
 def test_retrieve_theme_candidates():
@@ -90,6 +94,10 @@ def test_retrieve_theme_candidates():
         config=CONFIG,
     )
     assert isinstance(result, list)
+    if result:
+        eid, score = result[0]
+        assert isinstance(eid, int)
+        assert isinstance(score, float)
 
 
 def test_retrieve_interpretation_candidates():
@@ -101,6 +109,10 @@ def test_retrieve_interpretation_candidates():
         config=CONFIG,
     )
     assert isinstance(result, list)
+    if result:
+        eid, score = result[0]
+        assert isinstance(eid, int)
+        assert isinstance(score, float)
 
 
 def test_build_query_context():
