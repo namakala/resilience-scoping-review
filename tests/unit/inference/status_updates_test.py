@@ -8,9 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import duckdb
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.status_updates import mark_failure, mark_success
+from inference.status_updates import mark_failure, mark_success  # noqa: E402
 
 
 class TestMarkSuccess(unittest.TestCase):

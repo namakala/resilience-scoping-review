@@ -11,19 +11,25 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import duckdb
-from graph import get_node, get_nodes_by_type_and_tag
-from graph.exceptions import ForeignKeyError
-from graph.node_crud import create_node
+import duckdb  # noqa: E402
+from graph import get_node, get_nodes_by_type_and_tag  # noqa: E402
+from graph.exceptions import ForeignKeyError  # noqa: E402
+from graph.node_crud import create_node  # noqa: E402
 from graph.node_crud import create_node as _real_create_node
-from inference.create_theme_nodes import create_theme_nodes
-from inference.inference_status_crud import init_inference_status_table
-from inference.inference_status_queries import get_status
-from inference.inference_status_types import ENTITY_THEME, GENERATED, STAGE_THEME
-from inference.parsing import ThemeInference
-from persistence.duckdb_init import initialize_database
+from inference.create_theme_nodes import create_theme_nodes  # noqa: E402
+from inference.inference_status_crud import init_inference_status_table  # noqa: E402
+from inference.inference_status_queries import get_status  # noqa: E402
+from inference.inference_status_types import (  # noqa: E402
+    ENTITY_THEME,
+    GENERATED,
+    STAGE_THEME,
+)
+from inference.parsing import ThemeInference  # noqa: E402
+from persistence.duckdb_init import initialize_database  # noqa: E402
 
 
 class TestCreateThemeNodes(unittest.TestCase):

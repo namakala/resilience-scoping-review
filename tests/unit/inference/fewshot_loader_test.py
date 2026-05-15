@@ -7,7 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
 from inference.fewshot_loader import load_fewshot  # noqa: E402
 

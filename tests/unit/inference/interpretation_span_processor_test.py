@@ -6,10 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.batching import Batch
-from inference.interpretation_span_processor import (
+from inference.batching import Batch  # noqa: E402
+from inference.interpretation_span_processor import (  # noqa: E402
     _InterpretationSpanItem,
     _process_interpretation_span,
 )

@@ -1,99 +1,119 @@
-"""Public retrieval API: scoring functions for BM25 index."""
+"""Pure BM25 scoring functions.
 
-from typing import Dict, List
+Every function accepts an already-built BM25 index dict as a parameter —
+no file I/O, no global state.  Suitable for use in both the Hamilton DAG
+and the orchestration layer.
+"""
+
+from __future__ import annotations
+
+from typing import Callable  # noqa: F401
 
 import numpy as np
 from utils.logging import get_logger
 
-from .exceptions import BM25IndexError
-from .persistence import load_bm25
 from .tokenizer import _TOKENIZER
 
 logger = get_logger(__name__)
 
+__all__ = ["get_scores", "get_top_n", "get_index_info"]
 
-def get_scores(query: str) -> Dict[int, float]:
-    """Get normalized BM25 relevance scores for all exemplars for a query.
 
-    Scores are min-max normalized to [0, 1]. If all raw scores are equal
-    (min == max), returns 0.0 for every exemplar. If the BM25 index is empty
-    (no corpus), returns an empty dict.
+def _normalize_scores(raw: np.ndarray) -> np.ndarray:
+    """Min-max normalize a 1-D array to [0, 1].
 
-    Args:
-        query: Raw query string; tokenized using configured tokenizer.
-
-    Returns:
-        Mapping of exemplar_id → normalized_score in [0, 1].
-
-    Raises:
-        BM25IndexError: If index not loaded or scoring fails (except empty).
+    If all values are equal, returns a zero array of the same shape.
     """
-    data = load_bm25()
-    if data is None:
-        raise BM25IndexError("BM25 index not loaded")
-    bm25 = data["bm25_object"]
-    entity_map = data["entity_map"]
+    mn, mx = raw.min(), raw.max()
+    if mx == mn:
+        return np.zeros_like(raw)
+    return (raw - mn) / (mx - mn)
+
+
+def get_scores(
+    query: str,
+    bm25_index: dict,
+    tokenizer: Callable[[str], list[str]] | None = None,
+) -> dict[int, float]:
+    """BM25 relevance scores for all exemplars, normalized to [0, 1].
+
+    Parameters
+    ----------
+    query :
+        Raw query string (tokenized internally).
+    bm25_index :
+        Index dict as returned by :func:`build_index`.
+    tokenizer :
+        Tokenizer callable.  Defaults to the module-level singleton.
+
+    Returns
+    -------
+    dict
+        Mapping of ``exemplar_id`` → score in [0, 1].
+    """
+    bm25 = bm25_index["bm25_object"]
+    entity_map = bm25_index["entity_map"]
 
     if bm25 is None:
         logger.debug("BM25 index is empty; no scores to return")
         return {}
 
-    tokenized_query = _TOKENIZER(query)
-    raw_scores = bm25.get_scores(tokenized_query)  # np.ndarray shape (N,)
+    tok = tokenizer or _TOKENIZER
+    tokenized_query = tok(query)
+    raw_scores: np.ndarray = bm25.get_scores(tokenized_query)
+    normalized = _normalize_scores(raw_scores)
 
-    # Normalize to [0, 1]
-    min_score = raw_scores.min()
-    max_score = raw_scores.max()
-    if max_score == min_score:
-        normalized = np.zeros_like(raw_scores)
-    else:
-        normalized = (raw_scores - min_score) / (max_score - min_score)
-
-    # Map corpus index -> exemplar_id
     inverse_map = {idx: eid for eid, idx in entity_map.items()}
-    result: Dict[int, float] = {}
-    for idx, score in enumerate(normalized):
-        exemplar_id = inverse_map.get(idx)
-        if exemplar_id is not None:
-            result[exemplar_id] = float(score)
-
-    return result
-
-
-def get_top_n(query: str, n: int = 50) -> List[tuple[int, float]]:
-    """Get top-N exemplars by BM25 score for the given query.
-
-    Args:
-        query: Raw query string.
-        n: Number of top results to return (default 50).
-
-    Returns:
-        List of (exemplar_id, score) tuples sorted descending by score.
-
-    Raises:
-        BM25IndexError: If index not loaded or scoring fails.
-    """
-    scores = get_scores(query)
-    sorted_items = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-    return sorted_items[:n]
-
-
-def get_index_info() -> Dict[str, object]:
-    """Return metadata and basic stats about the loaded index.
-
-    Returns:
-        Dict with keys: version, created_at, corpus_hash, tokenizer_config,
-        corpus_size, exemplar_count.
-    """
-    data = load_bm25()
-    if data is None:
-        raise BM25IndexError("BM25 index not loaded")
-    meta = data["metadata"]
     return {
-        "version": meta.get("version"),
-        "created_at": meta.get("created_at"),
-        "corpus_hash": meta.get("corpus_hash"),
-        "tokenizer_config": meta.get("tokenizer_config"),
-        "corpus_size": len(data["corpus"]),
-        "exemplar_count": len(data["entity_map"]),
+        inverse_map[idx]: float(score)
+        for idx, score in enumerate(normalized)
+        if idx in inverse_map
+    }
+
+
+def get_top_n(
+    query: str,
+    bm25_index: dict,
+    n: int = 50,
+) -> list[tuple[int, float]]:
+    """Top-N exemplars by BM25 score, sorted descending.
+
+    Parameters
+    ----------
+    query :
+        Raw query string.
+    bm25_index :
+        Index dict as returned by :func:`build_index`.
+    n :
+        Maximum results to return (default 50).
+
+    Returns
+    -------
+    list[tuple[int, float]]
+        ``(exemplar_id, score)`` tuples sorted descending by score.
+    """
+    scores = get_scores(query, bm25_index)
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:n]
+
+
+def get_index_info(bm25_index: dict) -> dict:
+    """Metadata and basic stats about a BM25 index.
+
+    Parameters
+    ----------
+    bm25_index :
+        Index dict as returned by :func:`build_index`.
+
+    Returns
+    -------
+    dict
+        Keys: ``corpus_size``, ``exemplar_count``, ``tokenizer_config``,
+        ``corpus_hash``.
+    """
+    meta = bm25_index["metadata"]
+    return {
+        "corpus_size": meta["corpus_size"],
+        "exemplar_count": meta["exemplar_count"],
+        "tokenizer_config": meta["tokenizer_config"],
+        "corpus_hash": meta["corpus_hash"],
     }

@@ -19,8 +19,10 @@ from pathlib import Path
 # Order: semantic directory first (for embeddings module), then src/python (for persistence, utils).
 _PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 _SRC_PYTHON = _PROJECT_ROOT / "src" / "python"
-sys.path.insert(0, str(_SRC_PYTHON / "semantic"))  # top-level 'embeddings' module
-sys.path.insert(0, str(_SRC_PYTHON))  # 'persistence', 'utils' etc.
+sys.path.insert(
+    0, str(_SRC_PYTHON / "semantic")
+)  # top-level 'embeddings' module  # noqa: E402
+sys.path.insert(0, str(_SRC_PYTHON))  # 'persistence', 'utils' etc.  # noqa: E402
 
 # Import the embeddings module directly (bypasses semantic package __init__)
 import embeddings as _emb_mod  # noqa: E402

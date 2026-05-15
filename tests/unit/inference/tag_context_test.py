@@ -6,9 +6,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.tag_context import get_tag_metadata
+from inference.tag_context import get_tag_metadata  # noqa: E402
 
 
 class TestGetTagMetadata(unittest.TestCase):

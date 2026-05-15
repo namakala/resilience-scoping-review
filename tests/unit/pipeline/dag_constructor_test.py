@@ -7,10 +7,16 @@ the expected node count, config injection, and serializability.
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
-import pytest
-from pipeline.config import Config
-from pipeline.constructor import create_pipeline
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
+
+import pytest  # noqa: E402
+from pipeline.config import Config  # noqa: E402
+from pipeline.constructor import create_pipeline  # noqa: E402
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -58,10 +64,9 @@ class TestDagConstruction:
     """Structural validation of the Hamilton DAG."""
 
     def test_node_count(self, dag):
-        """Verify at least 13 function nodes plus ``config``."""
+        """Verify at least 50 function nodes plus config."""
         vars_ = dag.list_available_variables()
-        # 15 function nodes + 1 auto-injected ``config`` node
-        assert len(vars_) >= 16, f"Expected ≥16 nodes, got {len(vars_)}"
+        assert len(vars_) >= 51, f"Expected ≥51 nodes, got {len(vars_)}"
 
     def test_no_cycles(self, dag):
         """DAG must be acyclic — no circular dependencies."""
@@ -71,15 +76,21 @@ class TestDagConstruction:
         assert cycles == [], f"DAG contains cycles: {cycles}"
 
     def test_validate_execution_passes(self, dag):
-        """``validate_execution`` must succeed for the terminal ``export`` node."""
+        """``validate_execution`` must succeed for terminal ``export_summary``."""
         # Should not raise
-        dag.validate_execution(["export"], {})
+        dag.validate_execution(["export_summary"], {})
 
     def test_config_injected(self, dag):
-        """All user-defined nodes must declare ``config`` as a dependency."""
+        """All user-defined nodes (skip external inputs) must declare ``config``."""
+        external_inputs = {
+            "config",
+            "existing_codes",
+            "existing_theme_nodes",
+            "tag_metadata",
+        }
         fg = dag.graph
         for name, node in fg.nodes.items():
-            if name == "config":
+            if name in external_inputs:
                 continue
             deps = set(node.input_types.keys())
             assert (
@@ -107,19 +118,14 @@ class TestTopologicalOrder:
                 )
 
     def test_downstream_dependencies_valid(self, dag):
-        """Verify that ``export`` has the expected transitive dependencies."""
+        """Verify that ``export_combined`` has the expected transitive dependencies."""
         fg = dag.graph
         nodes = fg.get_nodes()
         node_map = {n.name: n for n in nodes}
 
-        export_node = node_map["export"]
+        export_node = node_map["export_combined"]
         export_deps = {d.name for d in export_node.dependencies}
-        assert "review_interpretations" in export_deps
-
-        # Walk upstream: export → review_interpretations → infer_interpretations
-        review_interp = node_map["review_interpretations"]
-        review_deps = {d.name for d in review_interp.dependencies}
-        assert "infer_interpretations" in review_deps
+        assert "export_codes" in export_deps
 
 
 class TestSerialization:
@@ -151,8 +157,8 @@ class TestSerialization:
         serialized = json.dumps(payload, indent=2)
         restored = json.loads(serialized)
         names = {entry["name"] for entry in restored}
-        assert "load_artifacts" in names
-        assert "export" in names
+        assert "load_exemplars" in names
+        assert "export_summary" in names
 
 
 class TestConfigOverride:
@@ -173,37 +179,75 @@ class TestNodeNames:
     """All expected node names must be present."""
 
     MAIN_NODES = {
-        "load_artifacts",
+        "load_exemplars",
+        "load_tags",
+        "load_keywords",
         "embed_exemplars",
         "embed_keywords",
+        "embed_codes",
+        "embed_themes",
         "build_bm25",
-        "build_ontology",
-        "retrieve_candidates",
+        "build_ontology_graph",
+        "retrieve_code_candidates",
+        "retrieve_theme_candidates",
+        "retrieve_interpretation_candidates",
         "infer_codes",
         "review_codes",
         "infer_themes",
         "review_themes",
         "infer_interpretations",
         "review_interpretations",
-        "export",
-    }
-
-    SUPPORTING_NODES = {
+        "export_combined",
+        "export_summary",
+        # Core pipeline chain nodes
+        "resolve_tag_dag",
+        "validate_artifact_schemas",
+        "compute_exemplar_statistics",
+        "prepare_artifact_summary",
+        # Embedding
         "init_embedding_model",
+        "cache_exemplar_embeddings",
+        "cache_keyword_embeddings",
+        "verify_embedding_integrity",
+        # Index
+        "materialize_traversal_cache",
+        "validate_ontology_constraints",
+        "build_tag_scope_index",
+        "compute_ontology_statistics",
+        "build_combined_index_metadata",
+        # Retrieval
+        "build_query_context",
+        "rank_exemplar_candidates",
+        "format_retrieval_for_inference",
+        "compute_retrieval_statistics",
+        # Inference
         "init_groq_client",
+        "prepare_code_batches",
+        "prepare_code_nodes",
+        "prepare_theme_batches",
+        "prepare_theme_nodes",
+        "prepare_interpretation_spans",
+        "prepare_interpretation_nodes",
+        # Review
+        "apply_code_edits",
+        "apply_theme_edits",
+        "apply_interpretation_edits",
+        # Export
+        "export_codes",
+        "export_themes",
+        "export_interpretations",
     }
 
     def test_all_main_nodes_present(self, dag):
-        """All 13 main pipeline nodes must exist in the DAG."""
+        """All 50 pipeline node names must exist in the DAG."""
         vars_ = {v.name for v in dag.list_available_variables()}
         missing = self.MAIN_NODES - vars_
-        assert not missing, f"Missing main nodes: {missing}"
+        assert not missing, f"Missing {len(missing)} main nodes: {missing}"
 
-    def test_all_supporting_nodes_present(self, dag):
-        """All expected supporting nodes must exist in the DAG."""
-        vars_ = {v.name for v in dag.list_available_variables()}
-        missing = self.SUPPORTING_NODES - vars_
-        assert not missing, f"Missing supporting nodes: {missing}"
+    def test_node_count_at_least_50(self, dag):
+        """At least 50 function nodes plus config + external inputs."""
+        vars_ = dag.list_available_variables()
+        assert len(vars_) >= 51, f"Expected >= 51 vars, got {len(vars_)}"
 
 
 class TestConfigDataclass:

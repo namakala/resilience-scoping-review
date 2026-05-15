@@ -8,10 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import duckdb
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.batching import Batch
-from inference.code_inference import (
+from inference.batching import Batch  # noqa: E402
+from inference.code_inference import (  # noqa: E402
     _ExemplarRow,
     _exemplars_to_dicts,
     _get_existing_codes_for_tag,

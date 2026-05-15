@@ -5,10 +5,12 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.parsing import ThemeInference
-from inference.theme_postprocess import (
+from inference.parsing import ThemeInference  # noqa: E402
+from inference.theme_postprocess import (  # noqa: E402
     dedup_theme_names,
     flag_small_themes,
     validate_code_belonging,

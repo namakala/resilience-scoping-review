@@ -1,95 +1,72 @@
-"""BM25 index builder – constructs the lexical index from keywords."""
+"""BM25 index builder — constructs a lexical index from keyword data.
 
-import os
-from datetime import datetime, timezone
+Pure function — no file I/O, no cache mutation.  Returns the BM25 index
+as a dict so callers can persist it if they wish.
+"""
 
+from __future__ import annotations
+
+import polars as pl
 from utils.logging import get_logger
 
-from . import cache
-from .corpus import _build_corpus_and_map, _compute_corpus_hash
-from .exceptions import BM25IndexError
-from .persistence import _resolve_index_path
-from .persistence import load_bm25 as _load_bm25
-from .persistence import save_bm25
+from .corpus import build_corpus_from_keywords, compute_corpus_hash
+from .tokenizer import _build_tokenizer, _parse_tokenizer_config
 
 logger = get_logger(__name__)
 
-VERSION = "1.0"
+__all__ = ["build_index"]
 
 
-def build_index(force_rebuild: bool = False) -> None:
-    """Build BM25 index from keywords and save to configured path.
+def build_index(
+    keywords_lf: pl.LazyFrame,
+    tokenizer_config: str = "lowercase,split_by_space",
+) -> dict:
+    """Build a BM25 index dict from in-memory keyword data.
 
-    Steps:
-        1. Load keywords Parquet via _build_corpus_and_map.
-        2. Compute corpus_hash for rebuild detection.
-        3. Train BM25Okapi on corpus (skip if corpus empty — store None).
-        4. Serialize with metadata via save_bm25().
-        5. Update in-memory cache.
+    Parameters
+    ----------
+    keywords_lf :
+        Keyword data with columns ``exemplar_id``, ``keyword_text``.
+    tokenizer_config :
+        Comma-separated tokenizer toggles (default
+        ``"lowercase,split_by_space"``).
 
-    Args:
-        force_rebuild: If True, overwrite existing index even if up-to-date.
-
-    Raises:
-        BM25IndexError: If keywords missing/corrupted or save fails.
+    Returns
+    -------
+    dict
+        Keys: ``bm25_object`` (:class:`BM25Okapi` or ``None``),
+        ``corpus`` (list of token lists), ``entity_map``
+        (exemplar_id → corpus index), ``metadata`` (dict with
+        ``corpus_size``, ``exemplar_count``, ``tokenizer_config``,
+        ``corpus_hash``).
     """
-    path = _resolve_index_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    toggles = _parse_tokenizer_config(tokenizer_config)
+    tokenizer = _build_tokenizer(toggles)
 
-    # Check if we really need to rebuild
-    if not force_rebuild and path.exists():
-        try:
-            # Skip corpus validation here to avoid recursion
-            cached = _load_bm25(path, _validate_against_corpus=False)
-            if cached is not None:
-                logger.info("BM25 index already up-to-date; skipping build")
-                return
-        except Exception as e:
-            logger.warning(
-                "Failed to validate existing index; rebuilding", extra={"error": str(e)}
-            )
+    corpus, entity_map = build_corpus_from_keywords(keywords_lf, tokenizer)
+    corpus_hash = compute_corpus_hash(corpus)
 
-    logger.info("Building BM25 index from keywords")
+    from rank_bm25 import BM25Okapi
 
-    try:
-        corpus, entity_map = _build_corpus_and_map()
-        corpus_hash = _compute_corpus_hash(corpus)
-        from rank_bm25 import BM25Okapi
+    bm25 = BM25Okapi(corpus) if corpus else None
 
-        bm25 = BM25Okapi(corpus) if corpus else None
-    except Exception as e:
-        logger.error("Failed to build BM25 corpus", extra={"error": str(e)})
-        raise BM25IndexError(f"Corpus construction failed: {e}") from e
+    logger.info(
+        "BM25 index built",
+        extra={
+            "docs": len(corpus),
+            "exemplars": len(entity_map),
+            "tokenizer_config": tokenizer_config,
+        },
+    )
 
-    metadata = {
-        "version": VERSION,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "corpus_hash": corpus_hash,
-        "tokenizer_config": os.getenv(
-            "BM25_TOKENIZER_CONFIG", "lowercase,split_by_space"
-        ),
-    }
-
-    bm25_data = {
-        "metadata": metadata,
-        "corpus": corpus,
+    return {
         "bm25_object": bm25,
+        "corpus": corpus,
         "entity_map": entity_map,
+        "metadata": {
+            "corpus_size": len(corpus),
+            "exemplar_count": len(entity_map),
+            "tokenizer_config": tokenizer_config,
+            "corpus_hash": corpus_hash,
+        },
     }
-
-    try:
-        save_bm25(path, bm25_data)
-        # Update in-memory cache via cache module
-        cache._CACHED_INDEX = bm25_data
-        cache._CACHED_PATH = path
-        logger.info(
-            "BM25 index built and saved",
-            extra={
-                "path": str(path),
-                "docs": len(corpus),
-                "exemplars": len(entity_map),
-            },
-        )
-    except Exception as e:
-        logger.error("Failed to save BM25 index", extra={"error": str(e)})
-        raise BM25IndexError(f"Save failed: {e}") from e

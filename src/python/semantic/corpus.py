@@ -1,64 +1,70 @@
-"""Corpus construction from keyword parquet.
+"""Corpus construction from keyword data.
 
-Builds tokenized corpus and exemplar_id→index map. Pure functions operating
-on the keyword corpus.
+Pure functions that build a tokenized corpus and exemplar_id-to-index map
+from in-memory keyword data.  No file I/O — callers pass keyword data and
+a tokenizer callable.
 """
 
-from typing import Dict, List
+from __future__ import annotations
+
+import hashlib
+from typing import Callable
 
 import polars as pl
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = [
+    "build_corpus_from_keywords",
+    "compute_corpus_hash",
+]
 
-def _load_keywords_lazy() -> pl.LazyFrame:
-    """Lazy-load keywords.parquet using persistence loader.
 
-    Returns:
-        LazyFrame with schema: keyword_id, exemplar_id, keyword_text, frequency.
+def build_corpus_from_keywords(
+    keywords_lf: pl.LazyFrame,
+    tokenizer: Callable[[str], list[str]],
+) -> tuple[list[list[str]], dict[int, int]]:
+    """Construct tokenized corpus and exemplar_id→index map.
+
+    Groups keyword rows by exemplar_id (ascending), sorts keywords
+    alphabetically within each exemplar, then tokenizes via the provided
+    callable.
+
+    Parameters
+    ----------
+    keywords_lf :
+        LazyFrame with columns ``exemplar_id``, ``keyword_text`` (and
+        optionally others — only those two are used).
+    tokenizer :
+        Callable that accepts a raw string and returns a list of tokens.
+
+    Returns
+    -------
+    corpus :
+        List of token lists in exemplar_id ascending order.
+    entity_map :
+        Dict mapping exemplar_id → corpus index.
     """
-    from persistence.loaders import load_keywords  # deferred import to avoid cycles
-
-    return load_keywords()
-
-
-def _build_corpus_and_map() -> tuple[List[List[str]], Dict[int, int]]:
-    """Construct tokenized corpus and exemplar_id→index map from keywords.
-
-    Groups keywords by exemplar_id (ascending order), sorts keywords
-    alphabetically within each exemplar, tokenizes via configured tokenizer.
-
-    Returns:
-        corpus: List of token lists, order = sorted exemplar_id ascending.
-        entity_map: Dict mapping exemplar_id → corpus index.
-    """
-    lf = _load_keywords_lazy()
-    df = lf.select(["exemplar_id", "keyword_text"]).collect()
+    df = keywords_lf.select(["exemplar_id", "keyword_text"]).collect()
 
     if df.height == 0:
-        logger.warning("Keywords corpus is empty; building empty BM25 index")
+        logger.warning("Keywords corpus is empty; returning empty corpus")
         return [], {}
 
-    # Group keywords by exemplar_id
     grouped = (
         df.group_by("exemplar_id")
         .agg(pl.col("keyword_text").sort())
         .sort("exemplar_id")
     )
 
-    corpus: List[List[str]] = []
-    entity_map: Dict[int, int] = {}
+    corpus: list[list[str]] = []
+    entity_map: dict[int, int] = {}
 
     for idx, row in enumerate(grouped.iter_rows()):
-        exemplar_id = row[0]  # exemplar_id
-        keyword_list = row[1]  # List[str] (already sorted)
-        # Import tokenizer at module level would create cycle; call lazily
-        from .tokenizer import _TOKENIZER
-
-        tokenized = _TOKENIZER(
-            " ".join(keyword_list)
-        )  # join then retokenize with pipeline
+        exemplar_id = row[0]
+        keyword_list: list[str] = row[1]
+        tokenized = tokenizer(" ".join(keyword_list))
         corpus.append(tokenized)
         entity_map[exemplar_id] = idx
 
@@ -69,27 +75,28 @@ def _build_corpus_and_map() -> tuple[List[List[str]], Dict[int, int]]:
     return corpus, entity_map
 
 
-def _compute_corpus_hash(corpus: List[List[str]]) -> str:
-    """Compute deterministic SHA256 hash of the corpus for rebuild detection.
+def compute_corpus_hash(corpus: list[list[str]]) -> str:
+    """Deterministic SHA256 hash of the corpus for rebuild detection.
 
-    Strategy: for each exemplar's sorted keywords, join with ':' -> concatenate
-    all exemplar strings with '|' using exemplar_id ascending order.
+    For each exemplar's sorted keyword tokens, joins with ``:``, then
+    concatenates all exemplar strings with ``|`` in ascending order.
+    Returns the first 16 hex characters of the digest.
 
-    Args:
-        corpus: List of token lists (deterministic order).
+    Parameters
+    ----------
+    corpus :
+        List of token lists in deterministic order.
 
-    Returns:
-        First 16 hex characters of SHA256 digest.
+    Returns
+    -------
+    str
+        16-character hex hash.
     """
-    import hashlib
-
     if not corpus:
         return hashlib.sha256(b"<empty>").hexdigest()[:16]
 
-    # Reconstruct per-exemplar sorted keyword strings
     parts = []
     for doc in corpus:
-        # Sort tokens alphabetically for hash stability
         sorted_tokens = sorted(doc)
         parts.append(":".join(sorted_tokens))
     joined = "|".join(parts)

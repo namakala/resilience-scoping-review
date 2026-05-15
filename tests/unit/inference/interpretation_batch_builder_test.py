@@ -6,11 +6,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.interpretation_batch_builder import build_interpretation_batches
-from inference.interpretation_span_processor import _InterpretationSpanItem
-from inference.theme_loading_for_interpretation import _ThemeRow
+from inference.interpretation_batch_builder import (  # noqa: E402
+    build_interpretation_batches,
+)
+from inference.interpretation_span_processor import (  # noqa: E402
+    _InterpretationSpanItem,
+)
+from inference.theme_loading_for_interpretation import _ThemeRow  # noqa: E402
 
 
 def _make_theme_row(id_, tag, name="T", narrative="n", code_ids=None):

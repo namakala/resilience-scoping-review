@@ -8,11 +8,13 @@ from unittest.mock import MagicMock, patch
 
 import duckdb
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.batch_processor import record_tokens, run_batches
-from inference.batching import Batch
-from inference.tracking import TokenTracker
+from inference.batch_processor import record_tokens, run_batches  # noqa: E402
+from inference.batching import Batch  # noqa: E402
+from inference.tracking import TokenTracker  # noqa: E402
 
 
 class FakeItem:

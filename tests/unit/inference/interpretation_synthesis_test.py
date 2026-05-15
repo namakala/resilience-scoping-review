@@ -6,14 +6,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import duckdb
-from inference.batching import Batch
-from inference.interpretation_span_processor import _InterpretationSpanItem
-from inference.interpretation_synthesis import synthesize_interpretations
-from inference.parsing import InterpretationInference
-from inference.theme_loading_for_interpretation import _ThemeRow
+import duckdb  # noqa: E402
+from inference.batching import Batch  # noqa: E402
+from inference.interpretation_span_processor import (  # noqa: E402
+    _InterpretationSpanItem,
+)
+from inference.interpretation_synthesis import synthesize_interpretations  # noqa: E402
+from inference.parsing import InterpretationInference  # noqa: E402
+from inference.theme_loading_for_interpretation import _ThemeRow  # noqa: E402
 
 
 def _make_theme_row(id_, tag, name="T", narrative="n", code_ids=None):

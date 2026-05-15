@@ -1,71 +1,60 @@
-"""Candidate ID resolution from ontology scope.
+"""Candidate ID resolution from in-memory scope maps.
 
-For exemplars, uses the traversal cache (``get_cached_subtree``).
-For codes/themes/interpretations, queries the DuckDB nodes table
-filtered by scope tags from ``get_scope_for_tag``.
+Pure functions — no DuckDB queries.  Callers pass pre-computed scope and
+entity maps that were built by the orchestration layer from the ontology
+traversal cache and/or graph database.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Set, Tuple
+from typing import Callable
 
-import duckdb
-from ontology.cache import get_cached_subtree
-from ontology.scope import get_scope_for_tag
-from persistence.loaders import load_exemplars
+import polars as pl
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = ["resolve_candidate_ids"]
+
 
 def resolve_candidate_ids(
-    query_tag: str,
     candidate_type: str,
-    con: duckdb.DuckDBPyConnection,
-) -> Tuple[Set[int], Dict[int, str]]:
-    """Resolve entity IDs in ``query_tag`` subtree for the given type.
+    tag_scope_map: dict[str, set[int]],
+    tag_entity_map: dict[int, str],
+    tag_scope_fn: Callable[[str], set[str]] | None = None,
+    load_exemplars_fn: Callable[[], pl.LazyFrame] | None = None,
+) -> tuple[set[int], dict[int, str]]:
+    """Resolve entity IDs for a candidate type from in-memory maps.
 
-    For exemplars, reads ``subtree_exemplars`` from the DuckDB-backed
-    traversal cache and loads exemplars to build the id-to-tag map.
-    For other types, queries the ``nodes`` table via DuckDB with the
-    full set of in-scope tags.
+    For *exemplar* types the candidate pool comes from ``tag_entity_map``
+    (pre-filtered by the caller).  For other types (code, theme,
+    interpretation) the pool comes from ``tag_scope_map``.
 
-    Args:
-        query_tag: Ontology tag whose subtree defines the pool.
-        candidate_type: ``'exemplar'``, ``'code'``, ``'theme'``, or
-            ``'interpretation'``.
-        con: Active DuckDB connection.
+    Parameters
+    ----------
+    candidate_type :
+        ``'exemplar'``, ``'code'``, ``'theme'``, or ``'interpretation'``.
+    tag_scope_map :
+        Tag → set of entity IDs for non-exemplar types.  Ignored for
+        exemplars.
+    tag_entity_map :
+        Entity ID → tag string for all candidates in scope.
+    tag_scope_fn :
+        **Deprecated** — kept for backward compat with orchestration
+        callers that haven't migrated yet.
+    load_exemplars_fn :
+        **Deprecated** — kept for backward compat.
 
-    Returns:
+    Returns
+    -------
+    tuple[set[int], dict[int, str]]
         ``(candidate_ids, entity_id_to_tag_map)``.
     """
     if candidate_type == "exemplar":
-        cached = get_cached_subtree(query_tag)
-        candidate_ids: Set[int] = set(cached["subtree_exemplars"])
+        candidate_ids = set(tag_entity_map.keys())
+    else:
+        candidate_ids = set()
+        for ids in tag_scope_map.values():
+            candidate_ids.update(ids)
 
-        exemplars_df = load_exemplars().collect()
-        entity_tag_map: Dict[int, str] = {}
-        for row in exemplars_df.iter_rows(named=True):
-            eid = int(row["id"])
-            if eid in candidate_ids:
-                entity_tag_map[eid] = str(row["tag"])
-        return candidate_ids, entity_tag_map
-
-    scope_tags = get_scope_for_tag(query_tag)
-    if not scope_tags:
-        return set(), {}
-
-    placeholders = ",".join(["?"] * len(scope_tags))
-    rows = con.execute(
-        f"SELECT id, tag FROM nodes " f"WHERE tag IN ({placeholders}) AND type = ?",
-        [*scope_tags, candidate_type],
-    ).fetchall()
-
-    candidate_ids = set()
-    entity_tag_map = {}
-    for row in rows:
-        eid = int(row[0])
-        tag = str(row[1])
-        candidate_ids.add(eid)
-        entity_tag_map[eid] = tag
-    return candidate_ids, entity_tag_map
+    return candidate_ids, tag_entity_map

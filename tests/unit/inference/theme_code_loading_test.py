@@ -6,10 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import duckdb
-from inference.theme_code_loading import (
+import duckdb  # noqa: E402
+from inference.theme_code_loading import (  # noqa: E402
     _CodeRow,
     load_approved_codes,
     load_approved_codes_grouped,

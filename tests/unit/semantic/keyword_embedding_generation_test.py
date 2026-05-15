@@ -19,8 +19,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(
+sys.path.insert(0, str(Path(__file__).parent.parent))  # noqa: E402
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
