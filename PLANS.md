@@ -87,7 +87,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/53-node-function-definitions.md
 - [x] @docs/plan/54-dependency-wiring.md
 - [x] @docs/plan/55-dirty-flag-propagation.md
-- [ ] @docs/plan/56-selective-execution.md
+- [x] @docs/plan/56-selective-execution.md
 - [ ] @docs/plan/57-cache-miss-handling.md
 
 ## Phase 10 — Orchestration Layer (58–64)

@@ -1,7 +1,7 @@
 ---
 title: "56 — selective-execution"
 description: "dag.execute() runs only dirty or required nodes"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 9
 ---
 

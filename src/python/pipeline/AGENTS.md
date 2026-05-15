@@ -106,6 +106,33 @@ Three inference nodes (``infer_codes``, ``infer_themes``, ``infer_interpretation
 
 The constructor does not depend on either module; consumers import them when validation or visualization is needed.
 
+## Stages
+
+``stages.py`` provides the workflow-stage-to-final-vars mapping (Feature 56, ADR-008):
+
+- ``_STAGE_OWN_VARS`` — dict mapping each stage (1-10) to its terminal Hamilton output nodes.
+- ``get_final_vars_for_stage(stage)`` — resolves a stage to its cumulative output node list. Results are cumulative: stage 4 includes stages 1-4 outputs. Stage 4 returns ``["load_exemplars", …, "infer_codes", "prepare_code_nodes", "retrieve_code_candidates", …]``.
+
+The mapping enables ``--stage N`` resume: the executor requests ``get_final_vars_for_stage(N)`` and Hamilton computes only the transitive dependencies of those outputs, skipping clean batches via dirty flags.
+
+## Types
+
+``types.py`` defines execution-tracking data types shared between the executor and the orchestration layer:
+
+- ``NodeExecutionRecord`` — outcome for one DAG node (``node_name``, ``status``, ``duration_ms``, ``error``). Status is one of ``executed``, ``overridden``, ``cached`` (reserved for Feature 57), or ``skipped``.
+- ``ExecutionResult`` — return type of ``execute_dag()``. Contains ``outputs`` dict, per-node ``node_executions`` list, ``total_duration_ms``, ``stage``, and cache hit/miss counters.
+- ``get_execution_summary(result)`` — aggregates counts and cache-hit rate for CLI reporting.
+
+## Executor
+
+``executor.py`` provides the main DAG execution function (Feature 56, ADR-008):
+
+- ``execute_dag(driver, *, final_vars, stage, inputs, overrides)`` — runs the Hamilton DAG with per-node execution logging. ``stage`` resolves ``final_vars`` via ``stages.get_final_vars_for_stage()``. Returns ``types.ExecutionResult``.
+
+**Execution records** classify each expected node as ``"executed"`` (Hamilton computed it), ``"overridden"`` (output provided via overrides dict), ``"cached"`` (reserved for Feature 57), or ``"skipped"``. The executor logs ``NODE START`` / ``NODE FINISH`` structured events with duration for every computed node.
+
+**Stage awareness:** The executor does not manage persistence. It accepts ``inputs`` (dirty flags, existing codes) and ``overrides`` (HITL-approved values, ``{"current_stage": N}``) from the orchestration layer (Feature 60).
+
 ## References
 
-Implements ADR-008 (Pipeline Orchestration) and ADR-007 (Incremental Ontology Evolution). See `@ADR.md` for architectural decisions.
+Implements ADR-008 (Pipeline Orchestration), ADR-007 (Incremental Ontology Evolution), and Feature 56 (Selective Execution). See `@ADR.md` for architectural decisions.
