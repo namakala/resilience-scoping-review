@@ -98,7 +98,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/61-hitl-coordination.md
 - [x] @docs/plan/62-export-formatter.md
 - [x] @docs/plan/63-error-recovery-handler.md
-- [ ] @docs/plan/64-session-resume-logic.md
+- [x] @docs/plan/64-session-resume-logic.md
 
 ## Phase 11 — Integration & System Completion (65–70)
 

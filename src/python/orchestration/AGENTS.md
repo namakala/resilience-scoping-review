@@ -18,6 +18,8 @@ Global options:
   --tags PATH         Tags CSV path (overrides env/defaults)
   --env FILE          Custom .env file (overrides default .env values)
   --resume            Resume from last checkpoint
+  --force-resume      Override config version mismatch and resume anyway
+  --reset             Clear session state and restart from stage 1
   --dry-run           Validate all config, don't execute
   --verbose           Show detailed progress output
   --quiet             Suppress non-error output
@@ -38,7 +40,10 @@ Commands:
 - `--force` skips confirmation prompt when re-ingesting changed data
 
 **run:**
-- Default (no flags) runs all stages from current checkpoint through export
+- Default (no flags) runs all stages from stage 1 through export
+- `--resume` restores from last checkpoint; logs `"Resuming from stage N (checkpoint T)"`
+- `--force-resume` overrides config version mismatch when resuming
+- `--reset` clears session state before starting
 - `--type code|theme|interpretation` limits to specific artifact types (repeatable)
 - `--all` explicitly requests all stages (mutually exclusive with --type)
 - Drives stages via ``runner.run_pipeline()`` with checkpoint after each stage
@@ -79,6 +84,7 @@ does re-ingest proceed.
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
 - `state.py` — `WorkflowState` dataclass: stage transitions, serialization, dirty flags, config hash
 - `state_rules.py` — Stage constants (`MIN_STAGE`, `MAX_STAGE`, `STAGE_PREREQS`) + field validation
+- `resume.py` — Session resume logic: `resolve_state()` (fresh vs resume branching, config version validation), `handle_reset()` (clear session state)
 
 ## Integration
 
@@ -92,3 +98,4 @@ does re-ingest proceed.
 ## References
 
 docs/plan/58-cli-entrypoint.md
+docs/plan/64-session-resume-logic.md

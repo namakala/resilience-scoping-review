@@ -64,6 +64,16 @@ logger = get_logger(__name__)
     is_flag=True,
     help="Resume from last session checkpoint",
 )
+@click.option(
+    "--force-resume",
+    is_flag=True,
+    help="Override config version mismatch and resume anyway",
+)
+@click.option(
+    "--reset",
+    is_flag=True,
+    help="Clear session state and restart from stage 1",
+)
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -71,6 +81,8 @@ def cli(
     tags: Optional[str],
     env_file: Optional[str],
     resume: bool,  # noqa: F811
+    force_resume: bool,  # noqa: F811
+    reset: bool,  # noqa: F811
 ) -> None:
     """Qualitative Thematic Analysis Pipeline.
 
@@ -83,6 +95,8 @@ def cli(
     ctx.obj["tags"] = Path(tags) if tags else None
     ctx.obj["env_file"] = Path(env_file) if env_file else None
     ctx.obj["resume"] = resume
+    ctx.obj["force_resume"] = force_resume
+    ctx.obj["reset"] = reset
 
     load_configuration(ctx.obj)
 

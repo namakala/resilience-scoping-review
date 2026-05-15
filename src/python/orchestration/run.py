@@ -80,7 +80,7 @@ def run_cmd(
 
     con = init_or_migrate()
     try:
-        run_sequence(con, types)
+        run_sequence(con, types, ctx_obj=obj)
     finally:
         con.close()
 
@@ -88,19 +88,38 @@ def run_cmd(
 # ── Public helpers (used by default.py) ─────────────────────────────────────
 
 
-def run_sequence(con, types: tuple[str, ...]) -> None:
+def run_sequence(
+    con,
+    types: tuple[str, ...],
+    ctx_obj: dict | None = None,
+) -> None:
     """Run pipeline from current state through target stage.
 
-    Thin wrapper for programmatic use (default.py).  Creates state + config,
-    delegates to :func:`runner.run_pipeline`.
+    Thin wrapper for programmatic use (default.py).  Resolves the
+    initial state (fresh or resume via *ctx_obj* flags), creates
+    config, and delegates to :func:`runner.run_pipeline`.
+
+    Args:
+        con: Active DuckDB connection.
+        types: Artifact type filter (empty tuple = all).
+        ctx_obj: CLI context dict with resume/reset/force_resume flags.
+            When ``None`` (e.g. called from default.py) runs fresh.
     """
+    from orchestration.resume import handle_reset, resolve_state
     from orchestration.runner import resolve_target_stage, run_pipeline
-    from orchestration.state import WorkflowState
-    from persistence.state_repository import load_state
     from pipeline.config import Config
 
-    state_dict = load_state(con)
-    state = WorkflowState.from_state_dict(state_dict)
+    env_file = ctx_obj.get("env_file") if ctx_obj else None
+
+    if ctx_obj and ctx_obj.get("reset"):
+        handle_reset(con)
+
+    state = resolve_state(
+        con,
+        resume=bool(ctx_obj and ctx_obj.get("resume")),
+        force_resume=bool(ctx_obj and ctx_obj.get("force_resume")),
+        env_file=env_file,
+    )
     config = Config.from_env()
     target = resolve_target_stage(types)
 
