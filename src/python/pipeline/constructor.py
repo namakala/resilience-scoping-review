@@ -20,7 +20,10 @@ from pipeline.nodes import (
 )
 
 
-def create_pipeline(config: Config) -> Builder:
+def create_pipeline(
+    config: Config,
+    adapters: list[object] | None = None,
+) -> Builder:
     """Construct a Hamilton DAG from all node functions.
 
     Parameters
@@ -29,6 +32,10 @@ def create_pipeline(config: Config) -> Builder:
         Frozen snapshot of all application settings.  Injected into every node
         via Hamilton's ``with_config()`` so each function receives a typed
         ``config: Config`` parameter.
+    adapters :
+        Optional list of Hamilton lifecycle adapters (e.g.
+        :class:`~pipeline.cache_adapter.NodeCacheAdapter`).  These are
+        appended to the Builder's adapter chain.
 
     Returns
     -------
@@ -36,7 +43,7 @@ def create_pipeline(config: Config) -> Builder:
         A Hamilton ``Builder`` ready for optional adapter/cache chaining.
         Call ``.build()`` to obtain a ``Driver``.
     """
-    return (
+    builder = (
         Builder()
         .with_modules(
             artifact_nodes,
@@ -49,3 +56,7 @@ def create_pipeline(config: Config) -> Builder:
         )
         .with_config({"config": config})
     )
+    if adapters:
+        for a in adapters:
+            builder.adapters.append(a)
+    return builder

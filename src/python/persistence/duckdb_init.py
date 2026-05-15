@@ -18,6 +18,7 @@ from .duckdb_schema import (
     _create_embedding_cache_table,
     _create_inference_status_table,
     _create_invalidation_log_table,
+    _create_node_cache_table,
     _create_nodes_table,
     _create_session_state_table,
     _create_traversal_cache_table,
@@ -61,6 +62,7 @@ def initialize_database(
         _create_session_state_table(con)
         _create_user_actions_table(con)
         _create_embedding_cache_table(con)
+        _create_node_cache_table(con)
         _create_invalidation_log_table(con)
         _create_inference_status_table(con)
 

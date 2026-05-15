@@ -4,6 +4,13 @@ Wraps Hamilton's ``Driver.execute()`` with dirty-flag integration, per-node
 execution tracking (``NODE START`` / ``NODE FINISH``), and stage-aware
 ``final_vars`` resolution.
 
+Cache hit/miss metrics can be supplied via a
+:class:`~pipeline.cache_adapter.CacheMetrics` instance attached to a
+:class:`~pipeline.cache_adapter.NodeCacheAdapter` on the Driver's adapter
+chain.  After execution, ``execute_dag`` reads `cache_metrics` to populate
+``ExecutionResult.cache_hit_count`` / ``cache_miss_count`` and to produce
+``status="cached"`` records.
+
 References:
     ADR-008 (Pipeline Orchestration): Hamilton DAG as execution engine
     ADR-007 (Incremental Ontology Evolution): dirty-flag selective execution
@@ -15,6 +22,7 @@ import time
 from typing import Any
 
 from hamilton.driver import Driver
+from pipeline.cache_adapter import CacheMetrics
 from pipeline.stages import get_final_vars_for_stage
 from pipeline.types import ExecutionResult, NodeExecutionRecord
 from pipeline.wiring import EXTERNAL_INPUTS
@@ -30,6 +38,7 @@ def execute_dag(
     stage: int | None = None,
     inputs: dict[str, Any] | None = None,
     overrides: dict[str, Any] | None = None,
+    cache_metrics: CacheMetrics | None = None,
 ) -> ExecutionResult:
     """Execute the Hamilton DAG with node-level logging and dirty-flag selectivity.
 
@@ -84,7 +93,12 @@ def execute_dag(
         )
     total_ms = (time.monotonic() - start) * 1000
 
-    records = _build_execution_records(expected_nodes, resolved_overrides, outputs)
+    records = _build_execution_records(
+        expected_nodes,
+        resolved_overrides,
+        outputs,
+        cached_nodes=cache_metrics.cached_nodes if cache_metrics else None,
+    )
 
     for rec in records:
         if rec.status == "executed":
@@ -102,6 +116,8 @@ def execute_dag(
         node_executions=records,
         total_duration_ms=total_ms,
         stage=stage,
+        cache_hit_count=cache_metrics.hit_count if cache_metrics else 0,
+        cache_miss_count=cache_metrics.miss_count if cache_metrics else 0,
     )
 
 
@@ -138,11 +154,21 @@ def _build_execution_records(
     expected_nodes: list[str],
     overrides: dict[str, Any],
     outputs: dict[str, Any],
+    cached_nodes: set[str] | None = None,
 ) -> list[NodeExecutionRecord]:
-    """Classify each expected node as overridden, executed, or skipped."""
+    """Classify each expected node as cached, overridden, executed, or skipped.
+
+    ``cached_nodes`` is the set of node IDs that hit the DuckDB node cache
+    (provided by the :class:`NodeCacheAdapter`).  A node that was supplied
+    via the ``overrides`` dict AND also appears in *cached_nodes* gets
+    ``"cached"`` status to distinguish Hamilton-provided overrides from
+    cache hits.
+    """
     records: list[NodeExecutionRecord] = []
     for node_name in expected_nodes:
-        if node_name in overrides:
+        if cached_nodes and node_name in cached_nodes:
+            records.append(NodeExecutionRecord(node_name, "cached"))
+        elif node_name in overrides:
             records.append(NodeExecutionRecord(node_name, "overridden"))
         elif node_name in outputs:
             records.append(NodeExecutionRecord(node_name, "executed"))

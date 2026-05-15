@@ -173,3 +173,33 @@ def _create_embedding_cache_table(con: duckdb.DuckDBPyConnection) -> None:
             "Could not create index on embedding_cache.content_hash",
             extra={"error": str(e)},
         )
+
+
+def _create_node_cache_table(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the node_cache table for deterministic node result caching.
+
+    Stores serialized (pickle) outputs keyed by ``(node_id, inputs_hash)``.
+    ``inputs_hash`` is a SHA-256 of the node's canonical keyword-argument
+    dict, enabling cross-session cache reuse.
+    """
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS node_cache (
+            node_id VARCHAR NOT NULL,
+            inputs_hash VARCHAR NOT NULL,
+            output_blob BLOB NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (node_id, inputs_hash)
+        );
+    """
+    )
+    try:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS "
+            "idx_node_cache_inputs_hash ON node_cache(inputs_hash);"
+        )
+    except Exception as e:
+        logger.warning(
+            "Could not create index on node_cache.inputs_hash",
+            extra={"error": str(e)},
+        )

@@ -98,6 +98,7 @@ class TestDuckDBInitialization(unittest.TestCase):
                 "session_state",
                 "user_actions",
                 "embedding_cache",
+                "node_cache",
                 "invalidation_log",
                 "inference_status",
             }

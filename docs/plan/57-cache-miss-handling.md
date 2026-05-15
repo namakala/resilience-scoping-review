@@ -1,7 +1,7 @@
 ---
 title: "57 — cache-miss-handling"
 description: "Nodes check persistence layer for cached values; recompute if missing/stale"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 9
 ---
 
