@@ -184,7 +184,8 @@ class TestRunPipeline(unittest.TestCase):
                 "orchestration.runner.NodeCacheAdapter",
             ),
             mock.patch(
-                "orchestration.runner._run_hitl_review",
+                "orchestration.hitl_coordinator.coordinate_hitl",
+                return_value=state,
             ),
         ):
             result = run_pipeline(self.mock_con, state, self.config, target_stage=5)
@@ -230,11 +231,14 @@ class TestRunPipeline(unittest.TestCase):
                 "orchestration.runner.NodeCacheAdapter",
             ),
             mock.patch(
-                "orchestration.runner._run_hitl_review",
+                "orchestration.hitl_coordinator.coordinate_hitl",
+                return_value=state,
             ) as mock_hitl,
         ):
             run_pipeline(self.mock_con, state, self.config, target_stage=6)
-            mock_hitl.assert_called_once_with(self.mock_con, 5)
+            args, _ = mock_hitl.call_args
+            self.assertEqual(args[0], self.mock_con)  # con
+            self.assertEqual(args[1], 5)  # stage
 
     def test_advance_stops_at_max_stage(self) -> None:
         """Pipeline stops after stage 10 without error."""

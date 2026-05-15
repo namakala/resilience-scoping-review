@@ -95,7 +95,7 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 - [x] @docs/plan/58-cli-entrypoint.md (click-based CLI, 3 subcommands: ingest/run/review, 33 tests pass)
 - [x] @docs/plan/59-state-machine-implementation.md
 - [x] @docs/plan/60-stage-transition-driver.md (runner.py + generate→run refactor; 22 tests pass)
-- [ ] @docs/plan/61-hitl-coordination.md
+- [x] @docs/plan/61-hitl-coordination.md
 - [ ] @docs/plan/62-export-formatter.md
 - [ ] @docs/plan/63-error-recovery-handler.md
 - [ ] @docs/plan/64-session-resume-logic.md

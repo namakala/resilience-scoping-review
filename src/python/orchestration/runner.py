@@ -120,7 +120,10 @@ def run_pipeline(
             _save_checkpoint(con, state)
 
             if stage in REVIEW_STAGES:
-                _run_hitl_review(con, stage)
+                from orchestration.hitl_coordinator import coordinate_hitl
+                from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+                state = coordinate_hitl(con, stage, state, DEFAULT_DB_PATH)
 
             if stage >= MAX_STAGE:
                 break
@@ -158,25 +161,6 @@ def execute_stage(
 
 
 # ── Private helpers ─────────────────────────────────────────────────────────
-
-
-def _run_hitl_review(con: duckdb.DuckDBPyConnection, stage: int) -> None:
-    """Enter HITL review TUI for the given review stage."""
-    type_map = {5: "code", 7: "theme", 9: "interpretation"}
-    artifact_type = type_map.get(stage)
-    if artifact_type is None:
-        logger.warning("No HITL mapping for stage %d; skipping review", stage)
-        return
-
-    from orchestration.review import enter_review
-    from persistence.duckdb_connection import DEFAULT_DB_PATH
-
-    logger.info(
-        "Stage %d (%s) — entering HITL review",
-        stage,
-        STAGE_NAMES.get(stage, ""),
-    )
-    enter_review(con, artifact_type, DEFAULT_DB_PATH)
 
 
 def _save_checkpoint(con: duckdb.DuckDBPyConnection, state: WorkflowState) -> None:
