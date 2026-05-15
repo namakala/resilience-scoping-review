@@ -103,6 +103,10 @@ def run_pipeline(
             executed = sum(1 for n in result.node_executions if n.status == "executed")
             cached = sum(1 for n in result.node_executions if n.status == "cached")
 
+            failure_count = sum(
+                1 for n in result.node_executions if n.status == "skipped" and n.error
+            )
+
             logger.info(
                 "Stage %d (%s) completed in %.1fs",
                 stage,
@@ -114,6 +118,7 @@ def run_pipeline(
                     "duration_s": round(elapsed, 1),
                     "nodes_executed": executed,
                     "nodes_cached": cached,
+                    "failures": failure_count,
                 },
             )
 
