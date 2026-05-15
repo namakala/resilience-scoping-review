@@ -33,7 +33,7 @@ class TestCliHelp(unittest.TestCase):
         result = self.runner.invoke(cli, ["--help"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("ingest", result.output)
-        self.assertIn("generate", result.output)
+        self.assertIn("run", result.output)
         self.assertIn("review", result.output)
 
     def test_ingest_help_shows_options(self) -> None:
@@ -44,10 +44,11 @@ class TestCliHelp(unittest.TestCase):
         self.assertIn("--force", result.output)
         self.assertIn("--dry-run", result.output)
 
-    def test_generate_help_shows_type_option(self) -> None:
-        result = self.runner.invoke(cli, ["generate", "--help"])
+    def test_run_help_shows_options(self) -> None:
+        result = self.runner.invoke(cli, ["run", "--help"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("--type", result.output)
+        self.assertIn("--all", result.output)
         self.assertIn("code", result.output)
         self.assertIn("theme", result.output)
         self.assertIn("interpretation", result.output)
@@ -139,8 +140,8 @@ class TestCliIngest(unittest.TestCase):
         self.assertIn("not found", result.output)
 
 
-class TestCliGenerate(unittest.TestCase):
-    """Tests for the generate subcommand."""
+class TestCliRun(unittest.TestCase):
+    """Tests for the run subcommand."""
 
     def setUp(self) -> None:
         self.runner = CliRunner()
@@ -154,24 +155,8 @@ class TestCliGenerate(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmpdir.cleanup()
 
-    def test_generate_requires_type(self) -> None:
-        """generate requires at least one --type."""
-        result = self.runner.invoke(
-            cli,
-            [
-                "--data",
-                str(self.data_csv),
-                "--tags",
-                str(self.tags_csv),
-                "generate",
-                "--dry-run",
-            ],
-        )
-        self.assertNotEqual(result.exit_code, 0)
-        self.assertIn("--type", result.output)
-
-    def test_generate_single_type(self) -> None:
-        """generate --type code works."""
+    def test_run_no_type_is_valid(self) -> None:
+        """run (no --type) is valid — defaults to --all."""
         with mock.patch("orchestration.config.load_dotenv"):
             with mock.patch.dict(
                 "os.environ",
@@ -188,7 +173,58 @@ class TestCliGenerate(unittest.TestCase):
                         str(self.data_csv),
                         "--tags",
                         str(self.tags_csv),
-                        "generate",
+                        "run",
+                        "--dry-run",
+                    ],
+                )
+                self.assertEqual(result.exit_code, 0)
+                self.assertIn("All stages", result.output)
+
+    def test_run_all_flag(self) -> None:
+        """run --all is valid."""
+        with mock.patch("orchestration.config.load_dotenv"):
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "GROQ_API_KEY": "sk-test",
+                    "PROCESSED_DATA_PATH": str(self.tmp),
+                },
+                clear=True,
+            ):
+                result = self.runner.invoke(
+                    cli,
+                    [
+                        "--data",
+                        str(self.data_csv),
+                        "--tags",
+                        str(self.tags_csv),
+                        "run",
+                        "--all",
+                        "--dry-run",
+                    ],
+                )
+                self.assertEqual(result.exit_code, 0)
+                self.assertIn("All stages", result.output)
+
+    def test_run_single_type(self) -> None:
+        """run --type code works."""
+        with mock.patch("orchestration.config.load_dotenv"):
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "GROQ_API_KEY": "sk-test",
+                    "PROCESSED_DATA_PATH": str(self.tmp),
+                },
+                clear=True,
+            ):
+                result = self.runner.invoke(
+                    cli,
+                    [
+                        "--data",
+                        str(self.data_csv),
+                        "--tags",
+                        str(self.tags_csv),
+                        "run",
                         "--type",
                         "code",
                         "--dry-run",
@@ -197,8 +233,8 @@ class TestCliGenerate(unittest.TestCase):
                 self.assertEqual(result.exit_code, 0)
                 self.assertIn("code", result.output)
 
-    def test_generate_multiple_types(self) -> None:
-        """generate accepts multiple --type values."""
+    def test_run_multiple_types(self) -> None:
+        """run accepts multiple --type values."""
         with mock.patch("orchestration.config.load_dotenv"):
             with mock.patch.dict(
                 "os.environ",
@@ -215,7 +251,7 @@ class TestCliGenerate(unittest.TestCase):
                         str(self.data_csv),
                         "--tags",
                         str(self.tags_csv),
-                        "generate",
+                        "run",
                         "--type",
                         "code",
                         "--type",
@@ -227,7 +263,7 @@ class TestCliGenerate(unittest.TestCase):
                 self.assertIn("code", result.output)
                 self.assertIn("theme", result.output)
 
-    def test_generate_invalid_type(self) -> None:
+    def test_run_invalid_type(self) -> None:
         """Invalid --type value is rejected."""
         result = self.runner.invoke(
             cli,
@@ -236,13 +272,32 @@ class TestCliGenerate(unittest.TestCase):
                 str(self.data_csv),
                 "--tags",
                 str(self.tags_csv),
-                "generate",
+                "run",
                 "--type",
                 "invalid",
                 "--dry-run",
             ],
         )
         self.assertNotEqual(result.exit_code, 0)
+
+    def test_run_type_and_all_mutually_exclusive(self) -> None:
+        """--type and --all cannot be used together."""
+        result = self.runner.invoke(
+            cli,
+            [
+                "--data",
+                str(self.data_csv),
+                "--tags",
+                str(self.tags_csv),
+                "run",
+                "--all",
+                "--type",
+                "code",
+                "--dry-run",
+            ],
+        )
+        self.assertNotEqual(result.exit_code, 0)
+        self.assertIn("mutually exclusive", result.output)
 
 
 class TestCliReview(unittest.TestCase):
@@ -324,7 +379,7 @@ class TestCliGlobalOptions(unittest.TestCase):
                         str(self.data_csv),
                         "--tags",
                         str(self.tags_csv),
-                        "generate",
+                        "run",
                         "--type",
                         "code",
                         "--dry-run",

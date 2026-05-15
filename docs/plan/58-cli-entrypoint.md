@@ -1,6 +1,6 @@
 ---
 title: "58 — cli-entrypoint"
-description: "Click-based CLI with subcommands (ingest, generate, review), --env config, ingest guardrail, smart default"
+description: "Click-based CLI with subcommands (ingest, run, review), --env config, ingest guardrail, smart default"
 updated_at: "2026-05-15"
 phase: 10
 ---
@@ -11,7 +11,7 @@ phase: 10
 
 ## Description
 
-`python -m analyze [--data data.csv] [--tags tags.csv] [--env custom.env] [--resume] <command> [sub-opts]`. Click-based CLI replacing the old argparse stub. Three subcommands: `ingest`, `generate`, `review`. When no subcommand is given, defaults to review with a prompt to generate if no artifacts exist. Config loading uses `.env` + optional `--env` override.
+`python -m analyze [--data data.csv] [--tags tags.csv] [--env custom.env] [--resume] <command> [sub-opts]`. Click-based CLI replacing the old argparse stub. Three subcommands: `ingest`, `run`, `review`. When no subcommand is given, defaults to review with a prompt to run if no artifacts exist. Config loading uses `.env` + optional `--env` override.
 
 ---
 
@@ -23,7 +23,7 @@ phase: 10
 - Paths resolved to absolute; existence checked per-subcommand before execution
 - Dry-run mode (`--dry-run`) validates setup without executing pipeline (on each subcommand)
 - Ingest guardrail: SHA-256 content hashing prevents accidental re-ingest of unchanged data; prints "Request Denied: No changes detected on ingested data"
-- Generate accepts repeatable `--type` (code, theme, interpretation); HITL review runs after each type
+- Run accepts repeatable `--type` (code, theme, interpretation) or `--all` (mutually exclusive); HITL review runs after inference stages
 - Review enters HITL TUI via rich/questionary; --type filters to code/theme/interpretation
 - No subcommand: queries DuckDB for existing codes; if none found, prompts "Generate codes first? [y/N]"
 
@@ -40,11 +40,11 @@ click>=8.1.0
 
 - Module: `analyze.py` at root (thin entry point with sys.path setup) and `src/python/orchestration/cli.py` (click group + subcommands)
 - Entry point in `pyproject.toml`: `[project.scripts] analyze = analyze:main`
-- Subcommand structure: `ingest`, `generate`, `review` under a `@click.group(invoke_without_command=True)`
+- Subcommand structure: `ingest`, `run`, `review` under a `@click.group(invoke_without_command=True)`
 - Global options: `--data PATH`, `--tags PATH`, `--env FILE`, `--resume`
 - Subcommand options: `--dry-run`, `--verbose`, `--quiet` on each subcommand via `_common_options` decorator
 - `ingest`: CSV→Parquet via `convert_csvs()`, DuckDB init via `init_or_migrate()`, content hashing via `hash_utils.py`
-- `generate`: run inference DAG per type, then enter HITL review; progress display inline
+- `run`: drive pipeline stages 1-10 from current checkpoint via runner.run_pipeline(); --type restricts to specific artifacts; --all runs all stages
 - `review`: call hitl.code_review/hitl.theme_review/hitl.interpretation_review
 - Ingest guardrail: `hash_utils.compute_file_hash()` → SHA-256; stored in DuckDB session state
 - Config: `load_dotenv()` + `load_dotenv(env_file, override=True)` → modifies os.environ → `Config.from_env()`

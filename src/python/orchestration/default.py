@@ -42,28 +42,20 @@ def _check_database_nodes(con, obj: dict) -> None:
     click.echo("No codes found.")
     if click.confirm("Generate codes first?", default=True):
         con.close()
-        _generate_and_review(obj)
+        _run_and_review(obj)
 
 
-def _generate_and_review(obj: dict) -> None:
+def _run_and_review(obj: dict) -> None:
     """Generate codes then enter review TUI."""
-    from orchestration.generate import run_generate_sequence
-    from orchestration.review import enter_review
-    from persistence.duckdb_connection import DEFAULT_DB_PATH
+    from orchestration.run import run_sequence
     from persistence.duckdb_init import init_or_migrate
 
     con = init_or_migrate()
     try:
         click.echo("Running code generation...")
-        run_generate_sequence(con, ("code",))
+        run_sequence(con, ("code",))
     finally:
         con.close()
-
-    con2 = init_or_migrate()
-    try:
-        enter_review(con2, None, DEFAULT_DB_PATH)
-    finally:
-        con2.close()
 
 
 def _has_nodes_of_type(con, node_type: str) -> bool:

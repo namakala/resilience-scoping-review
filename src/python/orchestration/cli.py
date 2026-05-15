@@ -1,7 +1,7 @@
 """Click group definition, subcommand registration, and entry point.
 
 Subcommands are standalone click commands defined in sibling modules
-(``ingest.py``, ``generate.py``, ``review.py``) registered via
+(``ingest.py``, ``run.py``, ``review.py``) registered via
 ``cli.add_command()``.  ``ctx.obj`` is inherited from the group context.
 """
 
@@ -13,9 +13,9 @@ from typing import Optional
 import click
 from orchestration.config import load_configuration
 from orchestration.default import handle_default
-from orchestration.generate import generate_cmd
 from orchestration.ingest import ingest_cmd
 from orchestration.review import review_cmd
+from orchestration.run import run_cmd
 
 
 @click.group(
@@ -72,7 +72,7 @@ def cli(
 # ── Register standalone subcommands ─────────────────────────────────────────
 
 cli.add_command(ingest_cmd)
-cli.add_command(generate_cmd)
+cli.add_command(run_cmd)
 cli.add_command(review_cmd)
 
 
@@ -89,7 +89,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         Exit code (``0`` for success, ``1`` for error).
     """
     try:
-        cli(argv=argv, standalone_mode=True)
+        cli(args=argv, standalone_mode=True)
         return 0
     except SystemExit as exc:
         return exc.code if isinstance(exc.code, int) else 1

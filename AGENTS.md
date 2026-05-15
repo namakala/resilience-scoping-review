@@ -1,7 +1,7 @@
 ---
 title: "Project Agentic Documentation Index"
 description: "Entry point for agentic documentation across all system layers and modules"
-updated_at: "2026-05-13"
+updated_at: "2026-05-15"
 ---
 
 # Local-First Qualitative Thematic Analysis
@@ -61,8 +61,8 @@ See `@src/python/ontology/AGENTS.md` for validation rules.
 ## Quick Reference
 
 Entry point: `python analyze.py [global-opts] <command> [sub-opts]`.
-Commands: `ingest` (load CSV data), `generate --type code|theme|interpretation` (LLM inference), `review` (HITL TUI).
-No subcommand defaults to review (prompts to generate if no artifacts exist).
+Commands: `ingest` (load CSV data), `run [--all|--type]` (pipeline stages with HITL), `review` (HITL TUI).
+No subcommand defaults to review (prompts to run if no artifacts exist).
 Global options: `--data PATH`, `--tags PATH`, `--env FILE`, `--resume`.
 Config: `.env` + optional `--env FILE` override. Precedence: CLI > --env > .env > defaults.
 Stages: load → embed → index → infer_codes → review_codes → infer_themes → review_themes → infer_interpretations → review_interpretations → export.

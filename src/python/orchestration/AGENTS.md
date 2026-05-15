@@ -1,6 +1,6 @@
 ---
 title: "Orchestration Layer — CLI & Config"
-description: "Click-based CLI, subcommands (ingest, generate, review), env var merging, ingest guardrail"
+description: "Click-based CLI, subcommands (ingest, run, review), env var merging, ingest guardrail"
 updated_at: "2026-05-15"
 ---
 
@@ -24,7 +24,7 @@ Global options:
 
 Commands:
   ingest              Ingest CSV data into DuckDB session
-  generate            Generate codes, themes, or interpretations
+  run [--all|--type]  Run pipeline stages with HITL validation
   review              Enter HITL review TUI
   (no command)        Default: review with empty-check prompt
 ```
@@ -37,11 +37,12 @@ Commands:
 - Re-ingest blocked with "No changes detected" message unless files have changed
 - `--force` skips confirmation prompt when re-ingesting changed data
 
-**generate:**
-- Accepts repeatable `--type` (code, theme, interpretation)
-- Runs inference sequentially: generate → HITL → next type
-- Shows batch progress: `[Batch N/M] Tag '...' — sending to LLM...`
-- Each type's HITL session must complete before advancing
+**run:**
+- Default (no flags) runs all stages from current checkpoint through export
+- `--type code|theme|interpretation` limits to specific artifact types (repeatable)
+- `--all` explicitly requests all stages (mutually exclusive with --type)
+- Drives stages via ``runner.run_pipeline()`` with checkpoint after each stage
+- Runs HITL review automatically after inference stages (5, 7, 9)
 
 **review:**
 - Enters HITL review TUI using rich panels and questionary prompts
@@ -50,7 +51,7 @@ Commands:
 
 **Default (no subcommand):**
 - Queries DuckDB for existing artifacts
-- If nothing to review, prompts to generate codes first
+- If nothing to review, prompts to run code generation first
 - Otherwise enters review TUI
 
 ## Config Loading
@@ -71,6 +72,8 @@ does re-ingest proceed.
 ## Modules
 
 - `cli.py` — Click group, subcommand definitions, dispatch, progress display
+- `run.py` — ``run`` subcommand: ``run_cmd()`` CLI handler, ``run_sequence()`` programmatic entry
+- `runner.py` — Stage-transition driver: ``run_pipeline()``, ``execute_stage()``, ``resolve_target_stage()``
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
 - `state.py` — `WorkflowState` dataclass: stage transitions, serialization, dirty flags, config hash
 - `state_rules.py` — Stage constants (`MIN_STAGE`, `MAX_STAGE`, `STAGE_PREREQS`) + field validation
@@ -79,9 +82,9 @@ does re-ingest proceed.
 
 - Calls `persistence.converter.convert_csvs()` and `persistence.duckdb_init.init_or_migrate()`
 - Calls `hitl.code_review.review_codes()`, `hitl.theme_review.review_themes()`, etc.
-- Calls `pipeline.executor.execute_dag()` for inference
+- Calls `pipeline.executor.execute_dag()` for inference via ``runner.execute_stage()``
 - Reads config from `config.settings`
-- Stores state via `persistence.state_repository`
+- Stores state via `persistence.state_repository` (checkpoint after each stage)
 
 ## References
 

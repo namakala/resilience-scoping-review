@@ -20,11 +20,7 @@ sys.path.insert(
 import polars as pl  # noqa: E402
 from semantic.api import get_index_info, get_scores, get_top_n  # noqa: E402
 from semantic.index_builder import build_index  # noqa: E402
-from semantic.tokenizer import (  # noqa: E402
-    _TOKENIZER,
-    _build_tokenizer,
-    _parse_tokenizer_config,
-)
+from semantic.tokenizer import _build_tokenizer, _parse_tokenizer_config  # noqa: E402
 
 
 def _make_keywords_lf(rows: list) -> pl.LazyFrame:
@@ -50,7 +46,12 @@ class TestBM25Tokenizer(unittest.TestCase):
 
     def test_default_tokenizer_splits_and_lowercases(self):
         text = "Hello WORLD, stop THIS!"
-        tokens = _TOKENIZER(text)
+        # Build tokenizer explicitly instead of using module-level _TOKENIZER
+        # which picks up BM25_TOKENIZER_CONFIG from .env
+        tokenizer = _build_tokenizer(
+            _parse_tokenizer_config("lowercase,split_by_space")
+        )
+        tokens = tokenizer(text)
         self.assertIn("hello", tokens)
         self.assertIn("world,", tokens)
         self.assertIn("stop", tokens)
