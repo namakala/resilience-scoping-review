@@ -17,8 +17,6 @@ import numpy as np
 from persistence.embedding_cache import get_embedding
 from utils.logging import get_logger
 
-from .retrieval.candidates import resolve_candidate_ids
-
 logger = get_logger(__name__)
 
 _MAX_K = 20
@@ -105,13 +103,12 @@ def find_neighbors(
     row = con.execute("SELECT tag FROM nodes WHERE id = ?", [entity_id]).fetchone()
     if row is None:
         raise KeyError(f"Node {entity_id} not found")
-    tag = str(row[0])
+    _ = str(row[0])
 
-    candidate_ids, _ = resolve_candidate_ids(
-        tag,
-        entity_type,
-        con,
-    )
+    rows = con.execute(
+        "SELECT id, tag FROM nodes WHERE type = ?", [entity_type]
+    ).fetchall()
+    candidate_ids = {r[0] for r in rows}
     candidate_ids.discard(entity_id)
     if not candidate_ids:
         return []

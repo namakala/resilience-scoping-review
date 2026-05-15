@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
@@ -168,19 +168,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
         ):
@@ -207,19 +207,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
         ):
@@ -241,19 +241,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
         ):
@@ -287,19 +287,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
             mock.patch(
@@ -334,19 +334,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
             mock.patch(
@@ -414,7 +414,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors",
+                "hitl.interpretation_review.get_interpretation_neighbors",
                 return_value=[],
             ),
             mock.patch("hitl.display._display_evidence_chain") as mock_display,
@@ -436,19 +436,19 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
         with (
             mock.patch("hitl.shared.console.print"),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_themes",
+                "hitl.interpretation_review.get_interpretation_themes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_theme_codes",
+                "hitl.interpretation_review.get_theme_codes",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_code_exemplars",
+                "hitl.interpretation_review.get_code_exemplars",
                 return_value=[],
             ),
             mock.patch(
-                "hitl.interpretation_review._get_interpretation_neighbors"
+                "hitl.interpretation_review.get_interpretation_neighbors"
             ) as mock_neighbors,
         ):
             review_interpretations(self.con, db_path=self.db_path)
@@ -958,7 +958,7 @@ class TestInterpretationReviewSplit(unittest.TestCase):
 
 
 class TestInterpretationReviewSplitInteractive(unittest.TestCase):
-    """Tests for _handle_split_interactive flow in prompts.py."""
+    """Tests for handle_split_interactive flow in prompts_interpretations.py."""
 
     def setUp(self):
         self.tmpdir = Path(tempfile.mkdtemp())
@@ -1033,7 +1033,7 @@ class TestInterpretationReviewSplitInteractive(unittest.TestCase):
     @mock.patch("questionary.confirm")
     def test_split_interactive_happy_path(self, mock_confirm, mock_text, mock_checkbox):
         """Full interactive split flow completes successfully."""
-        from hitl.prompts import _handle_split_interactive
+        from hitl.prompts_interpretations import handle_split_interactive
 
         self._insert_interpretation(1, name="TestInterp", theme_ids=[10, 11])
         self._insert_theme(10, "ThemeA", tag="T1")
@@ -1059,7 +1059,7 @@ class TestInterpretationReviewSplitInteractive(unittest.TestCase):
         mock_confirm.return_value.ask.return_value = True
 
         with mock.patch("hitl.shared.console.print"):
-            _handle_split_interactive(self.con, interp, db_path=self.db_path)
+            handle_split_interactive(self.con, interp, db_path=self.db_path)
 
         # Original should be merged
         orig_status = self.con.execute(
@@ -1070,7 +1070,7 @@ class TestInterpretationReviewSplitInteractive(unittest.TestCase):
     @mock.patch("questionary.checkbox")
     def test_split_interactive_cancel_at_theme_selection(self, mock_checkbox):
         """Cancelling at theme selection prints message and returns."""
-        from hitl.prompts import _handle_split_interactive
+        from hitl.prompts_interpretations import handle_split_interactive
 
         self._insert_interpretation(1, name="TestInterp", theme_ids=[10, 11])
         self._insert_theme(10, "ThemeA")
@@ -1080,7 +1080,7 @@ class TestInterpretationReviewSplitInteractive(unittest.TestCase):
         mock_checkbox.return_value.ask.return_value = None
 
         with mock.patch("hitl.shared.console.print") as mock_print:
-            _handle_split_interactive(self.con, interp, db_path=self.db_path)
+            handle_split_interactive(self.con, interp, db_path=self.db_path)
             printed = " ".join(str(c[0][0]) for c in mock_print.call_args_list)
             self.assertIn("cancelled", printed.lower())
 

@@ -5,10 +5,12 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import networkx as nx
-from inference.interpretation_span_grouping import (
+import networkx as nx  # noqa: E402
+from inference.interpretation_span_grouping import (  # noqa: E402
     build_ontology_subtree,
     build_tag_hierarchy,
     group_ready_tags_into_spans,

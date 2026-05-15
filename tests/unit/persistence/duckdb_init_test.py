@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 # Add src/python to sys.path for imports
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
@@ -98,6 +98,7 @@ class TestDuckDBInitialization(unittest.TestCase):
                 "session_state",
                 "user_actions",
                 "embedding_cache",
+                "node_cache",
                 "invalidation_log",
                 "inference_status",
             }

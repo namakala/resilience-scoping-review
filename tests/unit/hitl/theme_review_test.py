@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
@@ -124,8 +124,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
         ):
             review_themes(self.con, db_path=self.db_path)
 
@@ -151,8 +151,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
         ):
             review_themes(self.con, db_path=self.db_path)
 
@@ -177,8 +177,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
         ):
             review_themes(self.con, db_path=self.db_path)
 
@@ -191,7 +191,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
     @mock.patch("questionary.select")
     @mock.patch("questionary.text")
     @mock.patch("questionary.checkbox")
-    @mock.patch("hitl.prompts._get_available_codes_for_tag")
+    @mock.patch("hitl.prompts_themes.get_available_codes_for_tag")
     def test_edit_narrative_via_prompt(
         self, mock_get_codes, mock_checkbox, mock_text, mock_select, mock_readiness
     ):
@@ -216,8 +216,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
         ):
             review_themes(self.con, db_path=self.db_path)
 
@@ -244,8 +244,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
             mock.patch(
                 "ontology.validate_constraint",
                 side_effect=ConstraintError(
@@ -295,8 +295,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
-            mock.patch("hitl.theme_review._get_theme_neighbors") as mock_neighbors,
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors") as mock_neighbors,
         ):
             review_themes(self.con, db_path=self.db_path)
 
@@ -321,8 +321,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
             mock.patch(
                 "ontology.validate_constraint",
                 side_effect=ConstraintError(
@@ -383,8 +383,8 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print") as mock_print,
-            mock.patch("hitl.theme_review._get_theme_neighbors", return_value=[]),
-            mock.patch("hitl.theme_review._get_constituent_codes", return_value=[]),
+            mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
+            mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
         ):
             review_themes(self.con, db_path=self.db_path)
 

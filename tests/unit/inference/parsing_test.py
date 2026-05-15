@@ -6,9 +6,11 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.parsing import (
+from inference.parsing import (  # noqa: E402
     CodeInference,
     InterpretationInference,
     ThemeInference,
@@ -17,7 +19,7 @@ from inference.parsing import (
     _unwrap,
 )
 from inference.parsing import logger as parsing_logger
-from inference.parsing import (
+from inference.parsing import (  # noqa: E402
     parse_code_response,
     parse_interpretation_response,
     parse_theme_response,

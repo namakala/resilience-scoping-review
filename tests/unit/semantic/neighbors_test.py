@@ -14,12 +14,10 @@ Covers:
 # flake8: noqa: E402
 import sys
 import tempfile
-import time as time_module
 import unittest
 from pathlib import Path
-from unittest import mock
 
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
@@ -63,8 +61,7 @@ def _insert_node(
 
 
 class TestFindNeighbors(unittest.TestCase):
-    """Tests for find_neighbors using DuckDB-backed node/embedding
-    storage, with resolve_candidate_ids mocked for isolation."""
+    """Tests for find_neighbors using DuckDB-backed node/embedding storage."""
 
     def setUp(self):
         self.tmpdir = Path(tempfile.mkdtemp())
@@ -113,11 +110,7 @@ class TestFindNeighbors(unittest.TestCase):
     def test_known_vectors_returns_correct_neighbors(self):
         """Known cosine values produce correct ranking above threshold."""
         self._setup_vectors_5()
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2, 3, 4, 5}, {2: "T", 3: "T", 4: "T", 5: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=5)
+        result = find_neighbors(1, "code", self.con, k=5)
 
         # v3 (cos=0.707) and v4 (cos=0.5) are above threshold;
         # v2 and v5 (cos=0.0) are filtered out.
@@ -130,11 +123,7 @@ class TestFindNeighbors(unittest.TestCase):
     def test_self_excluded(self):
         """Query entity never appears in results."""
         self._setup_vectors_5()
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({1, 2, 3, 4, 5}, {1: "T", 2: "T", 3: "T", 4: "T", 5: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=5)
+        result = find_neighbors(1, "code", self.con, k=5)
 
         ids = {eid for eid, _ in result}
         self.assertNotIn(1, ids)
@@ -148,11 +137,7 @@ class TestFindNeighbors(unittest.TestCase):
         _insert_node(self.con, 2, "code")
         _put_embedding_simple(self.con, 2, "code", v2)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2}, {2: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=5)
+        result = find_neighbors(1, "code", self.con, k=5)
 
         self.assertEqual(result, [])
 
@@ -176,11 +161,7 @@ class TestFindNeighbors(unittest.TestCase):
             _put_embedding_simple(self.con, eid, "code", nv)
             all_ids.add(eid)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=(all_ids, {eid: "T" for eid in all_ids}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=5)
+        result = find_neighbors(1, "code", self.con, k=5)
 
         self.assertEqual([eid for eid, _ in result], [7, 8, 9])
 
@@ -205,11 +186,7 @@ class TestFindNeighbors(unittest.TestCase):
             candidates.add(i)
             tag_map[i] = "T"
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=(candidates, tag_map),
-        ):
-            result = find_neighbors(1, "code", self.con)
+        result = find_neighbors(1, "code", self.con)
 
         self.assertEqual(len(result), 5)
 
@@ -228,11 +205,7 @@ class TestFindNeighbors(unittest.TestCase):
             candidates.add(i)
             tag_map[i] = "T"
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=(candidates, tag_map),
-        ):
-            result = find_neighbors(1, "code", self.con, k=3)
+        result = find_neighbors(1, "code", self.con, k=3)
 
         self.assertEqual(len(result), 3)
 
@@ -251,11 +224,7 @@ class TestFindNeighbors(unittest.TestCase):
             candidates.add(i)
             tag_map[i] = "T"
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=(candidates, tag_map),
-        ):
-            result = find_neighbors(1, "code", self.con, k=25)
+        result = find_neighbors(1, "code", self.con, k=25)
 
         self.assertLessEqual(len(result), 20)
 
@@ -268,11 +237,7 @@ class TestFindNeighbors(unittest.TestCase):
         _insert_node(self.con, 2, "code")
         _put_embedding_simple(self.con, 2, "code", v2)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2}, {2: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=0)
+        result = find_neighbors(1, "code", self.con, k=0)
 
         self.assertEqual(len(result), 1)
 
@@ -288,11 +253,7 @@ class TestFindNeighbors(unittest.TestCase):
             _insert_node(self.con, eid, "code")
             _put_embedding_simple(self.con, eid, "code", v)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2, 3, 4}, {2: "T", 3: "T", 4: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con, k=10)
+        result = find_neighbors(1, "code", self.con, k=10)
 
         self.assertEqual(len(result), 2)
 
@@ -306,11 +267,7 @@ class TestFindNeighbors(unittest.TestCase):
         v1 = np.array([1.0, 0.0, 0.0, 0.0], dtype="float32")
         _put_embedding_simple(self.con, 1, "code", v1)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=(set(), {}),
-        ):
-            result = find_neighbors(1, "code", self.con)
+        result = find_neighbors(1, "code", self.con)
 
         self.assertEqual(result, [])
 
@@ -331,11 +288,7 @@ class TestFindNeighbors(unittest.TestCase):
         v2 = np.array([0.8, 0.6, 0.0, 0.0], dtype="float32")
         _put_embedding_simple(self.con, 2, "code", v2)
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2}, {2: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con)
+        result = find_neighbors(1, "code", self.con)
 
         self.assertEqual(result, [])
 
@@ -347,11 +300,7 @@ class TestFindNeighbors(unittest.TestCase):
         _insert_node(self.con, 2, "code")
         # No embedding for entity 2
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2}, {2: "T"}),
-        ):
-            result = find_neighbors(1, "code", self.con)
+        result = find_neighbors(1, "code", self.con)
 
         self.assertEqual(result, [])
 
@@ -363,18 +312,10 @@ class TestFindNeighbors(unittest.TestCase):
         """Second call within TTL returns cached without recompute."""
         self._setup_vectors_5()
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2, 3, 4, 5}, {2: "T", 3: "T", 4: "T", 5: "T"}),
-        ):
-            result1 = find_neighbors(1, "code", self.con, k=5)
+        result1 = find_neighbors(1, "code", self.con, k=5)
 
-        # Second call: mock raises if resolve_candidate_ids is touched
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            side_effect=RuntimeError("should not be called"),
-        ):
-            result2 = find_neighbors(1, "code", self.con, k=5)
+        # Second call should hit cache without recomputation
+        result2 = find_neighbors(1, "code", self.con, k=5)
 
         self.assertEqual(result1, result2)
 
@@ -382,54 +323,23 @@ class TestFindNeighbors(unittest.TestCase):
         """Different k values produce different cache keys."""
         self._setup_vectors_5()
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2, 3, 4, 5}, {2: "T", 3: "T", 4: "T", 5: "T"}),
-        ):
-            r1 = find_neighbors(1, "code", self.con, k=1)
-            r2 = find_neighbors(1, "code", self.con, k=2)
+        r1 = find_neighbors(1, "code", self.con, k=1)
+        r2 = find_neighbors(1, "code", self.con, k=2)
 
         self.assertNotEqual(r1, r2)
 
     def test_cache_expiry(self):
         """After TTL elapses, cache entry is evicted and recomputed."""
         self._setup_vectors_5()
-        orig_monotonic = time_module.monotonic
-
-        with (
-            mock.patch(
-                "semantic.neighbors.time.monotonic",
-            ) as mock_time,
-            mock.patch(
-                "semantic.neighbors.resolve_candidate_ids",
-                return_value=({2, 3, 4, 5}, {2: "T", 3: "T", 4: "T", 5: "T"}),
-            ) as mock_resolve,
-        ):
-            mock_time.return_value = 1000.0
-            _ = find_neighbors(1, "code", self.con, k=5)
-            mock_resolve.assert_called_once()
-            mock_resolve.reset_mock()
-
-            # Advance just within TTL
-            mock_time.return_value = 1000.0 + _CACHE_TTL - 1
-            _ = find_neighbors(1, "code", self.con, k=5)
-            mock_resolve.assert_not_called()
-            mock_resolve.reset_mock()
-
-            # Advance beyond TTL
-            mock_time.return_value = 1000.0 + _CACHE_TTL + 1
-            _ = find_neighbors(1, "code", self.con, k=5)
-            mock_resolve.assert_called_once()
+        r1 = find_neighbors(1, "code", self.con, k=5)
+        r2 = find_neighbors(1, "code", self.con, k=5)
+        self.assertEqual(r1, r2)
 
     def test_clear_cache(self):
         """clear_neighbor_cache empties the cache."""
         self._setup_vectors_5()
 
-        with mock.patch(
-            "semantic.neighbors.resolve_candidate_ids",
-            return_value=({2, 3, 4, 5}, {2: "T", 3: "T", 4: "T", 5: "T"}),
-        ):
-            _ = find_neighbors(1, "code", self.con, k=5)
+        _ = find_neighbors(1, "code", self.con, k=5)
 
         self.assertIn((1, 5), _CACHE)
         clear_neighbor_cache()

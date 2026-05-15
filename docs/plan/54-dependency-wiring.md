@@ -1,7 +1,7 @@
 ---
 title: "54 — dependency-wiring"
 description: "Wire inputs/outputs between nodes in Hamilton DAG"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 9
 ---
 

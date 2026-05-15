@@ -6,14 +6,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import duckdb
-from inference.batching import Batch
-from inference.parsing import ThemeInference
-from inference.prompts import PromptBundle
-from inference.theme_code_loading import _CodeRow
-from inference.theme_inference import (
+import duckdb  # noqa: E402
+from inference.batching import Batch  # noqa: E402
+from inference.parsing import ThemeInference  # noqa: E402
+from inference.prompts import PromptBundle  # noqa: E402
+from inference.theme_code_loading import _CodeRow  # noqa: E402
+from inference.theme_inference import (  # noqa: E402
     _codes_to_dicts,
     _process_theme_batch,
     infer_themes,

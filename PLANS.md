@@ -83,12 +83,12 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 9 — Pipeline Orchestration (52–57)
 
-- [ ] @docs/plan/52-dag-constructor.md
-- [ ] @docs/plan/53-node-function-definitions.md
-- [ ] @docs/plan/54-dependency-wiring.md
-- [ ] @docs/plan/55-dirty-flag-propagation.md
-- [ ] @docs/plan/56-selective-execution.md
-- [ ] @docs/plan/57-cache-miss-handling.md
+- [x] @docs/plan/52-dag-constructor.md
+- [x] @docs/plan/53-node-function-definitions.md
+- [x] @docs/plan/54-dependency-wiring.md
+- [x] @docs/plan/55-dirty-flag-propagation.md
+- [x] @docs/plan/56-selective-execution.md
+- [x] @docs/plan/57-cache-miss-handling.md
 
 ## Phase 10 — Orchestration Layer (58–64)
 

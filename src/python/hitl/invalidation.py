@@ -13,7 +13,7 @@ import duckdb
 from inference.inference_status_crud import set_status_draft
 from inference.inference_status_types import ENTITY_THEME, STAGE_THEME
 from persistence.embedding_cache import invalidate_entity
-from persistence.state_updates import update_dirty_flag
+from pipeline.dirty import propagate_dirty
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -46,7 +46,7 @@ def invalidate_code_embedding(
     """
     invalidate_entity(con, str(code_id), "code")
     if tag:
-        update_dirty_flag(con, tag)
+        propagate_dirty(con, tag)
     logger.debug(
         "Code embedding invalidated",
         extra={"code_id": code_id, "tag": tag},
@@ -58,7 +58,7 @@ def invalidate_theme_embedding(
     theme_id: int,
     tag: str,
 ) -> None:
-    """Invalidate a theme's embedding cache and mark its tag branch as dirty.
+    """Invalidate a theme's embedding cache and propagate dirty flags upward.
 
     Args:
         con: Active DuckDB connection.
@@ -67,7 +67,7 @@ def invalidate_theme_embedding(
     """
     invalidate_entity(con, str(theme_id), "theme")
     if tag:
-        update_dirty_flag(con, tag)
+        propagate_dirty(con, tag)
     logger.debug(
         "Theme embedding invalidated",
         extra={"theme_id": theme_id, "tag": tag},
@@ -79,7 +79,7 @@ def invalidate_interpretation_embedding(
     interp_id: int,
     tag_spans: list[str],
 ) -> None:
-    """Invalidate an interpretation's embedding and mark its tag branches dirty.
+    """Invalidate an interpretation's embedding and propagate dirty flags upward.
 
     Args:
         con: Active DuckDB connection.
@@ -89,7 +89,7 @@ def invalidate_interpretation_embedding(
     invalidate_entity(con, str(interp_id), "interpretation")
     for tag in tag_spans:
         if tag:
-            update_dirty_flag(con, tag)
+            propagate_dirty(con, tag)
     logger.debug(
         "Interpretation embedding invalidated",
         extra={"interp_id": interp_id, "tag_spans": tag_spans},

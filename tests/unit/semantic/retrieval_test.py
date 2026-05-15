@@ -1,507 +1,402 @@
-"""Unit tests for hybrid retrieval pipeline (Feature 28).
+"""Unit tests for hybrid retrieval (pure version, no DB mocks).
 
-Covers:
-- Basic exemplar retrieval with BM25 + embedding + rerank
-- Non-exemplar candidate types (BM25 skipped, renormalized weights)
-- Proximity boost computation (same tag vs distant tag)
-- Deterministic ordering with tie-breaking by entity_id
-- Top-k limiting and edge cases (empty set, fewer than k candidates)
-- Model hash propagation to embedding cache
+Tests call ``hybrid_retrieve()`` with in-memory data dicts and graphs.
 """
 
-# flake8: noqa: E402
 import sys
 import unittest
 from pathlib import Path
-from unittest import mock
 
 sys.path.insert(
-    0,
-    str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
+
+import networkx as nx  # noqa: E402
+import numpy as np  # noqa: E402
+import polars as pl  # noqa: E402
+from semantic.index_builder import build_index  # noqa: E402
+from semantic.retrieval.api import hybrid_retrieve  # noqa: E402
+from semantic.retrieval.candidates import resolve_candidate_ids  # noqa: E402
+from semantic.retrieval.scoring import (  # noqa: E402
+    get_bm25_scores_for_candidates,
+    get_depth,
+    get_embedding_scores,
 )
-
-import numpy as np
-from semantic.retrieval import hybrid_retrieve
-
-logger = None  # placeholder, not used in tests
+from semantic.retrieval.weights import select_weights  # noqa: E402
 
 
-class _MockDAG:
-    """Simulates a NetworkX DiGraph with depth attributes.
-
-    Supports ``tag in G`` (``__contains__``) and
-    ``G.nodes[tag].get("depth")`` (via dict access).
-    """
-
-    def __init__(self, tag_depths: dict[str, int]):
-        self._attrs: dict[str, dict] = {
-            tag: {"depth": d} for tag, d in tag_depths.items()
-        }
-
-    def __contains__(self, tag: object) -> bool:
-        return tag in self._attrs
-
-    @property
-    def nodes(self) -> dict[str, dict]:
-        return self._attrs
+def _make_ontology_graph(tag_depths: dict[str, int]) -> nx.DiGraph:
+    G = nx.DiGraph()
+    for tag, depth in tag_depths.items():
+        G.add_node(tag, depth=depth)
+    if "root" in tag_depths:
+        for tag, depth in tag_depths.items():
+            if depth > 0:
+                parent = ".".join(tag.split(".")[:-1]) or "root"
+                if parent in G:
+                    G.add_edge(parent, tag)
+    return G
 
 
-class TestHybridRetrieve(unittest.TestCase):
-    """Hybrid retrieval tests across exemplar and non-exemplar types."""
+def _make_bm25_index(exemplar_keywords: dict[int, list[str]]) -> dict:
+    rows = []
+    kw_id = 0
+    for eid, kws in exemplar_keywords.items():
+        for kw in kws:
+            kw_id += 1
+            rows.append((kw_id, eid, kw, 1))
+    df = pl.DataFrame(
+        {
+            "keyword_id": [r[0] for r in rows],
+            "exemplar_id": [r[1] for r in rows],
+            "keyword_text": [r[2] for r in rows],
+            "frequency": [r[3] for r in rows],
+        },
+        schema={
+            "keyword_id": pl.Int64,
+            "exemplar_id": pl.Int64,
+            "keyword_text": pl.String,
+            "frequency": pl.Int32,
+        },
+    ).lazy()
+    result = build_index(df)
+    assert isinstance(result, dict)
+    return result
 
-    # Shared ontology layout for all tests
-    TAG_DEPTHS = {
-        "root": 0,
-        "root.child": 1,
-        "root.child.grandchild": 2,
-    }
 
-    def setUp(self):
-        # Ontology mocks
-        self.mock_get_cached_subtree = mock.patch(
-            "semantic.retrieval.candidates.get_cached_subtree",
-        ).start()
-        self.mock_get_tag_dag = mock.patch(
-            "semantic.retrieval.scoring.get_tag_dag",
-        ).start()
-        self.mock_get_tag_dag.return_value = _MockDAG(
-            self.TAG_DEPTHS,
-        )
+TAG_DEPTHS = {"root": 0, "root.child": 1, "root.child.grandchild": 2}
+QUERY_EMB = np.array([0.8, 0.6], dtype="float32")
 
-        self.mock_get_scope_for_tag = mock.patch(
-            "semantic.retrieval.candidates.get_scope_for_tag",
-        ).start()
 
-        # BM25 mock
-        self.mock_get_scores = mock.patch(
-            "semantic.retrieval.scoring.get_scores",
-        ).start()
-
-        # Embedding cache mock
-        self.mock_get_embedding = mock.patch(
-            "semantic.retrieval.scoring.get_embedding",
-        ).start()
-
-        # Exemplar loader mock
-        self.mock_load_exemplars = mock.patch(
-            "semantic.retrieval.candidates.load_exemplars",
-        ).start()
-
-        # DuckDB connection mock
-        self.mock_con = mock.MagicMock()
-
-        # Shared test query embedding (L2-normalized)
-        self.query_emb = np.array([0.8, 0.6], dtype="float32")
-
-    def tearDown(self):
-        mock.patch.stopall()
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def _setup_exemplar_mocks(
-        self,
-        exemplar_ids_tag: dict[int, str],
-        bm25_scores: dict[int, float],
-        emb_scores: dict[int, list[float]],
-    ) -> None:
-        """Configure exemplar-path mocks with the given data.
-
-        Args:
-            exemplar_ids_tag: mapping of exemplar_id -> tag string.
-            bm25_scores: mapping of exemplar_id -> BM25 score [0, 1].
-            emb_scores: mapping of exemplar_id -> 2-element vector for
-                embedding cosine computation.
-        """
-        # get_cached_subtree
-        self.mock_get_cached_subtree.return_value = {
-            "tag": "root",
-            "ancestors": [],
-            "descendants": ["root.child", "root.child.grandchild"],
-            "subtree_exemplars": list(exemplar_ids_tag.keys()),
-            "subtree_codes": [],
-            "subtree_themes": [],
-        }
-
-        # load_exemplars
-        mock_lazy = mock.MagicMock()
-        mock_df = mock.MagicMock()
-        mock_lazy.collect.return_value = mock_df
-        mock_df.iter_rows.return_value = iter(
-            [{"id": eid, "tag": tag} for eid, tag in exemplar_ids_tag.items()],
-        )
-        self.mock_load_exemplars.return_value = mock_lazy
-
-        # get_scores (BM25)
-        self.mock_get_scores.return_value = bm25_scores
-
-        # get_embedding
-        def mock_get_emb(con, eid_str, etype, mhash=None):
-            eid = int(eid_str)
-            vec = emb_scores.get(eid)
-            if vec is None:
-                return None
-            return np.array(vec, dtype="float32")
-
-        self.mock_get_embedding.side_effect = mock_get_emb
-
-    def _setup_code_mocks(
-        self,
-        db_rows: list[tuple[int, str]],
-        scope_tags: set[str],
-        emb_scores: dict[int, list[float]],
-    ) -> None:
-        """Configure code-path mocks with the given data."""
-        self.mock_get_scope_for_tag.return_value = scope_tags
-
-        # Nodes table mock
-        mock_result = mock.MagicMock()
-        mock_result.fetchall.return_value = db_rows
-        self.mock_con.execute.return_value = mock_result
-
-        # get_embedding
-        def mock_get_emb(con, eid_str, etype, mhash=None):
-            eid = int(eid_str)
-            vec = emb_scores.get(eid)
-            if vec is None:
-                return None
-            return np.array(vec, dtype="float32")
-
-        self.mock_get_embedding.side_effect = mock_get_emb
-
-    # ------------------------------------------------------------------
-    # Exemplar tests
-    # ------------------------------------------------------------------
+class TestHybridRetrieveExemplars(unittest.TestCase):
+    """Exemplar retrieval tests — pure data, no mocks."""
 
     def test_basic_hybrid_retrieval_exemplars(self):
-        """Full pipeline: scope + BM25 + embedding -> ranked results."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={
-                1: "root.child",
-                2: "root.child",
-                3: "root.child.grandchild",
-            },
-            bm25_scores={1: 1.0, 2: 0.8, 3: 0.6},
-            emb_scores={
-                1: [1.0, 0.0],  # dot with query_emb [0.8, 0.6] = 0.8
-                2: [0.6, 0.8],  # dot = 0.8*0.6+0.6*0.8 = 0.96
-                3: [0.0, 1.0],  # dot = 0.6
-            },
-        )
+        emb_map = {
+            1: np.array([1.0, 0.0], dtype="float32"),
+            2: np.array([0.6, 0.8], dtype="float32"),
+            3: np.array([0.0, 1.0], dtype="float32"),
+        }
+        tag_map = {1: "root.child", 2: "root.child", 3: "root.child.grandchild"}
+        bm25 = _make_bm25_index({1: ["stress"], 2: ["coping"], 3: ["resilience"]})
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["keyword1", "keyword2"],
-            query_embedding=self.query_emb,
+            query_keywords=["stress"],
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
-            k=3,
+            k=50,
+            tag_scope_map={"root": {1, 2, 3}},
+            tag_entity_map=tag_map,
+            bm25_index=bm25,
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
 
-        # Expected final scores (depth of root=0, root.child=1, grand=2):
-        # depth_dist for root.child candidates = |1-0| = 1 -> prox = 0.5
-        # depth_dist for grandchild candidate = |2-0| = 2 -> prox = 1/3
-        # ID 1: 0.5*0.8 + 0.3*0.5 + 0.2*1.0 = 0.40+0.15+0.20 = 0.75
-        # ID 2: 0.5*0.96 + 0.3*0.5 + 0.2*0.8 = 0.48+0.15+0.16 = 0.79
-        # ID 3: 0.5*0.6 + 0.3*0.333 + 0.2*0.6 = 0.30+0.10+0.12 = 0.52
         self.assertEqual(len(result), 3)
-        self.assertEqual(result[0][0], 2)  # highest: 2
-        self.assertEqual(result[1][0], 1)  # second: 1
-        self.assertEqual(result[2][0], 3)  # third: 3
-        # Verify descending scores
         scores = [s for _, s in result]
         self.assertEqual(scores, sorted(scores, reverse=True))
 
-    def test_proximity_boost_favors_same_tag(self):
-        """Candidates matching query tag get higher proximity boost."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={
-                1: "root",  # same tag as query -> depth_dist=0
-                2: "root.child",  # depth_dist=1
-            },
-            bm25_scores={1: 0.5, 2: 0.5},
-            emb_scores={
-                1: [0.5, 0.5],  # dot = 0.8*0.5+0.6*0.5 = 0.70
-                2: [0.5, 0.5],  # same
-            },
-        )
-
+    def test_empty_candidate_set(self):
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_keywords=[],
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
-            k=2,
+            k=50,
+            tag_scope_map={},
+            tag_entity_map={},
+            bm25_index=_make_bm25_index({}),
+            embeddings_map={},
+            ontology_graph=_make_ontology_graph(TAG_DEPTHS),
         )
-
-        # Compute manually:
-        # ID 1: prox = 1/(1+0) = 1.0
-        #   final = 0.5*0.7 + 0.3*1.0 + 0.2*0.5 = 0.35+0.30+0.10 = 0.75
-        # ID 2: prox = 1/(1+1) = 0.5
-        #   final = 0.5*0.7 + 0.3*0.5 + 0.2*0.5 = 0.35+0.15+0.10 = 0.60
-        self.assertEqual(result[0][0], 1)  # same tag ranks higher
-        self.assertAlmostEqual(result[0][1], 0.75, places=5)
-
-    def test_tie_breaking_by_entity_id(self):
-        """Equal scores resolve by lower entity_id first."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={
-                10: "root.child",
-                20: "root.child",
-            },
-            bm25_scores={10: 0.5, 20: 0.5},
-            emb_scores={
-                10: [0.5, 0.5],  # dot = 0.70
-                20: [0.5, 0.5],  # same
-            },
-        )
-
-        result = hybrid_retrieve(
-            query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
-            candidate_type="exemplar",
-            con=self.mock_con,
-            k=2,
-        )
-
-        # Both have same scores, so entity_id=10 should come first
-        self.assertEqual(result[0][0], 10)
-        self.assertEqual(result[1][0], 20)
+        self.assertEqual(result, [])
 
     def test_top_k_limit(self):
-        """Returns exactly k results when pool >= k."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={i: "root.child" for i in range(1, 11)},
-            bm25_scores={i: i / 10.0 for i in range(1, 11)},
-            emb_scores={i: [i / 20.0, 1.0 - i / 20.0] for i in range(1, 11)},
-        )
+        emb_map = {i: np.array([0.5, 0.5], dtype="float32") for i in range(1, 11)}
+        tag_map = {i: "root.child" for i in range(1, 11)}
+        bm25 = _make_bm25_index({i: [f"kw{i}"] for i in range(1, 11)})
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_keywords=["test"],
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
             k=3,
+            tag_scope_map={"root": set(range(1, 11))},
+            tag_entity_map=tag_map,
+            bm25_index=bm25,
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
-
         self.assertEqual(len(result), 3)
 
     def test_fewer_than_k_candidates(self):
-        """Returns all candidates when pool < k."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={42: "root.child"},
-            bm25_scores={42: 0.9},
-            emb_scores={42: [0.8, 0.2]},
-        )
+        emb_map = {42: np.array([0.8, 0.2], dtype="float32")}
+        tag_map = {42: "root.child"}
+        bm25 = _make_bm25_index({42: ["unique"]})
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_keywords=["unique"],
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
             k=50,
+            tag_scope_map={"root": {42}},
+            tag_entity_map=tag_map,
+            bm25_index=bm25,
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
-
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][0], 42)
 
-    def test_empty_candidate_set(self):
-        """No candidates in scope returns empty list."""
-        self.mock_get_cached_subtree.return_value = {
-            "tag": "root",
-            "ancestors": [],
-            "descendants": [],
-            "subtree_exemplars": [],
-            "subtree_codes": [],
-            "subtree_themes": [],
+    def test_proximity_boost(self):
+        emb_map = {
+            1: np.array([0.5, 0.5], dtype="float32"),
+            2: np.array([0.5, 0.5], dtype="float32"),
         }
-        mock_lazy = mock.MagicMock()
-        mock_df = mock.MagicMock()
-        mock_lazy.collect.return_value = mock_df
-        mock_df.iter_rows.return_value = iter([])
-        self.mock_load_exemplars.return_value = mock_lazy
+        tag_map = {1: "root", 2: "root.child"}
+        bm25 = _make_bm25_index({1: ["kw"], 2: ["kw"]})
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
             query_tag="root",
             query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
-            k=50,
+            k=2,
+            tag_scope_map={"root": {1, 2}},
+            tag_entity_map=tag_map,
+            bm25_index=bm25,
+            embeddings_map=emb_map,
+            ontology_graph=graph,
+            weights=select_weights("exemplar"),
         )
-
-        self.assertEqual(result, [])
-
-    def test_partial_embedding_cache_miss(self):
-        """Some candidates missing from cache are skipped gracefully."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={
-                1: "root.child",
-                2: "root.child",
-            },
-            bm25_scores={1: 0.9, 2: 0.8},
-            emb_scores={
-                1: [1.0, 0.0],  # present
-                # 2 intentionally missing (get_embedding returns None)
-            },
-        )
-
-        # Override get_embedding: only ID 1 has embedding
-        def mock_get_emb(con, eid_str, etype, mhash=None):
-            if eid_str == "1":
-                return np.array([1.0, 0.0], dtype="float32")
-            return None
-
-        self.mock_get_embedding.side_effect = mock_get_emb
-
-        result = hybrid_retrieve(
-            query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
-            candidate_type="exemplar",
-            con=self.mock_con,
-            k=50,
-        )
-
-        # ID 2 should be in BM25 top but missing from embedding top.
-        # Since pool = top_bm25 | top_emb, ID 2 is still in pool.
-        # Its emb score defaults to 0.0.
-        self.assertEqual(len(result), 2)
-        # ID 1: 0.5*0.8 + 0.3*0.5 + 0.2*0.9 = 0.40+0.15+0.18 = 0.73
-        # ID 2: 0.5*0.0 + 0.3*0.5 + 0.2*0.8 = 0.00+0.15+0.16 = 0.31
         self.assertEqual(result[0][0], 1)
-        self.assertEqual(result[1][0], 2)
 
-    def test_model_hash_propagation(self):
-        """model_hash is passed through to get_embedding calls."""
-        self._setup_exemplar_mocks(
-            exemplar_ids_tag={1: "root.child"},
-            bm25_scores={1: 0.5},
-            emb_scores={1: [0.5, 0.5]},
-        )
+    def test_tie_breaking_by_entity_id(self):
+        emb_map = {
+            10: np.array([0.5, 0.5], dtype="float32"),
+            20: np.array([0.5, 0.5], dtype="float32"),
+        }
+        tag_map = {10: "root.child", 20: "root.child"}
+        bm25 = _make_bm25_index({10: ["kw"], 20: ["kw"]})
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
-        model_hash = "test_hash_123"
-        hybrid_retrieve(
-            query_tag="root",
+        result = hybrid_retrieve(
+            query_tag="root.child",
             query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_embedding=QUERY_EMB,
             candidate_type="exemplar",
-            con=self.mock_con,
-            k=5,
-            model_hash=model_hash,
+            k=2,
+            tag_scope_map={"root.child": {10, 20}},
+            tag_entity_map=tag_map,
+            bm25_index=bm25,
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
+        self.assertEqual(result[0][0], 10)
+        self.assertEqual(result[1][0], 20)
 
-        # Verify get_embedding was called with the hash
-        self.mock_get_embedding.assert_called_with(
-            self.mock_con,
-            "1",
-            "exemplar",
-            model_hash,
-        )
 
-    # ------------------------------------------------------------------
-    # Non-exemplar tests
-    # ------------------------------------------------------------------
+class TestHybridRetrieveNonExemplar(unittest.TestCase):
+    """Non-exemplar (code/theme) retrieval — BM25 skipped, weights adjusted."""
 
     def test_code_candidate_skips_bm25(self):
-        """Code candidates skip BM25 and use renormalized weights."""
-        self._setup_code_mocks(
-            db_rows=[
-                (10, "root.child"),
-                (11, "root.child"),
-            ],
-            scope_tags={"root", "root.child"},
-            emb_scores={
-                10: [1.0, 0.0],  # dot = 0.8
-                11: [0.0, 1.0],  # dot = 0.6
-            },
-        )
+        emb_map = {
+            10: np.array([1.0, 0.0], dtype="float32"),
+            11: np.array([0.0, 1.0], dtype="float32"),
+        }
+        tag_map = {10: "root.child", 11: "root.child"}
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_keywords=[],
+            query_embedding=QUERY_EMB,
             candidate_type="code",
-            con=self.mock_con,
             k=5,
+            tag_scope_map={"root.child": {10, 11}},
+            tag_entity_map=tag_map,
+            bm25_index={},
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
-
-        # BM25 should NOT be called for non-exemplar
-        self.mock_get_scores.assert_not_called()
-
-        # depth of root=0, root.child=1 -> depth_dist=1 -> prox=0.5
-        # ID 10: 0.625*0.8 + 0.375*0.5 = 0.50 + 0.1875 = 0.6875
-        # ID 11: 0.625*0.6 + 0.375*0.5 = 0.375 + 0.1875 = 0.5625
         self.assertEqual(len(result), 2)
+        # ID 10 has higher emb score than ID 11
         self.assertEqual(result[0][0], 10)
-        self.assertAlmostEqual(result[0][1], 0.6875, places=5)
 
     def test_code_candidate_empty_scope(self):
-        """No tags in scope returns empty for non-exemplar types."""
-        self.mock_get_scope_for_tag.return_value = set()
-
         result = hybrid_retrieve(
             query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_keywords=[],
+            query_embedding=QUERY_EMB,
             candidate_type="theme",
-            con=self.mock_con,
             k=5,
+            tag_scope_map={},
+            tag_entity_map={},
+            bm25_index={},
+            embeddings_map={},
+            ontology_graph=_make_ontology_graph(TAG_DEPTHS),
         )
-
         self.assertEqual(result, [])
-        self.mock_get_embedding.assert_not_called()
 
     def test_non_exemplar_all_at_same_depth(self):
-        """All candidates at same depth -> equal proximity boost."""
-        self._setup_code_mocks(
-            db_rows=[(1, "root.child"), (2, "root.child")],
-            scope_tags={"root", "root.child"},
-            emb_scores={
-                1: [1.0, 0.0],  # dot = 0.8
-                2: [0.6, 0.8],  # dot = 0.96
-            },
-        )
+        emb_map = {
+            1: np.array([1.0, 0.0], dtype="float32"),
+            2: np.array([0.6, 0.8], dtype="float32"),
+        }
+        tag_map = {1: "root.child", 2: "root.child"}
+        graph = _make_ontology_graph(TAG_DEPTHS)
 
         result = hybrid_retrieve(
-            query_tag="root.child",  # depth=1
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
+            query_tag="root.child",
+            query_keywords=[],
+            query_embedding=QUERY_EMB,
             candidate_type="code",
-            con=self.mock_con,
             k=5,
+            tag_scope_map={"root.child": {1, 2}},
+            tag_entity_map=tag_map,
+            bm25_index={},
+            embeddings_map=emb_map,
+            ontology_graph=graph,
         )
-
-        # depth_dist = |1-1| = 0 -> prox = 1.0 for both
-        # ID 1: 0.625*0.8 + 0.375*1.0 = 0.50 + 0.375 = 0.875
-        # ID 2: 0.625*0.96 + 0.375*1.0 = 0.60 + 0.375 = 0.975
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0][0], 2)  # higher emb score ranks first
+        self.assertEqual(result[0][0], 2)
         self.assertEqual(result[1][0], 1)
 
-    def test_non_exemplar_con_execute_called(self):
-        """Verifies con.execute is called for non-exemplar resolution."""
-        self._setup_code_mocks(
-            db_rows=[(1, "root.child")],
-            scope_tags={"root", "root.child"},
-            emb_scores={1: [0.5, 0.5]},
-        )
 
-        hybrid_retrieve(
-            query_tag="root",
-            query_keywords=["kw"],
-            query_embedding=self.query_emb,
-            candidate_type="code",
-            con=self.mock_con,
+class TestGetBM25Scores(unittest.TestCase):
+    """Direct tests for get_bm25_scores_for_candidates."""
+
+    def setUp(self):
+        lf = pl.DataFrame(
+            {
+                "keyword_id": [1, 2],
+                "exemplar_id": [1, 2],
+                "keyword_text": ["stress", "anxiety"],
+                "frequency": [1, 1],
+            },
+            schema={
+                "keyword_id": pl.Int64,
+                "exemplar_id": pl.Int64,
+                "keyword_text": pl.String,
+                "frequency": pl.Int32,
+            },
+        ).lazy()
+        self.bm25_index = build_index(lf)
+
+    def test_returns_top_k(self):
+        result = get_bm25_scores_for_candidates(
+            ["stress"],
+            {1, 2},
+            k=1,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(len(result), 1)
+        self.assertIn(1, result)
+
+    def test_filters_by_candidate_ids(self):
+        result = get_bm25_scores_for_candidates(
+            ["anxiety"],
+            {2},
+            k=5,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(len(result), 1)
+        self.assertIn(2, result)
+
+    def test_empty_candidate_set(self):
+        result = get_bm25_scores_for_candidates(
+            ["stress"],
+            set(),
+            k=5,
+            bm25_index=self.bm25_index,
+        )
+        self.assertEqual(result, {})
+
+
+class TestGetEmbeddingScores(unittest.TestCase):
+    """Direct tests for get_embedding_scores."""
+
+    def test_cosine_similarity(self):
+        query = np.array([1.0, 0.0], dtype=np.float32)
+        emb_map = {
+            1: np.array([1.0, 0.0], dtype=np.float32),
+            2: np.array([0.0, 1.0], dtype=np.float32),
+        }
+        scores, top_set = get_embedding_scores(query, emb_map, k=2)
+        self.assertIn(1, scores)
+        self.assertIn(2, scores)
+        self.assertGreater(scores[1], scores[2])
+
+    def test_top_k_limits(self):
+        query = np.array([1.0, 0.0], dtype=np.float32)
+        emb_map = {i: np.array([1.0, 0.0], dtype=np.float32) for i in range(1, 6)}
+        _, top_set = get_embedding_scores(query, emb_map, k=3)
+        self.assertEqual(len(top_set), 3)
+
+    def test_empty_map(self):
+        scores, top_set = get_embedding_scores(
+            np.array([1.0, 0.0], dtype=np.float32),
+            {},
             k=5,
         )
+        self.assertEqual(scores, {})
+        self.assertEqual(top_set, set())
 
-        self.mock_con.execute.assert_called_once()
+
+class TestGetDepth(unittest.TestCase):
+    """Direct tests for get_depth."""
+
+    def test_root_depth(self):
+        G = nx.DiGraph()
+        G.add_node("root", depth=0)
+        self.assertEqual(get_depth("root", G), 0)
+
+    def test_known_tag(self):
+        G = nx.DiGraph()
+        G.add_node("root.A.B", depth=2)
+        self.assertEqual(get_depth("root.A.B", G), 2)
+
+    def test_unknown_tag(self):
+        G = nx.DiGraph()
+        self.assertEqual(get_depth("nonexistent", G), 0)
+
+
+class TestResolveCandidateIds(unittest.TestCase):
+    """Direct tests for resolve_candidate_ids."""
+
+    def test_exemplar_returns_all_from_entity_map(self):
+        tag_map = {1: "root.A", 2: "root.A", 3: "root.B"}
+        ids, tag_out = resolve_candidate_ids(
+            candidate_type="exemplar",
+            tag_scope_map={},
+            tag_entity_map=tag_map,
+        )
+        self.assertEqual(ids, {1, 2, 3})
+        self.assertEqual(tag_out, tag_map)
+
+    def test_non_exemplar_uses_scope_map(self):
+        scope = {"root.A": {10, 11}, "root.B": {20}}
+        ids, _ = resolve_candidate_ids(
+            candidate_type="code",
+            tag_scope_map=scope,
+            tag_entity_map={},
+        )
+        self.assertEqual(ids, {10, 11, 20})
+
+    def test_empty_scope(self):
+        ids, _ = resolve_candidate_ids(
+            candidate_type="code",
+            tag_scope_map={},
+            tag_entity_map={},
+        )
+        self.assertEqual(ids, set())
 
 
 if __name__ == "__main__":

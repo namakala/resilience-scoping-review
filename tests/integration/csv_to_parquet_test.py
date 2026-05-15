@@ -12,7 +12,7 @@ from pathlib import Path
 import polars as pl
 
 # Add src/python to sys.path so persistence can be imported
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent / "src" / "python"),
 )

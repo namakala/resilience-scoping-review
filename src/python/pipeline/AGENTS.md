@@ -1,12 +1,29 @@
 ---
 title: "Pipeline Module"
 description: "Hamilton DAG construction, node functions, and dependency-based workflow orchestration"
-updated_at: "2026-05-11"
+updated_at: "2026-05-15"
 ---
 
 # Pipeline Module
 
-Defines the computational DAG using Hamilton. Orchestrates embedding, retrieval, and inference with incremental recomputation.
+Defines the computational DAG using Hamilton. Orchestrates embedding, retrieval, inference, review, and export stages with incremental recomputation.
+
+## Constructor
+
+``create_pipeline(config)`` in ``constructor.py`` builds a Hamilton ``Driver`` via ``Builder().with_modules(nodes.*).with_config({'config': config}).build()``. The ``Config`` dataclass (``config.py``) snapshots all env settings at pipeline creation time for typed dependency injection.
+
+## Node Package
+
+``nodes/`` defines 15 stub functions (13 main + 2 supporting) that Hamilton auto-discovers as DAG nodes. Functions are plain Python — no decorators needed. Parameter names matching function names resolve as dependencies. ``config: Config`` is injected via Hamilton's config dict.
+
+## DAG Structure
+
+Three inference chains:
+1. Exemplars → embeddings → BM25 + ontology → retrieval → code inference → code review
+2. Codes → theme inference → theme review
+3. Themes → interpretation synthesis → interpretation review → export
+
+Each node is a pure function. Side effects (persistence, user I/O) occur outside DAG.
 
 ## Purpose
 
@@ -66,6 +83,56 @@ Hamilton batches are prepared per-tag per-stage. Batches respect Groq rate limit
 
 DAG tests verify: correct dependency resolution, selective execution on dirty flags, cache hit accuracy, and graceful degradation on API errors.
 
+## Dirty Flag Propagation
+
+``dirty.py`` provides incremental recomputation for the Hamilton DAG (Feature 55, ADR-007)::
+
+- ``propagate_dirty(con, tag)`` — marks *tag* and all its ontology ancestors dirty in ``session_state.dirty_flags``. When a code/theme is edited under ``Problem.Cause``, ancestors like ``Problem`` are also marked dirty so interpretation nodes spanning the broader subtree recompute.
+- ``set_dirty(con, tag)`` — sets a single tag dirty without upward propagation.
+- ``clear_dirty(con, tag)`` / ``clear_all_dirty(con)`` — clears dirty flags after recomputation.
+- ``is_dirty(tag, dirty_flags)`` / ``any_tag_dirty(tags, dirty_flags)`` — pure functions used by inference nodes to check whether a batch needs processing.
+
+Three inference nodes (``infer_codes``, ``infer_themes``, ``infer_interpretations``) accept ``dirty_flags`` as a Hamilton external input. Batches whose tag is NOT dirty are skipped — the LLM is not called, and cached results are returned from the persistence layer. When ``dirty_flags`` is ``None`` (not provided), all batches are processed (backward-compatible).
+
+## Wiring Utilities
+
+``wiring.py`` provides optional DAG validation tools that operate on a built ``Driver``:
+- ``verify_dag_integrity(driver)`` — structured health report (node count, cycles, deps, topological order, orphans, terminals)
+- ``validate_dataflow(driver, final\_vars, inputs, overrides)`` — execution plan validity check wrapping ``Driver.validate_execution()``
+- ``execute_with_overrides(driver, final\_vars, overrides, inputs)`` — override injection for tests and controlled runs
+
+``mermaid.py`` provides Mermaid visualization:
+- ``render_dag_mermaid(driver, path, final_vars, overrides)`` — Mermaid flowchart with layer clustering, override highlighting, and subgraph filtering
+
+The constructor does not depend on either module; consumers import them when validation or visualization is needed.
+
+## Stages
+
+``stages.py`` provides the workflow-stage-to-final-vars mapping (Feature 56, ADR-008):
+
+- ``_STAGE_OWN_VARS`` — dict mapping each stage (1-10) to its terminal Hamilton output nodes.
+- ``get_final_vars_for_stage(stage)`` — resolves a stage to its cumulative output node list. Results are cumulative: stage 4 includes stages 1-4 outputs. Stage 4 returns ``["load_exemplars", …, "infer_codes", "prepare_code_nodes", "retrieve_code_candidates", …]``.
+
+The mapping enables ``--stage N`` resume: the executor requests ``get_final_vars_for_stage(N)`` and Hamilton computes only the transitive dependencies of those outputs, skipping clean batches via dirty flags.
+
+## Types
+
+``types.py`` defines execution-tracking data types shared between the executor and the orchestration layer:
+
+- ``NodeExecutionRecord`` — outcome for one DAG node (``node_name``, ``status``, ``duration_ms``, ``error``). Status is one of ``executed``, ``overridden``, ``cached`` (reserved for Feature 57), or ``skipped``.
+- ``ExecutionResult`` — return type of ``execute_dag()``. Contains ``outputs`` dict, per-node ``node_executions`` list, ``total_duration_ms``, ``stage``, and cache hit/miss counters.
+- ``get_execution_summary(result)`` — aggregates counts and cache-hit rate for CLI reporting.
+
+## Executor
+
+``executor.py`` provides the main DAG execution function (Feature 56, ADR-008):
+
+- ``execute_dag(driver, *, final_vars, stage, inputs, overrides)`` — runs the Hamilton DAG with per-node execution logging. ``stage`` resolves ``final_vars`` via ``stages.get_final_vars_for_stage()``. Returns ``types.ExecutionResult``.
+
+**Execution records** classify each expected node as ``"executed"`` (Hamilton computed it), ``"overridden"`` (output provided via overrides dict), ``"cached"`` (reserved for Feature 57), or ``"skipped"``. The executor logs ``NODE START`` / ``NODE FINISH`` structured events with duration for every computed node.
+
+**Stage awareness:** The executor does not manage persistence. It accepts ``inputs`` (dirty flags, existing codes) and ``overrides`` (HITL-approved values, ``{"current_stage": N}``) from the orchestration layer (Feature 60).
+
 ## References
 
-Implements ADR-008 (Pipeline Orchestration) and ADR-007 (Incremental Ontology Evolution). See `@ADR.md` for architectural decisions.
+Implements ADR-008 (Pipeline Orchestration), ADR-007 (Incremental Ontology Evolution), and Feature 56 (Selective Execution). See `@ADR.md` for architectural decisions.

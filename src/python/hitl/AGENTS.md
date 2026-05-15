@@ -84,9 +84,15 @@ Check rejected if constraints violated. Error message includes remediation sugge
 - **`theme_review_merge.py`** — Merge orchestration for themes
 - **`interpretation_review_split.py`** — Split orchestration for interpretations
 - **`shared.py`** — Shared utilities (console, node update helpers, common action patterns)
-- **`queries.py`** — Database queries for all entity types (consolidated)
-- **`display.py`** — `rich` panels, tables, and trees for all entity types (consolidated)
-- **`prompts.py`** — `questionary` prompts and interactive flows for all entity types (consolidated)
+- **`queries.py`** — Shared database utilities (`_parse_json`, `_get_neighbors`)
+- **`queries_codes.py`** — Code-specific database queries (pending, exemplars, neighbors)
+- **`queries_themes.py`** — Theme-specific database queries (pending, constituent codes, merge candidates)
+- **`queries_interpretations.py`** — Interpretation-specific database queries (pending, themes, neighbors)
+- **`display.py**` — `rich` panels, tables, and trees for all entity types (consolidated)
+- **`prompts.py`** — Shared prompt helper (`prompt_edit_text`)
+- **`prompts_codes.py`** — Code review prompts (action, merge, context)
+- **`prompts_themes.py`** — Theme review prompts (action, edit codes, merge)
+- **`prompts_interpretations.py`** — Interpretation review prompts (action, split)
 - **`invalidation.py`** — Embedding invalidation and downstream cascade (theme→draft, interpretation→draft)
 - **`user_action_log.py`** — Audit table CRUD
 - **`approvals.py`** — Interpretation approval: finalize, invalidate caches, increment counters

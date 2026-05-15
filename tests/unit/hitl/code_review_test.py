@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )
@@ -101,7 +101,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.code_review._get_neighbors", return_value=[]),
+            mock.patch("hitl.code_review.get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)
 
@@ -123,7 +123,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.code_review._get_neighbors", return_value=[]),
+            mock.patch("hitl.code_review.get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)
 
@@ -145,7 +145,7 @@ class TestCodeReviewOrchestration(unittest.TestCase):
 
         with (
             mock.patch("hitl.shared.console.print"),
-            mock.patch("hitl.code_review._get_neighbors", return_value=[]),
+            mock.patch("hitl.code_review.get_neighbors", return_value=[]),
         ):
             review_codes(self.con, db_path=self.db_path)
 

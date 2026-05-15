@@ -9,13 +9,12 @@ from typing import Optional
 
 import duckdb
 
-from .prompts import _handle_merge_interactive_theme as _handle_merge_interactive
-from .prompts import _prompt_edit_codes
-from .prompts import _prompt_edit_text as _prompt_edit_narrative
-from .prompts import _prompt_theme_action
-from .queries import _get_constituent_codes
-from .queries import _get_neighbors_theme as _get_theme_neighbors
-from .queries import _get_pending_themes
+from .prompts import prompt_edit_text as prompt_edit_narrative
+from .prompts_themes import handle_merge_interactive_theme as handle_merge_interactive
+from .prompts_themes import prompt_edit_codes, prompt_theme_action
+from .queries_themes import get_constituent_codes
+from .queries_themes import get_neighbors_theme as get_theme_neighbors
+from .queries_themes import get_pending_themes
 from .shared import console
 from .theme_review_actions import (
     handle_approve_theme,
@@ -46,7 +45,7 @@ def review_themes(
             all draft themes.
         db_path: Path to DuckDB file (needed by graph sync operations).
     """
-    pending = _get_pending_themes(con, tag=tag)
+    pending = get_pending_themes(con, tag=tag)
     if not pending:
         label = f" for tag '{tag}'" if tag else ""
         console.print(f"[bold green]No pending themes to review{label}.[/bold green]")
@@ -78,21 +77,21 @@ def _review_single_theme(
 
     _display_theme_panel(theme)
 
-    codes = _get_constituent_codes(con, theme["id"])
+    codes = get_constituent_codes(con, theme["id"])
     _display_constituent_codes(codes)
 
-    neighbors = _get_theme_neighbors(con, theme["id"], k=3)
+    neighbors = get_theme_neighbors(con, theme["id"], k=3)
     _display_neighbors_table("Similar Themes", neighbors)
 
-    action = _prompt_theme_action(theme["name"])
+    action = prompt_theme_action(theme["name"])
 
     if action == "approve":
         handle_approve_theme(con, theme, db_path=db_path)
         console.print(f"[green]Theme '{theme['name']}' approved.[/green]")
     elif action == "edit":
-        new_narrative = _prompt_edit_narrative(theme.get("narrative", ""))
+        new_narrative = prompt_edit_narrative(theme.get("narrative", ""))
         if new_narrative is not None:
-            new_code_ids = _prompt_edit_codes(con, theme)
+            new_code_ids = prompt_edit_codes(con, theme)
             if new_code_ids is not None:
                 handle_edit_theme(
                     con,
@@ -107,7 +106,7 @@ def _review_single_theme(
         else:
             console.print("[yellow]Edit cancelled.[/yellow]")
     elif action == "merge":
-        _handle_merge_interactive(con, theme, db_path=db_path)
+        handle_merge_interactive(con, theme, db_path=db_path)
     elif action == "reject":
         handle_reject_theme(con, theme, db_path=db_path)
         console.print(f"[red]Theme '{theme['name']}' rejected.[/red]")

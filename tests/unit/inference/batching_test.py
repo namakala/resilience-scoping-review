@@ -6,9 +6,16 @@ import unittest
 from pathlib import Path
 from typing import cast
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-from inference.batching import Batch, BatchableItem, _chunk_list, group_by_tag
+from inference.batching import (  # noqa: E402
+    Batch,
+    BatchableItem,
+    _chunk_list,
+    group_by_tag,
+)
 
 # ── helpers ─────────────────────────────────────────────────────────────────
 

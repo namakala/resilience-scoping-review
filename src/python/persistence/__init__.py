@@ -14,6 +14,7 @@ from .embedding_cache import (
 from .exceptions import ConversionError, DataQualityError, SchemaValidationError
 from .hash_utils import compute_model_hash
 from .loaders import clear_cache, load_exemplars, load_keywords, load_tags
+from .node_cache import clear_all_node_cache, invalidate_node, load_cached, store_cached
 from .state_constants import DEFAULT_STATE
 from .state_repository import load_state, reset_state, save_state, validate_state
 from .state_updates import (
@@ -59,6 +60,11 @@ __all__ = [
     "set_config_version",
     "set_last_checkpoint",
     "DEFAULT_STATE",
+    # Node cache API
+    "load_cached",
+    "store_cached",
+    "invalidate_node",
+    "clear_all_node_cache",
     # Exceptions
     "ConversionError",
     "SchemaValidationError",

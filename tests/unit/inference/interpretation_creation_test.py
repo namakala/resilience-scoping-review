@@ -12,16 +12,22 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src" / "python"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent.parent.parent / "src" / "python")
+)  # noqa: E402
 
-import duckdb
-import networkx as nx
-from graph import get_interpretations_by_span_tag, get_node, get_nodes_by_type_and_tag
-from graph.exceptions import ForeignKeyError
-from graph.node_crud import create_node as _real_create_node
-from inference.inference_status_crud import init_inference_status_table
-from inference.inference_status_queries import get_status
-from inference.inference_status_types import (
+import duckdb  # noqa: E402
+import networkx as nx  # noqa: E402
+from graph import (  # noqa: E402
+    get_interpretations_by_span_tag,
+    get_node,
+    get_nodes_by_type_and_tag,
+)
+from graph.exceptions import ForeignKeyError  # noqa: E402
+from graph.node_crud import create_node as _real_create_node  # noqa: E402
+from inference.inference_status_crud import init_inference_status_table  # noqa: E402
+from inference.inference_status_queries import get_status  # noqa: E402
+from inference.inference_status_types import (  # noqa: E402
     ENTITY_INTERPRETATION,
     GENERATED,
     STAGE_INTERPRETATION,

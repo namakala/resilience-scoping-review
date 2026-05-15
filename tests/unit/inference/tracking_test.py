@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(
+sys.path.insert(  # noqa: E402
     0,
     str(Path(__file__).parent.parent.parent.parent / "src" / "python"),
 )

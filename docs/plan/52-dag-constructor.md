@@ -1,7 +1,7 @@
 ---
 title: "52 — dag-constructor"
 description: "create_pipeline(config) → hamilton.DAG with all nodes"
-updated_at: "2026-05-12"
+updated_at: "2026-05-15"
 phase: 9
 ---
 
