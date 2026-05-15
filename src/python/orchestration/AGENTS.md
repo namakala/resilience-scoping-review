@@ -74,6 +74,8 @@ does re-ingest proceed.
 - `cli.py` — Click group, subcommand definitions, dispatch, progress display
 - `run.py` — ``run`` subcommand: ``run_cmd()`` CLI handler, ``run_sequence()`` programmatic entry
 - `runner.py` — Stage-transition driver: ``run_pipeline()``, ``execute_stage()``, ``resolve_target_stage()``
+- `export.py` — Orchestrate final export: query approved graph nodes, delegate to formatters + atomic I/O
+- `export_formatters.py` — Pure JSON/CSV/Markdown format builders (no I/O, no DB)
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
 - `state.py` — `WorkflowState` dataclass: stage transitions, serialization, dirty flags, config hash
 - `state_rules.py` — Stage constants (`MIN_STAGE`, `MAX_STAGE`, `STAGE_PREREQS`) + field validation
@@ -83,6 +85,7 @@ does re-ingest proceed.
 - Calls `persistence.converter.convert_csvs()` and `persistence.duckdb_init.init_or_migrate()`
 - Calls `hitl.code_review.review_codes()`, `hitl.theme_review.review_themes()`, etc.
 - Calls `pipeline.executor.execute_dag()` for inference via ``runner.execute_stage()``
+- Calls `orchestration.export.export_all()` after stage 10 to write results
 - Reads config from `config.settings`
 - Stores state via `persistence.state_repository` (checkpoint after each stage)
 

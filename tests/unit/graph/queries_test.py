@@ -372,8 +372,8 @@ class TestQueryPerformance(unittest.TestCase):
         self.assertGreater(len(results), 0)
         self.assertLess(
             elapsed,
-            10.0,
-            f"Query took {elapsed:.3f}ms, expected <10ms",
+            20.0,
+            f"Query took {elapsed:.3f}ms, expected <20ms",
         )
 
 

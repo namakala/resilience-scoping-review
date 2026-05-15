@@ -42,6 +42,7 @@ CONFIG = Config(
     token_cost_input_per_million=0.15,
     token_cost_output_per_million=0.60,
     max_stage_cost_usd=1.0,
+    export_output_path=Path("/tmp/export"),
 )
 
 
@@ -179,6 +180,7 @@ def test_build_bm25_custom_tokenizer():
         token_cost_input_per_million=0.15,
         token_cost_output_per_million=0.60,
         max_stage_cost_usd=1.0,
+        export_output_path=Path("/tmp/export"),
     )
     result = build_bm25(kw, cfg)
     assert (

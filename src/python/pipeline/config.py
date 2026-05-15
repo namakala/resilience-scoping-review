@@ -39,6 +39,7 @@ class Config:
     data_path: Path
     tags_path: Path
     processed_data_path: Path
+    export_output_path: Path
 
     # BM25
     bm25_tokenizer_config: str
@@ -71,6 +72,7 @@ class Config:
             data_path=settings.data_path(),
             tags_path=settings.tags_path(),
             processed_data_path=settings.processed_data_path(),
+            export_output_path=settings.export_output_path(),
             bm25_tokenizer_config=settings.bm25_tokenizer_config(),
             fewshot_enabled=settings.fewshot_enabled(),
             fewshot_count=settings.fewshot_count(),

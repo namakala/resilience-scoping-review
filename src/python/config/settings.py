@@ -150,6 +150,11 @@ def processed_data_path() -> Path:
     return Path(_optional_str("PROCESSED_DATA_PATH", "data/processed"))
 
 
+def export_output_path() -> Path:
+    """Directory for exported results (JSON, CSV, Markdown)."""
+    return Path(_optional_str("EXPORT_OUTPUT_PATH", "data/output"))
+
+
 # ── BM25 ───────────────────────────────────────────────────────────────────
 
 

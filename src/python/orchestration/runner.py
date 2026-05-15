@@ -125,7 +125,11 @@ def run_pipeline(
 
                 state = coordinate_hitl(con, stage, state, DEFAULT_DB_PATH)
 
-            if stage >= MAX_STAGE:
+            if stage == MAX_STAGE:
+                from orchestration.export import export_all
+                from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+                export_all(con, state, config, DEFAULT_DB_PATH)
                 break
             state.advance_stage()
 

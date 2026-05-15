@@ -38,6 +38,7 @@ CONFIG = Config(
     token_cost_input_per_million=0.15,
     token_cost_output_per_million=0.60,
     max_stage_cost_usd=1.0,
+    export_output_path=Path("/tmp/export"),
 )
 
 
@@ -73,7 +74,11 @@ def test_export_combined():
     assert "codes" in result
     assert "themes" in result
     assert "interpretations" in result
+    assert "summary" in result
     assert len(result["codes"]) == 1
+    assert result["summary"]["code_count"] == 1
+    assert result["summary"]["theme_count"] == 1
+    assert result["summary"]["interpretation_count"] == 1
 
 
 def test_export_summary():
@@ -81,6 +86,7 @@ def test_export_summary():
         "codes": [{"name": "C1"}],
         "themes": [{"theme_name": "T1"}],
         "interpretations": [{"interpretation_name": "I1"}],
+        "summary": {"code_count": 1, "theme_count": 1, "interpretation_count": 1},
     }
     result = export_summary(combined, CONFIG)
     assert result["code_count"] == 1
@@ -89,6 +95,11 @@ def test_export_summary():
 
 
 def test_export_summary_empty():
-    combined = {"codes": [], "themes": [], "interpretations": []}
+    combined = {
+        "codes": [],
+        "themes": [],
+        "interpretations": [],
+        "summary": {"code_count": 0, "theme_count": 0, "interpretation_count": 0},
+    }
     result = export_summary(combined, CONFIG)
     assert result["code_count"] == 0

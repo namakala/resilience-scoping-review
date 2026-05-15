@@ -257,6 +257,9 @@ class TestRunPipeline(unittest.TestCase):
             mock.patch(
                 "orchestration.runner.NodeCacheAdapter",
             ),
+            mock.patch(
+                "orchestration.export.export_all",
+            ),
         ):
             result = run_pipeline(self.mock_con, state, self.config)
             self.assertEqual(result.current_stage, 10)
