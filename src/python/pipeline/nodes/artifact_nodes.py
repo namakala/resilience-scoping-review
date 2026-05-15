@@ -17,6 +17,7 @@ __all__ = [
     "load_exemplars",
     "load_tags",
     "load_keywords",
+    "extract_keywords",
     "resolve_tag_dag",
     "validate_artifact_schemas",
     "compute_exemplar_statistics",
@@ -38,8 +39,34 @@ def load_tags(config: Config) -> pl.LazyFrame:
     return _load()
 
 
-def load_keywords(config: Config) -> pl.LazyFrame:
-    """Load extracted keywords from Parquet via persistence loader."""
+def extract_keywords(config: Config) -> dict:
+    """Extract keywords from exemplars if not yet generated.
+
+    Delegates to ``semantic.keyword_extraction.extract_keywords()`` which
+    checks for existing ``keywords.parquet`` (idempotent — skips if exists),
+    runs KeyBERT extraction if needed, and writes the file.
+
+    Returns a status dict with row count for DAG output and downstream
+    dependency wiring.
+    """
+    from semantic.keyword_extraction import extract_keywords as _extract
+
+    lf = _extract(force_rebuild=False)
+    rows = lf.collect().height
+    logger.info("Keyword extraction complete", extra={"rows": rows})
+    return {"status": "completed", "rows": rows}
+
+
+def load_keywords(
+    config: Config,
+    extract_keywords: dict | None = None,
+) -> pl.LazyFrame:
+    """Load extracted keywords from Parquet via persistence loader.
+
+    Depends on ``extract_keywords`` to ensure ``keywords.parquet`` exists
+    before loading.  The ``extract_keywords`` parameter is unused — it
+    exists purely to create the Hamilton dependency edge.
+    """
     from persistence.loaders import load_keywords as _load
 
     return _load()

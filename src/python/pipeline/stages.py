@@ -12,6 +12,7 @@ _STAGE_OWN_VARS: dict[int, list[str]] = {
         "load_exemplars",
         "load_tags",
         "load_keywords",
+        "extract_keywords",
         "resolve_tag_dag",
         "validate_artifact_schemas",
         "compute_exemplar_statistics",
