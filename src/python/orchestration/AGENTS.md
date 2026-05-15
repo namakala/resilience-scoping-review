@@ -72,6 +72,8 @@ does re-ingest proceed.
 
 - `cli.py` — Click group, subcommand definitions, dispatch, progress display
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
+- `state.py` — `WorkflowState` dataclass: stage transitions, serialization, dirty flags, config hash
+- `state_rules.py` — Stage constants (`MIN_STAGE`, `MAX_STAGE`, `STAGE_PREREQS`) + field validation
 
 ## Integration
 
