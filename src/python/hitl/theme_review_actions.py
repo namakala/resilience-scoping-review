@@ -25,6 +25,7 @@ from .shared import (
     _log_and_finish,
     _update_node_data_json,
     _update_node_definition,
+    _update_node_name,
     _update_node_status,
     console,
 )
@@ -118,27 +119,50 @@ def handle_edit_theme(
     db_path: Optional[Path] = None,
     new_narrative: str = "",
     new_code_ids: Optional[list[int]] = None,
+    new_name: str = "",
 ) -> None:
-    """Edit a theme: update narrative and optionally codes, reset to draft."""
+    """Edit a theme: update narrative, optionally codes, and/or name, reset to draft."""
     node_id = theme["id"]
     old_narrative = theme.get("narrative", "")
+    old_name = theme.get("name", "")
 
-    if not new_narrative.strip():
-        logger.warning("Edit aborted: empty narrative")
+    if not new_narrative.strip() and not new_name.strip():
+        logger.warning("Edit aborted: both narrative and name are empty")
         return
 
-    if new_narrative == old_narrative and new_code_ids is None:
-        logger.info("Edit aborted: narrative unchanged and no code changes")
+    if (
+        new_narrative == old_narrative
+        and new_code_ids is None
+        and (not new_name.strip() or new_name == old_name)
+    ):
+        logger.info(
+            "Edit aborted: narrative unchanged, no code changes, and name unchanged"
+        )
         return
 
-    old_data_json = theme.get("data_json") or {}
+    old_value: dict[str, Any] = {}
+    new_value: dict[str, Any] = {}
 
-    _update_node_definition(con, node_id, new_narrative, db_path=db_path)
+    if new_narrative.strip() and new_narrative != old_narrative:
+        old_data_json = theme.get("data_json") or {}
+        _update_node_definition(con, node_id, new_narrative, db_path=db_path)
+        old_value["narrative"] = old_narrative
+        new_value["narrative"] = new_narrative
 
-    if new_code_ids is not None:
+        if new_code_ids is not None:
+            _update_theme_codes(con, node_id, new_code_ids, db_path=db_path)
+            updated_data_json = {**old_data_json, "code_ids": new_code_ids}
+            _update_node_data_json(con, node_id, updated_data_json, db_path=db_path)
+    elif new_code_ids is not None:
+        old_data_json = theme.get("data_json") or {}
         _update_theme_codes(con, node_id, new_code_ids, db_path=db_path)
         updated_data_json = {**old_data_json, "code_ids": new_code_ids}
         _update_node_data_json(con, node_id, updated_data_json, db_path=db_path)
+
+    if new_name.strip() and new_name != old_name:
+        _update_node_name(con, node_id, new_name, db_path=db_path)
+        old_value["name"] = old_name
+        new_value["name"] = new_name
 
     set_status_draft(
         con,
@@ -147,13 +171,7 @@ def handle_edit_theme(
         stage=STAGE_THEME,
     )
     invalidate_theme_embedding(con, node_id, theme.get("tag", ""))
-    _log_and_finish(
-        con,
-        "edit",
-        node_id,
-        old_value={"narrative": old_narrative},
-        new_value={"narrative": new_narrative},
-    )
+    _log_and_finish(con, "edit", node_id, old_value, new_value)
 
     # Editing resets theme to draft → re-check subtree readiness
     from inference.readiness import check_tag_ready

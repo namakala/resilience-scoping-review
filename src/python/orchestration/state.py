@@ -22,6 +22,7 @@ class WorkflowState:
     last_checkpoint: Optional[str] = None
     config_version: str = ""
     user_action_count: int = 0
+    _extra_fields: Dict[str, Any] = field(default_factory=dict)
 
     # ── Serialization ─────────────────────────────────────────────
 
@@ -42,23 +43,38 @@ class WorkflowState:
 
     def to_state_dict(self) -> Dict[str, Any]:
         """Convert to dict compatible with persistence layer."""
-        return {
+        result = {
             "current_stage": self.current_stage,
             "dirty_flags": dict(self.dirty_flags),
             "last_checkpoint": self.last_checkpoint,
             "config_version": self.config_version,
             "user_action_count": self.user_action_count,
         }
+        result.update(self._extra_fields)
+        return result
 
     @classmethod
     def from_state_dict(cls, state_dict: Dict[str, Any]) -> WorkflowState:
-        """Create from a dict (e.g. from load_state())."""
+        """Create from a dict (e.g. from load_state()).
+
+        Any keys not in the standard set are captured into
+        ``_extra_fields`` so they survive checkpoint round-trips.
+        """
+        standard_keys = {
+            "current_stage",
+            "dirty_flags",
+            "last_checkpoint",
+            "config_version",
+            "user_action_count",
+        }
+        extra = {k: v for k, v in state_dict.items() if k not in standard_keys}
         return cls(
             current_stage=state_dict.get("current_stage", 1),
             dirty_flags=dict(state_dict.get("dirty_flags", {})),
             last_checkpoint=state_dict.get("last_checkpoint"),
             config_version=state_dict.get("config_version", ""),
             user_action_count=state_dict.get("user_action_count", 0),
+            _extra_fields=extra,
         )
 
     # ── Stage transitions ─────────────────────────────────────────

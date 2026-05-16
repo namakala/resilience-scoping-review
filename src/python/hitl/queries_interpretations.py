@@ -11,6 +11,44 @@ def get_neighbors_interpretation(
     return _get_neighbors(con, interp_id, "interpretation", k=k)
 
 
+def get_all_interpretations(
+    con,
+    tag: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Fetch ALL interpretation nodes regardless of status, ordered by id.
+
+    If *tag* is provided, only interpretations whose ``tag_spans``
+    include that tag are returned (filtered in Python since tag_spans
+    is stored in data_json).
+    Returns list of dicts with keys: id, name, narrative, tag,
+    data_json, status.
+    """
+    rows = con.execute(
+        "SELECT id, name, definition, tag, data_json, status "
+        "FROM nodes WHERE type = 'interpretation' "
+        "ORDER BY id"
+    ).fetchall()
+
+    results = []
+    for row in rows:
+        dj = _parse_json(row[4])
+        if tag is not None:
+            tag_spans = dj.get("tag_spans") or []
+            if tag not in tag_spans:
+                continue
+        results.append(
+            {
+                "id": row[0],
+                "name": row[1],
+                "narrative": row[2],
+                "tag": row[3],
+                "data_json": dj,
+                "status": row[5],
+            }
+        )
+    return results
+
+
 def get_pending_interpretations(
     con,
     tag: Optional[str] = None,

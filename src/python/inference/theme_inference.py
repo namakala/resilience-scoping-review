@@ -38,6 +38,7 @@ from .status_updates import mark_failure, mark_success
 from .tag_context import get_tag_metadata
 from .theme_code_loading import _CodeRow, load_approved_codes_grouped
 from .theme_postprocess import (
+    auto_merge_single_code_themes,
     dedup_theme_names,
     flag_small_themes,
     validate_code_belonging,
@@ -120,6 +121,7 @@ def _process_theme_batch(
 
     themes = dedup_theme_names(themes)
     themes = flag_small_themes(themes)
+    themes = auto_merge_single_code_themes(themes, con)
 
     batch_code_ids = {str(item.id) for item in batch.items}
     validate_code_belonging(themes, batch_code_ids, batch.batch_id)

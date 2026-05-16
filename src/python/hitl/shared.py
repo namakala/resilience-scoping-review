@@ -32,6 +32,20 @@ def _update_node_status(
     sync_node(node_id, db_path)
 
 
+def _update_node_name(
+    con: duckdb.DuckDBPyConnection,
+    node_id: int,
+    new_name: str,
+    db_path: Optional[Path] = None,
+) -> None:
+    """Update node name in DuckDB and sync the in-memory graph."""
+    con.execute(
+        "UPDATE nodes SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [new_name, node_id],
+    )
+    sync_node(node_id, db_path)
+
+
 def _update_node_definition(
     con: duckdb.DuckDBPyConnection,
     node_id: int,
@@ -88,6 +102,7 @@ def handle_defer_entity(
 __all__ = [
     "console",
     "_update_node_status",
+    "_update_node_name",
     "_update_node_definition",
     "_update_node_data_json",
     "_log_and_finish",

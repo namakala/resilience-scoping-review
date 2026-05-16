@@ -2,8 +2,13 @@
 
 Entry point ``review_themes`` iterates pending themes and dispatches
 to display, prompt, and action handler modules.
+
+.. deprecated::
+    Use :class:`hitl.tui.AnalystTUI` instead. This module is kept for
+    backward compatibility with the questionary-based review flow.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -21,6 +26,12 @@ from .theme_review_actions import (
     handle_defer_theme,
     handle_edit_theme,
     handle_reject_theme,
+)
+
+warnings.warn(
+    "theme_review.py is deprecated. Use hitl.tui.AnalystTUI instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
 __all__ = ["review_themes"]

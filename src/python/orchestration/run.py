@@ -1,7 +1,8 @@
 """Run subcommand — standalone click command registered via ``cli.add_command``.
 
 Drives the full pipeline (stages 1-10) or selected types.  Replaces the
-former ``generate`` subcommand.
+former ``generate`` subcommand.  Launches an interactive TUI when
+running in a terminal.
 """
 
 from __future__ import annotations
@@ -19,6 +20,9 @@ from orchestration.config import (
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
+
+# If we are in a TTY, launch the Textual TUI; otherwise fall back to CLI.
+_INTERACTIVE_SESSION: bool = sys.stdout.isatty() and sys.stdin.isatty()
 
 
 @click.command(
@@ -115,16 +119,12 @@ def run_sequence(
     initial state (fresh or resume via *ctx_obj* flags), creates
     config, and delegates to :func:`runner.run_pipeline`.
 
-    Args:
-        con: Active DuckDB connection.
-        types: Artifact type filter (empty tuple = all).
-        ctx_obj: CLI context dict with resume/reset/force_resume flags.
-            When ``None`` (e.g. called from default.py) runs fresh.
-        limit: Max tags to process (0 = all).
+    When running in an interactive terminal, launches the Textual TUI
+    instead of the sequential CLI pipeline.
     """
     from config.config import Config
     from orchestration.resume import handle_reset, resolve_state
-    from orchestration.runner import resolve_target_stage, run_pipeline
+    from orchestration.runner import resolve_target_stage
 
     env_file = ctx_obj.get("env_file") if ctx_obj else None
 
@@ -138,13 +138,40 @@ def run_sequence(
         env_file=env_file,
     )
     config = Config.from_env()
-    target = resolve_target_stage(types)
 
+    if _INTERACTIVE_SESSION and not types:
+        _launch_tui(con, state, config)
+        return
+
+    from orchestration.runner import run_pipeline
+
+    target = resolve_target_stage(types)
     final_state = run_pipeline(con, state, config, target_stage=target, limit=limit)
     logger.debug(
         "Pipeline complete",
         extra={"final_stage": final_state.current_stage},
     )
+
+
+def _launch_tui(
+    con,
+    state,
+    config,
+) -> None:
+    """Launch the Textual TUI for interactive pipeline execution."""
+    try:
+        from hitl.tui import AnalystTUI
+
+        app = AnalystTUI(con, state, config)
+        app.run()
+    except ImportError as exc:
+        logger.warning(
+            "Textual not available; falling back to CLI pipeline",
+            extra={"error": str(exc)},
+        )
+        from orchestration.runner import run_pipeline
+
+        run_pipeline(con, state, config)
 
 
 __all__ = ["run_cmd", "run_sequence"]
