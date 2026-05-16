@@ -74,6 +74,7 @@ class TokenLimitError(Exception):
 def call_complete_with_retry(
     prompt: PromptBundle,
     batch_id: str,
+    tag: str = "",
     model: str | None = None,
     temperature: float = 0.0,
     response_format: dict | None = None,
@@ -119,6 +120,8 @@ def call_complete_with_retry(
                 model=model,
                 temperature=temperature,
                 response_format=response_format,
+                batch_id=bid,
+                tag=tag,
             )
         except RateLimitError:
             _logger.warning(
@@ -133,6 +136,8 @@ def call_complete_with_retry(
                 model=model,
                 temperature=temperature,
                 response_format=response_format,
+                batch_id=bid,
+                tag=tag,
             )
         except BadRequestError as e:
             if "context length" in str(e).lower():
@@ -172,7 +177,9 @@ def infer_batch_with_retry(
     """
     prompt = render_fn(batch)
     try:
-        return [call_complete_with_retry(prompt, batch.batch_id, **kwargs)]
+        return [
+            call_complete_with_retry(prompt, batch.batch_id, tag=batch.tag, **kwargs)
+        ]
     except TokenLimitError:
         logger.warning("Splitting batch %s due to token limit", batch.batch_id)
         results: list = []

@@ -16,16 +16,18 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-_KEYBERT_MODEL = "all-MiniLM-L6-v2"
-
 
 def _get_keybert_model() -> KeyBERT:
-    """Return a lazily-initialized KeyBERT singleton.
+    """Return a KeyBERT instance sharing the embedding layer's model.
 
-    Uses the same sentence-transformer model as the embedding layer
-    (all-MiniLM-L6-v2) so no additional model download is needed.
+    Uses the thread-safe lazy singleton from ``semantic.embeddings`` so
+    the sentence-transformer model is loaded into memory only once per
+    process.  KeyBERT accepts a pre-loaded ``SentenceTransformer``
+    instance via its ``model`` parameter.
     """
-    return KeyBERT(model=_KEYBERT_MODEL)
+    from semantic.embeddings import _get_model
+
+    return KeyBERT(model=_get_model())
 
 
 def extract_keywords(

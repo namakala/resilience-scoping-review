@@ -69,6 +69,7 @@ from .readiness import (
     remove_tag_from_ready,
 )
 from .retry import TokenLimitError, call_complete_with_retry, infer_batch_with_retry
+from .seed_inference_status import seed_pending_exemplars
 from .theme_inference import infer_themes
 from .theme_loading_for_interpretation import load_approved_themes
 from .track_decorator import track_tokens
@@ -141,6 +142,7 @@ __all__ = [
     "render_theme_prompt",
     "reset_inference_status",
     "reset_tracker",
+    "seed_pending_exemplars",
     "set_status",
     "set_status_draft",
     "split_batch_in_half",

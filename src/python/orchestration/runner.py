@@ -161,7 +161,17 @@ def _run_stage_index(con: duckdb.DuckDBPyConnection, config: Config) -> None:
 
 
 def _run_stage_infer_codes(con: duckdb.DuckDBPyConnection) -> None:
-    """Infer codes from pending exemplars (reads inference_status)."""
+    """Seed inference_status, then infer codes from pending exemplars.
+
+    The seed step ensures the ``inference_status`` table contains a
+    ``pending`` row for every exemplar so that code inference finds them.
+    It runs here, between indexing (stage 3) and inference (stage 4),
+    and is idempotent (``INSERT OR IGNORE``).
+    """
+    from inference.seed_inference_status import seed_pending_exemplars
+
+    seed_pending_exemplars(con)
+
     from inference.code_inference import infer_codes
 
     infer_codes(con)

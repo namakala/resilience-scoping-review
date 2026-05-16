@@ -19,6 +19,7 @@ Usage:
 from config import groq_api_key, groq_max_retries, groq_model, groq_timeout
 from groq import AsyncGroq, Groq
 
+from .llm_logger import log_llm_call
 from .prompts import PromptBundle
 
 __all__ = [
@@ -121,6 +122,8 @@ def complete(
     model: str | None = None,
     temperature: float = 0.0,
     response_format: dict | None = None,
+    batch_id: str = "",
+    tag: str = "",
 ):
     """Send a :class:`PromptBundle` to Groq and return the completion.
 
@@ -138,6 +141,10 @@ def complete(
     response_format : dict | None
         Groq ``response_format`` parameter; defaults to
         ``{"type": "json_object"}``.
+    batch_id : str
+        Batch identifier for logging (default ``""``).
+    tag : str
+        Ontology tag for logging (default ``""``).
 
     Returns
     -------
@@ -148,9 +155,27 @@ def complete(
     messages = build_messages(prompt.system, prompt.user, prompt.fewshot)
     client = get_sync_client()
     model = model or get_model()
-    return client.chat.completions.create(
+    reply = client.chat.completions.create(
         messages=messages,
         model=model,
         temperature=temperature,
         response_format=response_format or {"type": "json_object"},
     )
+    log_llm_call(
+        batch_id=batch_id,
+        tag=tag,
+        model=model,
+        temperature=temperature,
+        prompt_system=prompt.system,
+        prompt_user=prompt.user,
+        response=reply.choices[0].message.content,
+        token_usage=(
+            {
+                "input_tokens": getattr(reply.usage, "prompt_tokens", 0),
+                "output_tokens": getattr(reply.usage, "completion_tokens", 0),
+            }
+            if reply.usage
+            else {}
+        ),
+    )
+    return reply
