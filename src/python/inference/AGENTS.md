@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
 description: "Groq batch inference: prompts, parsing, batching, retry, status tracking, and code inference service"
-updated_at: "2026-05-15"
+updated_at: "2026-05-16"
 ---
 
 # Inference & LLM Layer
@@ -14,8 +14,12 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 - `code_inference.py` — `infer_codes(con, tag)` → `list[CodeInference]`
 - `code_node_creation.py` — `create_code_nodes(con, codes)` → `list[int]`
 - `exemplar_node_creation.py` — `ensure_exemplar_nodes(con, ids, tag)` → `dict[str, int]`
+- `theme_code_loading.py` — `load_approved_codes(tag)`, `_load_exemplar_content_map(ids)`. Loads codes with exemplar content from Parquet.
+- `theme_inference.py` — `infer_themes(con, tag)` → `list[ThemeInference]`
 - `theme_node_reinfer.py` — `load_existing_draft_themes()`, `rename_node_raw()`
 - `theme_name_utils.py` — `make_unique_theme_name()`, `check_duplicate_theme_names()`
+- `theme_loading_for_interpretation.py` — `load_approved_themes(tag)`, loads themes with constituent code details and exemplar content.
+- `interpretation_synthesis.py` — `synthesize_interpretations(con)` → `list[InterpretationInference]`
 - `prompts.py` + `templates/` — Jinja2 rendering (code/theme/interpretation)
 - `parsing.py` — fence stripping, JSON parse, Pydantic validation
 - `retry.py` — network retry, rate-limit sleep, token-limit batch splitting

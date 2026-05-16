@@ -105,9 +105,9 @@ def run_sequence(
         ctx_obj: CLI context dict with resume/reset/force_resume flags.
             When ``None`` (e.g. called from default.py) runs fresh.
     """
+    from config.config import Config
     from orchestration.resume import handle_reset, resolve_state
     from orchestration.runner import resolve_target_stage, run_pipeline
-    from pipeline.config import Config
 
     env_file = ctx_obj.get("env_file") if ctx_obj else None
 

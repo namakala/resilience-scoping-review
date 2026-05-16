@@ -51,6 +51,7 @@ def _codes_to_dicts(items: list[_CodeRow]) -> list[dict[str, Any]]:
             "name": item.name,
             "definition": item.definition,
             "exemplar_count": item.exemplar_count,
+            "exemplar_contents": list(item.exemplar_contents),
         }
         for item in items
     ]

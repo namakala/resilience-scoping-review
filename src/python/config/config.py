@@ -1,4 +1,4 @@
-"""Configuration dataclass bundling all environment settings for DAG injection."""
+"""Configuration dataclass bundling all environment settings."""
 
 from __future__ import annotations
 
@@ -10,53 +10,33 @@ from config import settings
 
 @dataclass(frozen=True)
 class Config:
-    """Immutable snapshot of all application settings for DAG dependency injection.
+    """Immutable snapshot of all application settings."""
 
-    Created once at pipeline entry and passed via Hamilton's ``with_config()``
-    so every node function receives a typed ``config: Config`` parameter.
-    """
-
-    # Groq / LLM
     groq_api_key: str
     groq_model: str
     groq_timeout: int
     groq_max_retries: int
-
-    # Inference temperatures
     code_temperature: float
     theme_temperature: float
     interpretation_temperature: float
-
-    # Embedding model
     embedding_model: str
     model_cache_dir: Path
-
-    # Processing
     batch_size: int
     log_level: str
-
-    # Paths
     data_path: Path
     tags_path: Path
     processed_data_path: Path
-    export_output_path: Path
-
-    # BM25
     bm25_tokenizer_config: str
-
-    # Few-shot
     fewshot_enabled: bool
     fewshot_count: int
     fewshot_shuffle: bool
-
-    # Token tracking & cost
     token_cost_input_per_million: float
     token_cost_output_per_million: float
+    export_output_path: Path
     max_stage_cost_usd: float
 
     @classmethod
     def from_env(cls) -> Config:
-        """Build a ``Config`` from the current environment variables."""
         return cls(
             groq_api_key=settings.groq_api_key(),
             groq_model=settings.groq_model(),
@@ -72,12 +52,12 @@ class Config:
             data_path=settings.data_path(),
             tags_path=settings.tags_path(),
             processed_data_path=settings.processed_data_path(),
-            export_output_path=settings.export_output_path(),
             bm25_tokenizer_config=settings.bm25_tokenizer_config(),
             fewshot_enabled=settings.fewshot_enabled(),
             fewshot_count=settings.fewshot_count(),
             fewshot_shuffle=settings.fewshot_shuffle(),
             token_cost_input_per_million=settings.token_cost_input_per_million(),
             token_cost_output_per_million=settings.token_cost_output_per_million(),
+            export_output_path=settings.export_output_path(),
             max_stage_cost_usd=settings.max_stage_cost_usd(),
         )

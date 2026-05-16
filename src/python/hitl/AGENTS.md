@@ -101,7 +101,7 @@ Check rejected if constraints violated. Error message includes remediation sugge
 
 - Calls `@src/python/graph/AGENTS.md` to persist mutations
 - Calls `@src/python/ontology/AGENTS.md` for constraint checks
-- Notifies `@src/python/pipeline/AGENTS.md` of dirty flags for recomputation
+- Notifies orchestration layer via `orchestration.dirty.propagate_dirty()` for dirty-flag cascade
 - Retrieves neighbors from `@src/python/semantic/AGENTS.md` for context
 - Loads artifacts from `@src/python/persistence/AGENTS.md`
 

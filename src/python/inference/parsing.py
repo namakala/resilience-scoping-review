@@ -48,6 +48,7 @@ class ThemeInference(BaseModel):
     theme_name: str
     narrative: str
     code_ids: list[str]
+    tag: str = ""
 
 
 class InterpretationInference(BaseModel):
@@ -57,6 +58,7 @@ class InterpretationInference(BaseModel):
     narrative: str
     theme_ids: list[str]
     key_insights: list[str]
+    tag: str = ""
 
 
 # ── Wrapper keys (must match template Output Schema keys) ─────────────────

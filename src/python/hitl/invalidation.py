@@ -12,8 +12,8 @@ Grouped logically:
 import duckdb
 from inference.inference_status_crud import set_status_draft
 from inference.inference_status_types import ENTITY_THEME, STAGE_THEME
+from orchestration.dirty import propagate_dirty
 from persistence.embedding_cache import invalidate_entity
-from pipeline.dirty import propagate_dirty
 from utils.logging import get_logger
 
 logger = get_logger(__name__)

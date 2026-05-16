@@ -6,7 +6,7 @@ Test coverage:
 - Depth computation (root=0, incremental +1 per level)
 - Acyclicity validation (valid DAG, cycles, self-loops)
 - Topological sort succeeds on valid DAG
-- Missing parent raises ForeignKeyError
+- Missing parent auto-inferred as empty placeholder node
 - Singleton caching (get_tag_dag, rebuild_tag_dag)
 - Empty tags returns empty graph
 """
@@ -311,8 +311,8 @@ class TestTagDAG(unittest.TestCase):
         self.assertIs(second, get_tag_dag())
 
     @patch("ontology.dag.load_tags")
-    def test_missing_parent_raises_error(self, mock_load_tags):
-        """Tag referencing nonexistent parent raises ForeignKeyError."""
+    def test_missing_parent_inferred(self, mock_load_tags):
+        """Missing parent auto-inferred as empty placeholder with correct edges."""
         mock_load_tags.return_value = _make_tags_lf(
             [
                 {"tag": "A.B", "parent": "A", "description": "orphan", "n_contents": 1},
@@ -320,9 +320,19 @@ class TestTagDAG(unittest.TestCase):
         )
         from ontology.dag import build_tag_dag
 
-        with self.assertRaises(ForeignKeyError) as ctx:
-            build_tag_dag()
-        self.assertIn("A", str(ctx.exception))
+        G = build_tag_dag()
+        # Missing parent A was inferred
+        self.assertIn("A", G.nodes)
+        self.assertEqual(G.nodes["A"]["description"], "")
+        self.assertEqual(G.nodes["A"]["n_contents"], 0)
+        self.assertEqual(G.nodes["A"]["tag_str"], "A")
+        # Edge A -> A.B exists
+        self.assertTrue(G.has_edge("A", "A.B"))
+        # Original node preserved
+        self.assertEqual(G.nodes["A.B"]["description"], "orphan")
+        self.assertEqual(G.nodes["A.B"]["n_contents"], 1)
+        self.assertEqual(G.number_of_nodes(), 2)
+        self.assertEqual(G.number_of_edges(), 1)
 
     @patch("ontology.dag.load_tags")
     def test_empty_tags_returns_empty_graph(self, mock_load_tags):
@@ -350,8 +360,8 @@ class TestTagDAG(unittest.TestCase):
         self.assertEqual(G.nodes["R.C"]["n_contents"], 7)
 
     @patch("ontology.dag.load_tags")
-    def test_build_raises_on_missing_multiple_parents(self, mock_load_tags):
-        """Multiple missing parents listed in error message."""
+    def test_multiple_missing_parents_inferred(self, mock_load_tags):
+        """Multiple missing parents auto-inferred with correct chain wiring."""
         mock_load_tags.return_value = _make_tags_lf(
             [
                 {"tag": "X.Y", "parent": "X", "description": "a", "n_contents": 0},
@@ -361,12 +371,23 @@ class TestTagDAG(unittest.TestCase):
         )
         from ontology.dag import build_tag_dag
 
-        with self.assertRaises(ForeignKeyError) as ctx:
-            build_tag_dag()
-        msg = str(ctx.exception)
-        self.assertIn("P", msg)
-        # X.Y is present, X is missing, X.Y.Z parent is X.Y which is present
-        self.assertIn("X", msg)
+        G = build_tag_dag()
+        # Both P and X inferred as placeholders
+        self.assertIn("P", G.nodes)
+        self.assertIn("X", G.nodes)
+        self.assertEqual(G.nodes["P"]["description"], "")
+        self.assertEqual(G.nodes["X"]["description"], "")
+        self.assertEqual(G.nodes["P"]["n_contents"], 0)
+        self.assertEqual(G.nodes["X"]["n_contents"], 0)
+        # Edge from inferred P to P.Q
+        self.assertTrue(G.has_edge("P", "P.Q"))
+        # Edge from inferred X to X.Y
+        self.assertTrue(G.has_edge("X", "X.Y"))
+        # Edge X.Y -> X.Y.Z (X.Y is existing original node)
+        self.assertTrue(G.has_edge("X.Y", "X.Y.Z"))
+        # Total: 3 original + 2 inferred = 5 nodes
+        self.assertEqual(G.number_of_nodes(), 5)
+        self.assertEqual(G.number_of_edges(), 3)
 
     @patch("ontology.dag.load_tags")
     def test_build_tag_dag_rejects_cycle_during_build(self, mock_load_tags):

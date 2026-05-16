@@ -1,42 +1,24 @@
-"""Stage-transition driver — main pipeline loop.
+"""Stage-transition driver — sequential pipeline loop.
 
-Drives the workflow through stages 1-10: execute DAG → checkpoint →
-HITL if review stage → advance.  Handles Ctrl-C via graceful_shutdown
-and loads real dirty_flags from state for selective recomputation.
+Drives the workflow through stages 1-10: load → embed → index →
+infer codes → HITL → infer themes → HITL → synthesize interpretations
+→ HITL → export.  Tag-level dirty-flag gating for theme inference
+minimizes LLM API calls.
 """
 
 from __future__ import annotations
 
 import time
-from typing import Any
 
 import duckdb
-from hamilton.driver import Driver
+from config.config import Config
 from orchestration.state import WorkflowState
-from orchestration.state_rules import MAX_STAGE
+from orchestration.state_rules import MAX_STAGE, STAGE_NAMES
 from persistence.state_repository import save_state
-from pipeline.cache_adapter import CacheMetrics, NodeCacheAdapter
-from pipeline.config import Config
-from pipeline.constructor import create_pipeline
-from pipeline.executor import execute_dag
-from pipeline.types import ExecutionResult
 from utils.graceful_shutdown import graceful_shutdown
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
-
-STAGE_NAMES: dict[int, str] = {
-    1: "load",
-    2: "embed",
-    3: "index",
-    4: "infer_codes",
-    5: "review_codes",
-    6: "infer_themes",
-    7: "review_themes",
-    8: "infer_interpretations",
-    9: "review_interpretations",
-    10: "export",
-}
 
 REVIEW_STAGES: frozenset[int] = frozenset({5, 7, 9})
 
@@ -48,10 +30,7 @@ TYPE_TO_TARGET_STAGE: dict[str, int] = {
 
 
 def resolve_target_stage(types: tuple[str, ...]) -> int:
-    """Map artifact type(s) to the highest completion stage.
-
-    Empty tuple means all stages (target=10).
-    """
+    """Map artifact type(s) to the highest review-completion stage."""
     if not types:
         return MAX_STAGE
     return max(TYPE_TO_TARGET_STAGE[t] for t in types)
@@ -63,11 +42,6 @@ def run_pipeline(
     config: Config,
     target_stage: int = MAX_STAGE,
 ) -> WorkflowState:
-    """Drive the pipeline from ``state.current_stage`` through ``target_stage``.
-
-    Each iteration: execute DAG for current stage → save checkpoint →
-    HITL review if review stage → advance.  Ctrl-C saves checkpoint and exits.
-    """
     if state.current_stage > target_stage:
         logger.info(
             "Already past target stage %d (current=%d); nothing to do",
@@ -75,11 +49,6 @@ def run_pipeline(
             state.current_stage,
         )
         return state
-
-    metrics = CacheMetrics()
-    adapter = NodeCacheAdapter(con, metrics)
-    builder = create_pipeline(config, adapters=[adapter])
-    driver = builder.build()
 
     def _checkpoint() -> None:
         _save_checkpoint(con, state)
@@ -97,16 +66,30 @@ def run_pipeline(
             )
 
             start = time.monotonic()
-            result = execute_stage(driver, stage, con, state, metrics)
+
+            if stage == 1:
+                _run_stage_load(con, config)
+            elif stage == 2:
+                _run_stage_embed(con)
+            elif stage == 3:
+                _run_stage_index(con, config)
+            elif stage == 4:
+                _run_stage_infer_codes(con)
+            elif stage == 5:
+                state = _run_stage_review_codes(con, state)
+            elif stage == 6:
+                _run_stage_infer_themes(con, state)
+            elif stage == 7:
+                state = _run_stage_review_themes(con, state)
+            elif stage == 8:
+                _run_stage_synthesize_interpretations(con)
+            elif stage == 9:
+                state = _run_stage_review_interpretations(con, state)
+            elif stage == 10:
+                _run_stage_export(con, state, config)
+                break
+
             elapsed = time.monotonic() - start
-
-            executed = sum(1 for n in result.node_executions if n.status == "executed")
-            cached = sum(1 for n in result.node_executions if n.status == "cached")
-
-            failure_count = sum(
-                1 for n in result.node_executions if n.status == "skipped" and n.error
-            )
-
             logger.info(
                 "Stage %d (%s) completed in %.1fs",
                 stage,
@@ -116,60 +99,141 @@ def run_pipeline(
                     "stage": stage,
                     "stage_name": stage_name,
                     "duration_s": round(elapsed, 1),
-                    "nodes_executed": executed,
-                    "nodes_cached": cached,
-                    "failures": failure_count,
                 },
             )
 
             _save_checkpoint(con, state)
-
-            if stage in REVIEW_STAGES:
-                from orchestration.hitl_coordinator import coordinate_hitl
-                from persistence.duckdb_connection import DEFAULT_DB_PATH
-
-                state = coordinate_hitl(con, stage, state, DEFAULT_DB_PATH)
-
-            if stage == MAX_STAGE:
-                from orchestration.export import export_all
-                from persistence.duckdb_connection import DEFAULT_DB_PATH
-
-                export_all(con, state, config, DEFAULT_DB_PATH)
-                break
             state.advance_stage()
 
+    from inference.llm_logger import flush_llm_log
+
+    flush_llm_log(config.export_output_path / "llm_output.json")
     return state
 
 
-def execute_stage(
-    driver: Driver,
-    stage: int,
+# ── Stage runners ──────────────────────────────────────────────────────────
+
+
+def _run_stage_load(con: duckdb.DuckDBPyConnection, config: Config) -> None:
+    """Load exemplars and tags from Parquet, extract keywords, validate schemas."""
+    from persistence.loaders import load_exemplars, load_keywords, load_tags
+
+    _ = load_exemplars()
+    _ = load_tags()
+    _ = load_keywords()
+
+    from semantic.keyword_extraction import extract_keywords
+
+    extract_keywords(con)
+
+    from ontology.dag import build_tag_dag, validate_tag_dag
+
+    G = build_tag_dag()
+    validate_tag_dag(G)
+
+    logger.info("Data load and validation complete")
+
+
+def _run_stage_embed(con: duckdb.DuckDBPyConnection) -> None:
+    """Generate embeddings for uncached exemplars and keywords."""
+    from semantic.embedding_generation import generate_exemplar_embeddings
+    from semantic.keyword_embedding import generate_keyword_embeddings
+
+    generate_exemplar_embeddings(con)
+    generate_keyword_embeddings(con)
+
+    logger.info("Embedding generation complete")
+
+
+def _run_stage_index(con: duckdb.DuckDBPyConnection, config: Config) -> None:
+    """Build BM25 index, ontology graph traversal cache."""
+    from persistence.loaders import load_keywords
+    from semantic.index_builder import build_index
+
+    kw_lf = load_keywords()
+    build_index(kw_lf, tokenizer_config=config.bm25_tokenizer_config)
+
+    from ontology.cache import build_traversal_cache
+
+    build_traversal_cache()
+
+    logger.info("Index build complete")
+
+
+def _run_stage_infer_codes(con: duckdb.DuckDBPyConnection) -> None:
+    """Infer codes from pending exemplars (reads inference_status)."""
+    from inference.code_inference import infer_codes
+
+    infer_codes(con)
+
+
+def _run_stage_review_codes(
     con: duckdb.DuckDBPyConnection,
     state: WorkflowState,
-    cache_metrics: CacheMetrics,
-) -> ExecutionResult:
-    """Execute all DAG nodes required for *stage*.
+) -> WorkflowState:
+    """HITL review of inferred codes."""
+    from orchestration.hitl_coordinator import coordinate_hitl
 
-    Loads dirty_flags from state for selective recomputation
-    (inference stages 4/6/8).  Non-dirty stages get None.
+    return coordinate_hitl(con, 5, state)
+
+
+def _run_stage_infer_themes(
+    con: duckdb.DuckDBPyConnection,
+    state: WorkflowState,
+) -> None:
+    """Infer themes only for tags with dirty flags set.
+
+    Tags with dirty=False are skipped entirely — zero LLM calls.
     """
-    inference_stages = {4, 6, 8}
-    dirty_flags: dict[str, bool] | None = (
-        dict(state.dirty_flags) if stage in inference_stages else None
-    )
-    inputs: dict[str, Any] = {}
-    if dirty_flags:
-        inputs["dirty_flags"] = dirty_flags
+    from inference.theme_inference import infer_themes
 
-    return execute_dag(
-        driver,
-        stage=stage,
-        inputs=inputs or None,
-        cache_metrics=cache_metrics,
-    )
+    for tag, is_dirty in state.dirty_flags.items():
+        if is_dirty:
+            infer_themes(con, tag=tag)
+        else:
+            logger.debug("Skipping clean tag '%s' for theme inference", tag)
 
 
-# ── Private helpers ─────────────────────────────────────────────────────────
+def _run_stage_review_themes(
+    con: duckdb.DuckDBPyConnection,
+    state: WorkflowState,
+) -> WorkflowState:
+    """HITL review of inferred themes."""
+    from orchestration.hitl_coordinator import coordinate_hitl
+
+    return coordinate_hitl(con, 7, state)
+
+
+def _run_stage_synthesize_interpretations(con: duckdb.DuckDBPyConnection) -> None:
+    """Synthesize interpretations from approved themes."""
+    from inference.interpretation_synthesis import synthesize_interpretations
+
+    synthesize_interpretations(con)
+
+
+def _run_stage_review_interpretations(
+    con: duckdb.DuckDBPyConnection,
+    state: WorkflowState,
+) -> WorkflowState:
+    """HITL review of synthesized interpretations."""
+    from orchestration.hitl_coordinator import coordinate_hitl
+
+    return coordinate_hitl(con, 9, state)
+
+
+def _run_stage_export(
+    con: duckdb.DuckDBPyConnection,
+    state: WorkflowState,
+    config: Config,
+) -> None:
+    """Export approved results to JSON, CSV, and Markdown."""
+    from orchestration.export import export_all
+    from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+    export_all(con, state, config, DEFAULT_DB_PATH)
+
+
+# ── Checkpoint ─────────────────────────────────────────────────────────────
 
 
 def _save_checkpoint(con: duckdb.DuckDBPyConnection, state: WorkflowState) -> None:
@@ -186,7 +250,6 @@ def _save_checkpoint(con: duckdb.DuckDBPyConnection, state: WorkflowState) -> No
 
 __all__ = [
     "run_pipeline",
-    "execute_stage",
     "resolve_target_stage",
     "STAGE_NAMES",
     "REVIEW_STAGES",

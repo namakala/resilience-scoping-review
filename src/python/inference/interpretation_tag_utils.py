@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Optional
 
 from graph import get_node
-from ontology import get_tag_dag
 from utils.logging import get_logger
 
 from .parsing import InterpretationInference
@@ -67,7 +66,9 @@ def compute_root_tag(tag_spans: set[str]) -> str:
     if len(tag_spans) == 1:
         return next(iter(tag_spans))
     try:
-        dag = get_tag_dag()
+        from ontology.dag import get_tag_dag as _get_tag_dag
+
+        dag = _get_tag_dag()
         return min(
             tag_spans,
             key=lambda t: dag.nodes[t].get("depth", 0) if t in dag else 0,

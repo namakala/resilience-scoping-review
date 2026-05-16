@@ -32,8 +32,20 @@ class TestCodesToDicts(unittest.TestCase):
         ]
         result = _codes_to_dicts(items)
         expected = [
-            {"id": "1", "name": "N1", "definition": "D1", "exemplar_count": 3},
-            {"id": "2", "name": "N2", "definition": "D2", "exemplar_count": 0},
+            {
+                "id": "1",
+                "name": "N1",
+                "definition": "D1",
+                "exemplar_count": 3,
+                "exemplar_contents": [],
+            },
+            {
+                "id": "2",
+                "name": "N2",
+                "definition": "D2",
+                "exemplar_count": 0,
+                "exemplar_contents": [],
+            },
         ]
         self.assertEqual(result, expected)
 

@@ -1,7 +1,7 @@
 ---
 title: "Orchestration Layer — CLI & Config"
 description: "Click-based CLI, subcommands (ingest, run, review), env var merging, ingest guardrail"
-updated_at: "2026-05-15"
+updated_at: "2026-05-16"
 ---
 
 # Orchestration Layer
@@ -78,7 +78,7 @@ does re-ingest proceed.
 
 - `cli.py` — Click group, subcommand definitions, dispatch, progress display
 - `run.py` — ``run`` subcommand: ``run_cmd()`` CLI handler, ``run_sequence()`` programmatic entry
-- `runner.py` — Stage-transition driver: ``run_pipeline()``, ``execute_stage()``, ``resolve_target_stage()``
+- `runner.py` — Sequential stage-transition driver: ``run_pipeline()`` dispatches service modules per stage, ``resolve_target_stage()``
 - `export.py` — Orchestrate final export: query approved graph nodes, delegate to formatters + atomic I/O
 - `export_formatters.py` — Pure JSON/CSV/Markdown format builders (no I/O, no DB)
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
@@ -90,7 +90,7 @@ does re-ingest proceed.
 
 - Calls `persistence.converter.convert_csvs()` and `persistence.duckdb_init.init_or_migrate()`
 - Calls `hitl.code_review.review_codes()`, `hitl.theme_review.review_themes()`, etc.
-- Calls `pipeline.executor.execute_dag()` for inference via ``runner.execute_stage()``
+- Calls service modules directly via ``runner.run_pipeline()`` sequential dispatch
 - Calls `orchestration.export.export_all()` after stage 10 to write results
 - Reads config from `config.settings`
 - Stores state via `persistence.state_repository` (checkpoint after each stage)

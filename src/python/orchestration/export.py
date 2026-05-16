@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
+from config.config import Config
 from orchestration.state import WorkflowState
-from pipeline.config import Config
 from utils.atomic_io import write_csv, write_json, write_markdown
 from utils.logging import get_logger
 

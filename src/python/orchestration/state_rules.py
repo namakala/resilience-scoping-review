@@ -12,6 +12,19 @@ MIN_STAGE = 1  # Earliest pipeline stage (Load).
 
 MAX_STAGE = 10  # Final pipeline stage (Export).
 
+STAGE_NAMES: dict[int, str] = {
+    1: "load",
+    2: "embed",
+    3: "index",
+    4: "infer_codes",
+    5: "review_codes",
+    6: "infer_themes",
+    7: "review_themes",
+    8: "infer_interpretations",
+    9: "review_interpretations",
+    10: "export",
+}
+
 STAGE_PREREQS: Dict[int, list[int]] = {
     2: [1],
     3: [2],

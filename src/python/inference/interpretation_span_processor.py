@@ -72,6 +72,15 @@ def _process_interpretation_span(
                 "theme_name": t.theme_name,
                 "narrative": t.narrative,
                 "code_ids": t.code_ids,
+                "codes_detail": [
+                    {
+                        "name": cd["name"],
+                        "definition": cd["definition"],
+                        "exemplar_ids": cd["exemplar_ids"],
+                        "exemplar_contents": cd["exemplar_contents"],
+                    }
+                    for cd in t.codes_detail
+                ],
             }
             for t in themes
         ]
