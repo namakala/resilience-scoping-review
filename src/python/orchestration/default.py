@@ -48,14 +48,9 @@ def _check_database_nodes(con, obj: dict) -> None:
 def _run_and_review(obj: dict) -> None:
     """Generate codes then enter review TUI."""
     from orchestration.run import run_sequence
-    from persistence.duckdb_init import init_or_migrate
 
-    con = init_or_migrate()
-    try:
-        click.echo("Running code generation...")
-        run_sequence(con, ("code",))
-    finally:
-        con.close()
+    click.echo("Running code generation...")
+    run_sequence(("code",), ctx_obj=obj)
 
 
 def _has_nodes_of_type(con, node_type: str) -> bool:

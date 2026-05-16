@@ -36,7 +36,7 @@ def resolve_target_stage(types: tuple[str, ...]) -> int:
     return max(TYPE_TO_TARGET_STAGE[t] for t in types)
 
 
-def _select_limited_tags(limit: int) -> list[str]:
+def select_limited_tags(limit: int) -> list[str]:
     """Return the top *limit* tags with the fewest exemplars (n_contents > 0).
 
     Sorted by ``n_contents`` ascending, then alphabetically for
@@ -76,7 +76,7 @@ def run_pipeline(
         )
         return state
 
-    limited_tags: list[str] | None = _select_limited_tags(limit) if limit > 0 else None
+    limited_tags: list[str] | None = select_limited_tags(limit) if limit > 0 else None
 
     def _checkpoint() -> None:
         _save_checkpoint(con, state)
@@ -330,6 +330,7 @@ def _save_checkpoint(con: duckdb.DuckDBPyConnection, state: WorkflowState) -> No
 __all__ = [
     "run_pipeline",
     "resolve_target_stage",
+    "select_limited_tags",
     "STAGE_NAMES",
     "REVIEW_STAGES",
     "TYPE_TO_TARGET_STAGE",

@@ -77,6 +77,7 @@ class EntityBrowser(Widget):
         super().__init__()
         self.entity_type = entity_type
         self._db_path = db_path
+        self.limited_tags: list[str] | None = None
         self._all_entities: list[dict[str, Any]] = []
         self._selected_index: int = 0
 
@@ -88,7 +89,8 @@ class EntityBrowser(Widget):
                 yield Static(id="entity-detail-content")
 
     def on_mount(self) -> None:
-        self.refresh_entities()
+        """No-op; the parent app triggers refresh explicitly when
+        the review tab is enabled."""
 
     # ── Connection ──────────────────────────────────────────────────
 
@@ -100,32 +102,41 @@ class EntityBrowser(Widget):
 
     # ── Data refresh ────────────────────────────────────────────────
 
-    def refresh_entities(self) -> None:
+    async def refresh_entities(self) -> None:
         """Re-query the database and rebuild the entity list."""
         try:
             con = self._con()
         except Exception:
-            # If connection fails (no DB yet), show empty state
             self._all_entities = []
-            self._rebuild_list()
+            await self._rebuild_list()
             return
 
-        if self.entity_type == "code":
-            self._all_entities = get_all_codes(con)
-        elif self.entity_type == "theme":
-            self._all_entities = get_all_themes(con)
-        elif self.entity_type == "interpretation":
-            self._all_entities = get_all_interpretations(con)
-        else:
-            self._all_entities = []
+        try:
+            if self.entity_type == "code":
+                all_entities = get_all_codes(con)
+            elif self.entity_type == "theme":
+                all_entities = get_all_themes(con)
+            elif self.entity_type == "interpretation":
+                all_entities = get_all_interpretations(con)
+            else:
+                all_entities = []
+        except Exception:
+            all_entities = []
+        finally:
+            con.close()
 
-        con.close()
-        self._rebuild_list()
+        if self.limited_tags is not None:
+            all_entities = [
+                e for e in all_entities if e.get("tag") in self.limited_tags
+            ]
 
-    def _rebuild_list(self) -> None:
+        self._all_entities = all_entities
+        await self._rebuild_list()
+
+    async def _rebuild_list(self) -> None:
         """Rebuild the ListView from _all_entities."""
         list_view = self.query_one("#entity-list-view", ListView)
-        list_view.clear()
+        await list_view.clear()
 
         for i, entity in enumerate(self._all_entities):
             status = entity.get("status", "draft")
@@ -135,7 +146,7 @@ class EntityBrowser(Widget):
                 entity.get("narrative", "unnamed"),
             )
             label = Text(f"{icon} {name}")
-            list_view.append(ListItem(Static(label), id=f"entity-{i}"))
+            await list_view.append(ListItem(Static(label), id=f"entity-{i}"))
 
         if self._all_entities:
             list_view.index = 0
@@ -258,7 +269,7 @@ class EntityBrowser(Widget):
 
     # ── Actions ─────────────────────────────────────────────────────
 
-    def action_approve(self) -> None:
+    async def action_approve(self) -> None:
         """Approve the currently selected entity."""
         entity = self.current_entity()
         if entity is None:
@@ -269,11 +280,11 @@ class EntityBrowser(Widget):
 
             action_approve(con, entity, self.entity_type, self._db_path)
             con.close()
-            self.refresh_entities()
+            await self.refresh_entities()
         except Exception as exc:
             self._show_error(f"Approve failed: {exc}")
 
-    def action_reject(self) -> None:
+    async def action_reject(self) -> None:
         """Reject the currently selected entity."""
         entity = self.current_entity()
         if entity is None:
@@ -284,11 +295,11 @@ class EntityBrowser(Widget):
 
             action_reject(con, entity, self.entity_type, self._db_path)
             con.close()
-            self.refresh_entities()
+            await self.refresh_entities()
         except Exception as exc:
             self._show_error(f"Reject failed: {exc}")
 
-    def action_edit(self, new_name: str, new_definition: str) -> None:
+    async def action_edit(self, new_name: str, new_definition: str) -> None:
         """Edit the currently selected entity."""
         entity = self.current_entity()
         if entity is None:
@@ -306,11 +317,11 @@ class EntityBrowser(Widget):
                 self._db_path,
             )
             con.close()
-            self.refresh_entities()
+            await self.refresh_entities()
         except Exception as exc:
             self._show_error(f"Edit failed: {exc}")
 
-    def action_merge(self, target_id: int) -> None:
+    async def action_merge(self, target_id: int) -> None:
         """Merge current entity into the target."""
         entity = self.current_entity()
         if entity is None:
@@ -327,11 +338,11 @@ class EntityBrowser(Widget):
                 self._db_path,
             )
             con.close()
-            self.refresh_entities()
+            await self.refresh_entities()
         except Exception as exc:
             self._show_error(f"Merge failed: {exc}")
 
-    def action_split(self, selected_theme_ids: list[int]) -> None:
+    async def action_split(self, selected_theme_ids: list[int]) -> None:
         """Split an interpretation by selected theme ids."""
         entity = self.current_entity()
         if entity is None:
@@ -348,7 +359,7 @@ class EntityBrowser(Widget):
                 db_path=self._db_path,
             )
             con.close()
-            self.refresh_entities()
+            await self.refresh_entities()
         except Exception as exc:
             self._show_error(f"Split failed: {exc}")
 

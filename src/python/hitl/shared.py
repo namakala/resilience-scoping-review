@@ -4,9 +4,10 @@ Provides ``console`` singleton, node update helpers, and common action
 patterns used across code, theme, and interpretation review.
 """
 
+import contextlib
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import duckdb
 from graph import sync_node
@@ -15,7 +16,45 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-console = Console()
+
+class _TUIAwareConsole:
+    """Console wrapper that can be silenced during TUI sessions.
+
+    Modules that ``from .shared import console`` hold a reference to a
+    single ``_TUIAwareConsole`` instance.  When the ``tui_mode()``
+    context manager is active, ``print()`` calls are silently dropped;
+    all other ``Console`` methods pass through as normal.
+    """
+
+    def __init__(self) -> None:
+        self._console = Console()
+        self._tui_active = False
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        if not self._tui_active:
+            self._console.print(*args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._console, name)
+
+
+console = _TUIAwareConsole()
+
+
+@contextlib.contextmanager
+def tui_mode() -> Iterator[None]:
+    """Silence ``console.print()`` during TUI operation.
+
+    Sets the internal ``_tui_active`` flag on the shared
+    ``_TUIAwareConsole`` instance so that ``console.print()`` becomes a
+    no-op, preventing shared action handlers from corrupting Textual's
+    alternate screen.  Restores on exit.
+    """
+    console._tui_active = True
+    try:
+        yield
+    finally:
+        console._tui_active = False
 
 
 def _update_node_status(
@@ -101,6 +140,7 @@ def handle_defer_entity(
 
 __all__ = [
     "console",
+    "tui_mode",
     "_update_node_status",
     "_update_node_name",
     "_update_node_definition",
