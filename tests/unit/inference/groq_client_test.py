@@ -91,14 +91,14 @@ class TestGroqClient(unittest.TestCase):
 
     def test_get_model_default(self):
         with mock.patch(
-            "inference.groq_client.groq_model",
+            "inference.groq_client.default_model",
             return_value="openai/gpt-oss-120b",
         ):
             self.assertEqual(get_model(), "openai/gpt-oss-120b")
 
     def test_get_model_custom(self):
         with mock.patch(
-            "inference.groq_client.groq_model",
+            "inference.groq_client.default_model",
             return_value="mixtral-8x7b-32768",
         ):
             self.assertEqual(get_model(), "mixtral-8x7b-32768")

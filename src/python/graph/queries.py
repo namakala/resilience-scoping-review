@@ -52,18 +52,28 @@ def get_node(
 
 def get_nodes_by_type_and_tag(
     node_type: str,
-    tag: str,
+    tag: Optional[str],
     db_path: Optional[Path] = None,
 ) -> list[dict[str, Any]]:
-    """All nodes matching type and tag, sorted by id. Empty list if none."""
+    """All nodes matching type and (optionally) tag. Empty list if none.
+
+    When *tag* is *None*, returns all nodes of the given type regardless
+    of tag. When *tag* is a string, filters to that specific tag.
+    """
     con = None
     try:
         con = _get_conn(db_path)
-        rows = con.execute(
-            f"SELECT {NODE_COLUMNS} FROM nodes "
-            "WHERE type = ? AND tag = ? ORDER BY id",
-            [node_type, tag],
-        ).fetchall()
+        if tag is not None:
+            rows = con.execute(
+                f"SELECT {NODE_COLUMNS} FROM nodes "
+                "WHERE type = ? AND tag = ? ORDER BY id",
+                [node_type, tag],
+            ).fetchall()
+        else:
+            rows = con.execute(
+                f"SELECT {NODE_COLUMNS} FROM nodes " "WHERE type = ? ORDER BY id",
+                [node_type],
+            ).fetchall()
         return [row_to_dict(r) for r in rows]
     except duckdb.Error:
         logger.exception("get_nodes_by_type_and_tag failed")

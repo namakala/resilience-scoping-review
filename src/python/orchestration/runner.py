@@ -37,9 +37,9 @@ def resolve_target_stage(types: tuple[str, ...]) -> int:
 
 
 def _select_limited_tags(limit: int) -> list[str]:
-    """Return the top *limit* tags with the most exemplars (n_contents > 0).
+    """Return the top *limit* tags with the fewest exemplars (n_contents > 0).
 
-    Sorted by ``n_contents`` descending, then alphabetically for
+    Sorted by ``n_contents`` ascending, then alphabetically for
     determinism.  Caller must ensure *limit* > 0.
     """
     from ontology.dag import get_tag_dag
@@ -50,7 +50,7 @@ def _select_limited_tags(limit: int) -> list[str]:
         for n in G.nodes
         if G.nodes[n].get("n_contents", 0) > 0
     ]
-    candidates.sort(key=lambda x: (-x[1], x[0]))
+    candidates.sort(key=lambda x: (x[1], x[0]))
     selected = [t[0] for t in candidates[:limit]]
     logger.info(
         "Selected %d tag(s) for limited processing: %s",
@@ -214,6 +214,10 @@ def _run_stage_infer_codes(
 
         create_code_nodes(con, codes, db_path=DEFAULT_DB_PATH)
 
+        from semantic.embedding_generation import generate_code_embeddings
+
+        generate_code_embeddings(con)
+
 
 def _run_stage_review_codes(
     con: duckdb.DuckDBPyConnection,
@@ -246,6 +250,10 @@ def _run_stage_infer_themes(
                 from persistence.duckdb_connection import DEFAULT_DB_PATH
 
                 create_theme_nodes(con, themes, tag=tag, db_path=DEFAULT_DB_PATH)
+
+                from semantic.embedding_generation import generate_theme_embeddings
+
+                generate_theme_embeddings(con)
         else:
             logger.debug("Skipping clean tag '%s' for theme inference", tag)
 
@@ -276,6 +284,10 @@ def _run_stage_synthesize_interpretations(
         from persistence.duckdb_connection import DEFAULT_DB_PATH
 
         create_interpretation_nodes(con, interpretations, db_path=DEFAULT_DB_PATH)
+
+        from semantic.embedding_generation import generate_interpretation_embeddings
+
+        generate_interpretation_embeddings(con)
 
 
 def _run_stage_review_interpretations(

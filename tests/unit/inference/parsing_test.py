@@ -83,7 +83,7 @@ class TestParseCodeResponse(unittest.TestCase):
         result = parse_code_response(self.VALID_JSON)
         self.assertEqual(len(result), 1)
         self.assertIsInstance(result[0], CodeInference)
-        self.assertEqual(result[0].exemplar_id, "E001")
+        self.assertEqual(result[0].exemplar_id, "001")
         self.assertEqual(result[0].code_name, "Config Drift")
 
     def test_valid_with_fences(self):

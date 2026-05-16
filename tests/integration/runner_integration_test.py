@@ -102,6 +102,7 @@ class TestRunnerPipelineIntegration(unittest.TestCase):
         save_state(self.con, state.to_state_dict())
 
         mock_infer_themes = mock.MagicMock()
+        mock_infer_themes.return_value = []
         with (
             mock.patch("inference.theme_inference.infer_themes", mock_infer_themes),
             mock.patch("orchestration.runner._save_checkpoint"),

@@ -68,6 +68,15 @@ def groq_api_key() -> str:
     )
 
 
+def groq_model() -> str:
+    """Model for LLM inference. Checks GROQ_MODEL, then MODEL_NAME, then fallback.
+
+    The legacy ``MODEL_NAME`` env var is checked before the hard-coded default
+    for backward compatibility.
+    """
+    return os.getenv("GROQ_MODEL") or os.getenv("MODEL_NAME") or "openai/gpt-oss-120b"
+
+
 def default_model() -> str:
     """Default LLM model for all inference stages (fallback for per-stage models)."""
     val = os.getenv("DEFAULT_MODEL")

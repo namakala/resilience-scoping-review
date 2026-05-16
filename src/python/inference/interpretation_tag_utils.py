@@ -71,7 +71,10 @@ def compute_root_tag(tag_spans: set[str]) -> str:
         dag = _get_tag_dag()
         return min(
             tag_spans,
-            key=lambda t: dag.nodes[t].get("depth", 0) if t in dag else 0,
+            key=lambda t: (
+                dag.nodes[t].get("depth", 0) if t in dag else 0,
+                t,
+            ),
         )
     except Exception:
         logger.warning("Could not compute root tag; using first tag in span")

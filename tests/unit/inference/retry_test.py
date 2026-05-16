@@ -168,10 +168,12 @@ class TestCallCompleteWithRetry(unittest.TestCase):
     def test_rate_limit_sleeps_and_retries(self, mock_sleep, mock_complete):
         """AC: RateLimitError triggers 60s sleep then retry."""
         success = MagicMock()
+        error_response = MagicMock(status_code=429)
+        error_response.headers = {}
         mock_complete.side_effect = [
             RateLimitError(
                 "rate limited",
-                response=MagicMock(status_code=429),
+                response=error_response,
                 body={},
             ),
             success,
@@ -190,21 +192,24 @@ class TestCallCompleteWithRetry(unittest.TestCase):
     @patch("inference.retry.complete")
     @patch("time.sleep", return_value=None)
     def test_rate_limit_persistent(self, mock_sleep, mock_complete):
-        """AC: Persistent RateLimitError propagates after retry."""
+        """AC: Persistent RateLimitError raises RetryExhaustedError."""
+        error_response = MagicMock(status_code=429)
+        error_response.headers = {}
         mock_complete.side_effect = RateLimitError(
             "still rate limited",
-            response=MagicMock(status_code=429),
+            response=error_response,
             body={},
         )
 
-        with self.assertRaises(RateLimitError):
+        with self.assertRaises(RetryExhaustedError):
             call_complete_with_retry(
                 self.prompt,
                 self.batch_id,
                 rate_limit_sleep_seconds=1,
             )
 
-        self.assertEqual(mock_complete.call_count, 2)
+        # 3 _execute attempts × 2 complete calls each = 6 total
+        self.assertEqual(mock_complete.call_count, 6)
 
     @patch("inference.retry.complete")
     @patch("time.sleep", return_value=None)

@@ -29,7 +29,7 @@ class TestExemplarRow(unittest.TestCase):
     """_ExemplarRow dataclass."""
 
     def test_create(self):
-        row = _ExemplarRow(id=1, content="test", keywords=["a", "b"])
+        row = _ExemplarRow(id=1, content="test", keywords=["a", "b"], tag="T1")
         self.assertEqual(row.id, 1)
         self.assertEqual(row.content, "test")
         self.assertEqual(row.keywords, ["a", "b"])
@@ -57,8 +57,8 @@ class TestLoadPendingExemplars(unittest.TestCase):
         mock_df = MagicMock()
         mock_df.is_empty.return_value = False
         mock_df.iter_rows.return_value = [
-            {"id": 1, "content": "c1", "keywords": ["k1"]},
-            {"id": 2, "content": "c2", "keywords": []},
+            {"id": 1, "content": "c1", "keywords": ["k1"], "tag": "T1"},
+            {"id": 2, "content": "c2", "keywords": [], "tag": "T1"},
         ]
         mock_lf.collect.return_value = mock_df
         mock_load.return_value = mock_lf
@@ -101,8 +101,8 @@ class TestPrepareExemplarsDict(unittest.TestCase):
 
     def test_structure(self):
         items = [
-            _ExemplarRow(id=1, content="c1", keywords=["a"]),
-            _ExemplarRow(id=2, content="c2", keywords=[]),
+            _ExemplarRow(id=1, content="c1", keywords=["a"], tag="T1"),
+            _ExemplarRow(id=2, content="c2", keywords=[], tag="T1"),
         ]
         result = _exemplars_to_dicts(items)
         expected = [
@@ -148,7 +148,7 @@ class TestInferCodes(unittest.TestCase):
     ):
         """Happy path: one exemplar, one code generated, status updated."""
         con = MagicMock(spec=duckdb.DuckDBPyConnection)
-        exemplar = _ExemplarRow(1, "content", ["kw"])
+        exemplar = _ExemplarRow(1, "content", ["kw"], tag="T1")
         mock_load.return_value = [exemplar]
 
         batch = MagicMock(spec=Batch)
@@ -227,12 +227,12 @@ class TestTokenTracking(unittest.TestCase):
     ):
         """Token usage is recorded and cost appears in summary log."""
         con = MagicMock(spec=duckdb.DuckDBPyConnection)
-        mock_load.return_value = [_ExemplarRow(1, "c", [])]
+        mock_load.return_value = [_ExemplarRow(1, "c", [], tag="T1")]
 
         batch = MagicMock(spec=Batch)
         batch.tag = "T1"
         batch.batch_id = "code_T1_batch_00"
-        batch.items = [_ExemplarRow(1, "c", [])]
+        batch.items = [_ExemplarRow(1, "c", [], tag="T1")]
         batch.item_count = 1
         mock_group.return_value = [batch]
 
