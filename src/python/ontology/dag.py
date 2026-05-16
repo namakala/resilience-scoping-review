@@ -48,6 +48,8 @@ def build_tag_dag() -> nx.DiGraph:
     # Collect sets for validation
     all_tags: set = set()
     parent_refs: set = set()
+    # Track which source tags reference each parent for better diagnostics
+    parent_referrers: dict[str, list[str]] = {}
 
     for row in tags_df.iter_rows(named=True):
         tag = row["tag"]
@@ -65,6 +67,7 @@ def build_tag_dag() -> nx.DiGraph:
         all_tags.add(tag)
         if parent:
             parent_refs.add(parent)
+            parent_referrers.setdefault(parent, []).append(tag)
 
     # Infer missing parent tags as empty placeholder nodes
     missing_parents = parent_refs - all_tags
@@ -89,9 +92,16 @@ def build_tag_dag() -> nx.DiGraph:
                     G.add_edge(parent_tag, missing_tag)
 
         logger.warning(
-            "Parent tag(s) not found in ontology, " "auto-inferred as empty nodes: %s",
+            "Parent tag(s) not found in ontology, auto-inferred as empty nodes: %s",
             sorted(missing_parents),
         )
+        for missing_tag in sorted(missing_parents):
+            referrers = parent_referrers.get(missing_tag, [])
+            logger.warning(
+                "  Missing parent %r is referenced by tags: %s",
+                missing_tag,
+                referrers,
+            )
 
     # Add edges parent -> child
     for row in tags_df.iter_rows(named=True):

@@ -60,6 +60,7 @@ def _log_summary(
 def synthesize_interpretations(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    tags: list[str] | None = None,
 ) -> list[InterpretationInference]:
     """Synthesize cross-cutting interpretations from approved themes.
 
@@ -71,18 +72,26 @@ def synthesize_interpretations(
         con: Active DuckDB connection.
         tag: Optional tag override. If provided, only this tag is checked
             for readiness (instead of auto-discovering all ready tags).
+        tags: Optional list of tags. If provided, ready tags are filtered
+            to only those in this list.  Mutually exclusive with *tag*.
 
     Returns:
         Flat list of ``InterpretationInference`` items across all spans.
     """
+    if tag is not None and tags is not None:
+        raise ValueError("Provide either 'tag' or 'tags', not both")
+
     start_time = time.time()
     logger.info(
-        "Starting interpretation synthesis%s", f" for tag '{tag}'" if tag else ""
+        "Starting interpretation synthesis%s",
+        f" for tag '{tag}'" if tag else f" for {len(tags)} tag(s)" if tags else "",
     )
 
     ready_tags = get_ready_tags(con)
     if tag:
         ready_tags = [t for t in ready_tags if t == tag]
+    if tags:
+        ready_tags = [t for t in ready_tags if t in tags]
     if not ready_tags:
         logger.info("No ready tags found for interpretation synthesis")
         return []

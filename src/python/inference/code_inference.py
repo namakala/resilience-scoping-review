@@ -14,7 +14,13 @@ from typing import Any
 
 import duckdb
 import polars as pl
-from config import code_temperature, fewshot_count, fewshot_enabled, fewshot_shuffle
+from config import (
+    code_model,
+    code_temperature,
+    fewshot_count,
+    fewshot_enabled,
+    fewshot_shuffle,
+)
 from graph import get_nodes_by_type_and_tag
 from persistence.loaders import load_exemplars
 from utils.logging import get_logger
@@ -41,12 +47,18 @@ class _ExemplarRow:
     id: int
     content: str
     keywords: list[str]
+    tag: str
 
 
 def _load_pending_exemplars(
-    con: duckdb.DuckDBPyConnection, tag: str | None = None
+    con: duckdb.DuckDBPyConnection,
+    tag: str | None = None,
+    tags: list[str] | None = None,
 ) -> list[_ExemplarRow]:
-    pending_ids = get_pending_items(con, stage=STAGE_CODE, tag=tag)
+    if tag is not None and tags is not None:
+        raise ValueError("Provide either 'tag' or 'tags', not both")
+
+    pending_ids = get_pending_items(con, stage=STAGE_CODE, tag=tag, tags=tags)
     if not pending_ids:
         return []
 
@@ -59,7 +71,7 @@ def _load_pending_exemplars(
     rows = []
     for row in (
         load_exemplars()
-        .select(["id", "content", "keywords"])
+        .select(["id", "content", "keywords", "tag"])
         .filter(pl.col("id").is_in(exemplar_ids))
         .sort("id")
         .collect()
@@ -67,7 +79,10 @@ def _load_pending_exemplars(
     ):
         rows.append(
             _ExemplarRow(
-                id=row["id"], content=row["content"], keywords=row["keywords"] or []
+                id=row["id"],
+                content=row["content"],
+                keywords=row["keywords"] or [],
+                tag=row["tag"],
             )
         )
     logger.info(
@@ -181,6 +196,7 @@ def _process_code_batch(
             existing_codes=existing_codes,
         ),
         temperature=code_temperature(),
+        model=code_model(),
         response_format={"type": "json_object"},
     )
 
@@ -205,14 +221,18 @@ def _process_code_batch(
 def infer_codes(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    tags: list[str] | None = None,
 ) -> list[CodeInference]:
+    if tag is not None and tags is not None:
+        raise ValueError("Provide either 'tag' or 'tags', not both")
+
     start_time = time.time()
     logger.info(
         "Starting code inference%s",
-        f" for tag '{tag}'" if tag else "",
+        f" for tag '{tag}'" if tag else f" for {len(tags)} tag(s)" if tags else "",
     )
 
-    exemplars = _load_pending_exemplars(con, tag=tag)
+    exemplars = _load_pending_exemplars(con, tag=tag, tags=tags)
     if not exemplars:
         logger.info("No pending exemplars for code inference")
         return []

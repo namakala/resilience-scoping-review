@@ -13,12 +13,13 @@ class Config:
     """Immutable snapshot of all application settings."""
 
     groq_api_key: str
-    groq_model: str
+    default_model: str
     groq_timeout: int
     groq_max_retries: int
     code_temperature: float
     theme_temperature: float
     interpretation_temperature: float
+    hf_hub_offline: bool
     embedding_model: str
     model_cache_dir: Path
     batch_size: int
@@ -39,12 +40,13 @@ class Config:
     def from_env(cls) -> Config:
         return cls(
             groq_api_key=settings.groq_api_key(),
-            groq_model=settings.groq_model(),
+            default_model=settings.default_model(),
             groq_timeout=settings.groq_timeout(),
             groq_max_retries=settings.groq_max_retries(),
             code_temperature=settings.code_temperature(),
             theme_temperature=settings.theme_temperature(),
             interpretation_temperature=settings.interpretation_temperature(),
+            hf_hub_offline=settings.hf_hub_offline(),
             embedding_model=settings.embedding_model(),
             model_cache_dir=settings.model_cache_dir(),
             batch_size=settings.batch_size(),

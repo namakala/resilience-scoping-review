@@ -36,11 +36,37 @@ def resolve_target_stage(types: tuple[str, ...]) -> int:
     return max(TYPE_TO_TARGET_STAGE[t] for t in types)
 
 
+def _select_limited_tags(limit: int) -> list[str]:
+    """Return the top *limit* tags with the most exemplars (n_contents > 0).
+
+    Sorted by ``n_contents`` descending, then alphabetically for
+    determinism.  Caller must ensure *limit* > 0.
+    """
+    from ontology.dag import get_tag_dag
+
+    G = get_tag_dag()
+    candidates: list[tuple[str, int]] = [
+        (n, G.nodes[n].get("n_contents", 0))
+        for n in G.nodes
+        if G.nodes[n].get("n_contents", 0) > 0
+    ]
+    candidates.sort(key=lambda x: (-x[1], x[0]))
+    selected = [t[0] for t in candidates[:limit]]
+    logger.info(
+        "Selected %d tag(s) for limited processing: %s",
+        len(selected),
+        selected,
+        extra={"limit": limit, "available": len(candidates)},
+    )
+    return selected
+
+
 def run_pipeline(
     con: duckdb.DuckDBPyConnection,
     state: WorkflowState,
     config: Config,
     target_stage: int = MAX_STAGE,
+    limit: int = 0,
 ) -> WorkflowState:
     if state.current_stage > target_stage:
         logger.info(
@@ -49,6 +75,8 @@ def run_pipeline(
             state.current_stage,
         )
         return state
+
+    limited_tags: list[str] | None = _select_limited_tags(limit) if limit > 0 else None
 
     def _checkpoint() -> None:
         _save_checkpoint(con, state)
@@ -74,15 +102,15 @@ def run_pipeline(
             elif stage == 3:
                 _run_stage_index(con, config)
             elif stage == 4:
-                _run_stage_infer_codes(con)
+                _run_stage_infer_codes(con, limited_tags=limited_tags)
             elif stage == 5:
                 state = _run_stage_review_codes(con, state)
             elif stage == 6:
-                _run_stage_infer_themes(con, state)
+                _run_stage_infer_themes(con, state, limited_tags=limited_tags)
             elif stage == 7:
                 state = _run_stage_review_themes(con, state)
             elif stage == 8:
-                _run_stage_synthesize_interpretations(con)
+                _run_stage_synthesize_interpretations(con, limited_tags=limited_tags)
             elif stage == 9:
                 state = _run_stage_review_interpretations(con, state)
             elif stage == 10:
@@ -160,13 +188,18 @@ def _run_stage_index(con: duckdb.DuckDBPyConnection, config: Config) -> None:
     logger.info("Index build complete")
 
 
-def _run_stage_infer_codes(con: duckdb.DuckDBPyConnection) -> None:
+def _run_stage_infer_codes(
+    con: duckdb.DuckDBPyConnection,
+    limited_tags: list[str] | None = None,
+) -> None:
     """Seed inference_status, then infer codes from pending exemplars.
 
     The seed step ensures the ``inference_status`` table contains a
     ``pending`` row for every exemplar so that code inference finds them.
     It runs here, between indexing (stage 3) and inference (stage 4),
     and is idempotent (``INSERT OR IGNORE``).
+
+    When *limited_tags* is provided, only those tags are processed.
     """
     from inference.seed_inference_status import seed_pending_exemplars
 
@@ -174,7 +207,12 @@ def _run_stage_infer_codes(con: duckdb.DuckDBPyConnection) -> None:
 
     from inference.code_inference import infer_codes
 
-    infer_codes(con)
+    codes = infer_codes(con, tags=limited_tags)
+    if codes:
+        from inference.code_node_creation import create_code_nodes
+        from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+        create_code_nodes(con, codes, db_path=DEFAULT_DB_PATH)
 
 
 def _run_stage_review_codes(
@@ -190,16 +228,24 @@ def _run_stage_review_codes(
 def _run_stage_infer_themes(
     con: duckdb.DuckDBPyConnection,
     state: WorkflowState,
+    limited_tags: list[str] | None = None,
 ) -> None:
     """Infer themes only for tags with dirty flags set.
 
     Tags with dirty=False are skipped entirely — zero LLM calls.
+    When *limited_tags* is provided, only those tags are considered
+    (intersection of dirty and limited).
     """
     from inference.theme_inference import infer_themes
 
     for tag, is_dirty in state.dirty_flags.items():
-        if is_dirty:
-            infer_themes(con, tag=tag)
+        if is_dirty and (limited_tags is None or tag in limited_tags):
+            themes = infer_themes(con, tag=tag)
+            if themes:
+                from inference.create_theme_nodes import create_theme_nodes
+                from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+                create_theme_nodes(con, themes, tag=tag, db_path=DEFAULT_DB_PATH)
         else:
             logger.debug("Skipping clean tag '%s' for theme inference", tag)
 
@@ -214,11 +260,22 @@ def _run_stage_review_themes(
     return coordinate_hitl(con, 7, state)
 
 
-def _run_stage_synthesize_interpretations(con: duckdb.DuckDBPyConnection) -> None:
-    """Synthesize interpretations from approved themes."""
+def _run_stage_synthesize_interpretations(
+    con: duckdb.DuckDBPyConnection,
+    limited_tags: list[str] | None = None,
+) -> None:
+    """Synthesize interpretations from approved themes.
+
+    When *limited_tags* is provided, only those tags are considered.
+    """
     from inference.interpretation_synthesis import synthesize_interpretations
 
-    synthesize_interpretations(con)
+    interpretations = synthesize_interpretations(con, tags=limited_tags)
+    if interpretations:
+        from inference.interpretation_creation import create_interpretation_nodes
+        from persistence.duckdb_connection import DEFAULT_DB_PATH
+
+        create_interpretation_nodes(con, interpretations, db_path=DEFAULT_DB_PATH)
 
 
 def _run_stage_review_interpretations(

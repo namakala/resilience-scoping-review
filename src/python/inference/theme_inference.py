@@ -18,7 +18,13 @@ from functools import partial
 from typing import Any
 
 import duckdb
-from config import fewshot_count, fewshot_enabled, fewshot_shuffle, theme_temperature
+from config import (
+    fewshot_count,
+    fewshot_enabled,
+    fewshot_shuffle,
+    theme_model,
+    theme_temperature,
+)
 from utils.logging import get_logger
 
 from .batch_processor import record_tokens, run_batches
@@ -101,6 +107,7 @@ def _process_theme_batch(
             ontology_path=ontology_path,
         ),
         temperature=theme_temperature(),
+        model=theme_model(),
         response_format={"type": "json_object"},
     )
 

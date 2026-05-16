@@ -18,29 +18,35 @@ def get_pending_items(
     con: duckdb.DuckDBPyConnection,
     stage: str,
     tag: Optional[str] = None,
+    tags: Optional[list[str]] = None,
 ) -> List[str]:
     """Return entity IDs needing inference for the given stage.
 
     Only items with status ``pending`` or ``draft`` are returned.
     If *tag* is provided, joins against the exemplars parquet to
-    filter by ontology tag.
+    filter by ontology tag.  *tags* (plural) filters for multiple
+    tags simultaneously.  *tag* and *tags* are mutually exclusive.
 
     Args:
         con: Active DuckDB connection.
         stage: Pipeline stage constant.
-        tag: Optional ontology tag for filtering.
+        tag: Optional single ontology tag for filtering.
+        tags: Optional list of ontology tags for filtering.
 
     Returns:
         List of entity ID strings.
 
     Raises:
-        ValueError: If stage is invalid.
+        ValueError: If stage is invalid, or both *tag* and *tags* given.
         duckdb.Error: If the query fails.
     """
     if stage not in ALL_STAGES:
         raise ValueError(
             f"Invalid stage {stage!r}. Must be one of {sorted(ALL_STAGES)}"
         )
+
+    if tag is not None and tags is not None:
+        raise ValueError("Provide either 'tag' or 'tags', not both")
 
     if tag:
         rows = con.execute(
@@ -56,6 +62,21 @@ def get_pending_items(
             ORDER BY i.entity_id
             """,
             [stage, tag],
+        ).fetchall()
+    elif tags:
+        rows = con.execute(
+            """
+            SELECT i.entity_id
+            FROM inference_status i
+            WHERE i.stage = ?
+              AND i.status IN ('pending', 'draft')
+              AND CAST(i.entity_id AS BIGINT) IN (
+                  SELECT id FROM read_parquet('data/processed/exemplars.parquet')
+                  WHERE tag IN ?
+              )
+            ORDER BY i.entity_id
+            """,
+            [stage, tags],
         ).fetchall()
     else:
         rows = con.execute(

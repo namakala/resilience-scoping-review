@@ -178,13 +178,28 @@ def _parse_response(
 # ── Public API ────────────────────────────────────────────────────────────
 
 
+def _normalize_exemplar_id(eid: str) -> str:
+    """Strip leading alphabetic prefix from an exemplar ID.
+
+    The LLM may prefix exemplar IDs (e.g. "E7633323") following the pattern
+    shown in system prompt examples. This normalizer strips any leading
+    alphabetic characters so the ID matches the system's bare numeric format.
+    """
+    import re
+
+    return re.sub(r"^[A-Za-z]+", "", eid)
+
+
 def parse_code_response(text: str) -> list[CodeInference]:
     """Parse and validate a code inference LLM response.
 
     Expects ``{"codes": [{exemplar_id, code_name, definition,
     supporting_quote, related_existing_codes}, ...]}``.
     """
-    return _parse_response(text, _CODE_WRAPPER, CodeInference)
+    items = _parse_response(text, _CODE_WRAPPER, CodeInference)
+    for item in items:
+        item.exemplar_id = _normalize_exemplar_id(item.exemplar_id)
+    return items
 
 
 def parse_theme_response(text: str) -> list[ThemeInference]:

@@ -20,6 +20,7 @@ from config import (
     fewshot_count,
     fewshot_enabled,
     fewshot_shuffle,
+    interpretation_model,
     interpretation_temperature,
 )
 from utils.logging import get_logger
@@ -106,6 +107,7 @@ def _process_interpretation_span(
             themes_by_tag=themes_dict,
         ),
         temperature=interpretation_temperature(),
+        model=interpretation_model(),
         response_format={"type": "json_object"},
     )
 

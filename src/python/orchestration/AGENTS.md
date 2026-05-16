@@ -46,6 +46,7 @@ Commands:
 - `--reset` clears session state before starting
 - `--type code|theme|interpretation` limits to specific artifact types (repeatable)
 - `--all` explicitly requests all stages (mutually exclusive with --type)
+- `--limit N` restricts analysis stages (code, theme, interpretation) to N tags with the most exemplars (n_contents > 0). Default 0 = all tags.
 - Drives stages via ``runner.run_pipeline()`` with checkpoint after each stage
 - Runs HITL review automatically after inference stages (5, 7, 9)
 
