@@ -1,16 +1,10 @@
 """Re-synthesis helpers for interpretation node creation.
 
 Provides graph-level operations needed when an interpretation is
-re-synthesized: querying existing draft interpretations across all
-tags and renaming nodes inside a transaction.
+re-synthesized: renaming a node inside a transaction.
 
 Usage:
-    from inference.interpretation_node_reinfer import (
-        load_existing_draft_interpretations, rename_node_raw,
-    )
-
-    drafts = load_existing_draft_interpretations()
-    # -> {"InterpretationName": 42}
+    from inference.interpretation_node_reinfer import rename_node_raw
 """
 
 from __future__ import annotations
@@ -20,31 +14,11 @@ from typing import Optional
 
 from graph import get_graph
 from graph.transactions import get_active_connection
-from persistence.duckdb_connection import get_connection
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ["load_existing_draft_interpretations", "rename_node_raw"]
-
-
-def load_existing_draft_interpretations(
-    db_path: Optional[Path] = None,
-) -> dict[str, int]:
-    """Return ``{interpretation_name: node_id}`` for all draft interpretation nodes.
-
-    Queries across all tags since interpretations span multiple tags and
-    their ``tag`` column stores only the root tag.
-    """
-    con = get_connection(db_path)
-    try:
-        rows = con.execute(
-            "SELECT id, name FROM nodes "
-            "WHERE type = 'interpretation' AND status = 'draft'"
-        ).fetchall()
-        return {row[1]: row[0] for row in rows}
-    finally:
-        con.close()
+__all__ = ["rename_node_raw"]
 
 
 def rename_node_raw(

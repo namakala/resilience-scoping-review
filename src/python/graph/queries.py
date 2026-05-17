@@ -1,13 +1,14 @@
 """Read-only node queries against DuckDB.
 
 Provides get_node, get_nodes_by_type_and_tag, get_node_by_name,
-and get_interpretations_by_span_tag.
+get_interpretations_by_span_tag, and load_occupied_names.
 Each opens a dedicated connection, ensures indexes, executes, and closes.
 Results returned as plain dicts with deserialized data_json and ISO timestamps.
 """
 
 from __future__ import annotations
 
+from collections.abc import Set as AbstractSet
 from pathlib import Path
 from typing import Any, Optional
 
@@ -165,6 +166,62 @@ def get_interpretations_by_span_tag(
         return result
     except duckdb.Error:
         logger.exception("get_interpretations_by_span_tag failed")
+        raise
+    finally:
+        if con:
+            con.close()
+
+
+def load_occupied_names(
+    entity_type: str,
+    tag: Optional[str] = None,
+    statuses: AbstractSet[str] | None = None,
+    db_path: Optional[Path] = None,
+) -> dict[str, int]:
+    """Return ``{name: node_id}`` for nodes of *entity_type*.
+
+    A generic replacement for type-specific name-lookup helpers.
+    Use it to detect name collisions before creating new nodes.
+
+    Args:
+        entity_type: One of ``'code'``, ``'theme'``, ``'interpretation'``.
+        tag: Ontology tag to filter by.  ``None`` = all tags.
+        statuses: Status values to include.  ``None`` = all statuses.
+        db_path: Optional DuckDB path.
+
+    Returns:
+        Dict mapping node name to node ID for matching nodes.
+    """
+    con = None
+    try:
+        con = _get_conn(db_path)
+        if tag is not None and statuses is not None:
+            placeholders = ",".join("?" for _ in statuses)
+            rows = con.execute(
+                f"SELECT id, name FROM nodes WHERE type = ? AND tag = ? "
+                f"AND status IN ({placeholders})",
+                [entity_type, tag, *statuses],
+            ).fetchall()
+        elif tag is not None:
+            rows = con.execute(
+                "SELECT id, name FROM nodes WHERE type = ? AND tag = ?",
+                [entity_type, tag],
+            ).fetchall()
+        elif statuses is not None:
+            placeholders = ",".join("?" for _ in statuses)
+            rows = con.execute(
+                f"SELECT id, name FROM nodes WHERE type = ? "
+                f"AND status IN ({placeholders})",
+                [entity_type, *statuses],
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT id, name FROM nodes WHERE type = ?",
+                [entity_type],
+            ).fetchall()
+        return {row[1]: row[0] for row in rows}
+    except duckdb.Error:
+        logger.exception("load_occupied_names failed")
         raise
     finally:
         if con:

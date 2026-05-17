@@ -51,10 +51,7 @@ from .inference_status_types import (
     GENERATED,
     STAGE_INTERPRETATION,
 )
-from .interpretation_node_reinfer import (
-    load_existing_draft_interpretations,
-    rename_node_raw,
-)
+from .interpretation_node_reinfer import rename_node_raw
 from .interpretation_tag_utils import compute_tag_spans
 from .name_utils import check_duplicate_names, make_unique_name
 from .parsing import InterpretationInference
@@ -647,11 +644,16 @@ def create_interpretation_nodes(
     )
 
     # ── Pre-transaction: detect re-synthesis candidates ─────────────────
-    existing_draft = load_existing_draft_interpretations(db_path=db_path)
+    from graph.queries import load_occupied_names
+    from persistence.state_constants import NON_APPROVED_STATUSES
+
+    existing_names = load_occupied_names(
+        "interpretation", statuses=NON_APPROVED_STATUSES, db_path=db_path
+    )
     superseded_names: set[str] = {
-        i.interpretation_name for i in batch1 if i.interpretation_name in existing_draft
+        i.interpretation_name for i in batch1 if i.interpretation_name in existing_names
     }
-    used_names: set[str] = {n for n in existing_draft if n not in superseded_names}
+    used_names: set[str] = {n for n in existing_names if n not in superseded_names}
 
     all_node_ids: list[int] = []
     all_span_tags: set[str] = set()
@@ -665,7 +667,7 @@ def create_interpretation_nodes(
         b1_ids, b1_tags = _create_interpretation_batch(
             con,
             batch1,
-            existing_draft,
+            existing_names,
             used_names,
             superseded_names,
             db_path=db_path,

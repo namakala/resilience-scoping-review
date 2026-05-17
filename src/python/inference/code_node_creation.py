@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Container
 from pathlib import Path
 from typing import Any, Optional
 
@@ -122,7 +123,7 @@ def create_code_nodes(
 
 def _make_unique_name(
     name: str,
-    used_names: set[str],
+    used_names: Container[str],
 ) -> str:
     """Resolve name collision by appending ``_1``, ``_2``, etc."""
     if name not in used_names:
@@ -137,26 +138,6 @@ def _make_unique_name(
         counter,
     )
     return f"{name}_{counter}"
-
-
-def _load_existing_code_names(
-    tag: str,
-    db_path: Optional[Path] = None,
-) -> set[str]:
-    """Fetch all existing code node names for *tag*."""
-    nodes = get_nodes_by_type_and_tag("code", tag, db_path=db_path)
-    return {n["name"] for n in nodes}
-
-
-def _load_all_code_names(
-    db_path: Optional[Path] = None,
-) -> set[str]:
-    """Fetch ALL existing code node names across all tags.
-
-    Used for cross-tag collision detection after tag-scoped dedup.
-    """
-    nodes = get_nodes_by_type_and_tag("code", None, db_path=db_path)
-    return {n["name"] for n in nodes}
 
 
 def _find_draft_code_by_name(
@@ -196,9 +177,11 @@ def _create_code_nodes_for_tag(
     exemplar_node_map = ensure_exemplar_nodes(con, exemplar_ids, tag, db_path=db_path)
 
     # Step 2: load existing names to detect external collisions
-    existing_names = _load_existing_code_names(tag, db_path=db_path)
+    from graph.queries import load_occupied_names
+
+    existing_names = load_occupied_names("code", tag=tag, db_path=db_path)
     # Also load ALL code names globally for cross-tag collision safety net
-    all_code_names = _load_all_code_names(db_path=db_path)
+    all_code_names = load_occupied_names("code", db_path=db_path)
 
     # Step 4: group codes by code_name for shared abstract codes
     by_name: dict[str, list[CodeInference]] = defaultdict(list)
@@ -265,7 +248,7 @@ def _create_code_nodes_for_tag(
                         )
             else:
                 # Create unique name if collision with existing (non-draft) codes
-                unique_name = _make_unique_name(code_name, existing_names)
+                unique_name = _make_unique_name(code_name, existing_names.keys())
 
                 # Cross-tag collision safety net: check against ALL code names
                 if unique_name in all_code_names:
@@ -275,7 +258,7 @@ def _create_code_nodes_for_tag(
                         unique_name,
                         qualified,
                     )
-                    unique_name = _make_unique_name(qualified, all_code_names)
+                    unique_name = _make_unique_name(qualified, all_code_names.keys())
 
                 data_json = _build_data_json(all_eids, all_quotes, all_related)
                 node_id = create_node(

@@ -31,7 +31,7 @@ from .inference_status_crud import set_status
 from .inference_status_types import ENTITY_THEME, GENERATED, STAGE_THEME
 from .name_utils import check_duplicate_theme_names, make_unique_name
 from .parsing import ThemeInference
-from .theme_node_reinfer import load_existing_draft_themes, rename_node_raw
+from .theme_node_reinfer import rename_node_raw
 
 logger = get_logger(__name__)
 
@@ -141,15 +141,18 @@ def create_theme_nodes(
     check_duplicate_theme_names(themes)
 
     # ── Pre-transaction: detect re-inference candidates ────────────────
-    existing_draft_themes = load_existing_draft_themes(tag, db_path=db_path)
+    from graph.queries import load_occupied_names
+    from persistence.state_constants import NON_APPROVED_STATUSES
+
+    occupied = load_occupied_names(
+        "theme", tag=tag, statuses=NON_APPROVED_STATUSES, db_path=db_path
+    )
 
     superseded_names: set[str] = {
-        th.theme_name for th in themes if th.theme_name in existing_draft_themes
+        th.theme_name for th in themes if th.theme_name in occupied
     }
 
-    used_names: set[str] = {
-        n for n in existing_draft_themes if n not in superseded_names
-    }
+    used_names: set[str] = {n for n in occupied if n not in superseded_names}
 
     data_tags = f" for tag '{tag}'" if tag else ""
     logger.info(
@@ -164,7 +167,7 @@ def create_theme_nodes(
     with graph_transaction(db_path=db_path):
         for theme in themes:
             if theme.theme_name in superseded_names:
-                old_id = existing_draft_themes[theme.theme_name]
+                old_id = occupied[theme.theme_name]
                 old_name = f"{theme.theme_name}_deprecated_{old_id}"
                 rename_node_raw(old_id, old_name, db_path=db_path)
                 logger.info(
@@ -174,11 +177,11 @@ def create_theme_nodes(
                     old_name,
                 )
 
-        # Filter out current tag's names — supersede logic handles same-tag
-        other_tag_theme_names = set()
+        # Cross-tag collision safety net: draft/approved themes from other tags
+        other_tag_names = set()
         for n in get_nodes_by_type_and_tag("theme", None, db_path=db_path):
             if n.get("tag") != tag and n.get("status") in ("draft", "approved"):
-                other_tag_theme_names.add(n["name"])
+                other_tag_names.add(n["name"])
 
         for theme in themes:
             unique_name = make_unique_name(
@@ -186,14 +189,14 @@ def create_theme_nodes(
             )
 
             # Cross-tag collision safety net: only check OTHER tags
-            if unique_name in other_tag_theme_names:
+            if unique_name in other_tag_names:
                 qualified = f"{unique_name} [{tag}]"
                 logger.warning(
                     "Cross-tag theme name collision '%s' resolved to '%s'",
                     unique_name,
                     qualified,
                 )
-                unique_name = make_unique_name(qualified, other_tag_theme_names)
+                unique_name = make_unique_name(qualified, other_tag_names)
 
             used_names.add(unique_name)
 
@@ -209,7 +212,7 @@ def create_theme_nodes(
             )
             node_ids.append(node_id)
 
-            prev_id = existing_draft_themes.get(theme.theme_name)
+            prev_id = occupied.get(theme.theme_name)
             if prev_id is not None:
                 create_edge(
                     source_id=prev_id,
