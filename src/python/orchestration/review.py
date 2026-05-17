@@ -1,69 +1,18 @@
-"""Review subcommand — standalone click command registered via ``cli.add_command``.
+"""Review utilities — HITL review entry points used by ``runner.py``.
 
-Enters HITL review TUI for codes, themes, or interpretations.
-Also provides ``enter_review()`` used by ``generate.py`` and
-``default.py`` for HITL interleaving.
+Provides ``enter_review()`` for dispatching to type-specific review modules.
+Not a standalone CLI command — HITL review is handled within the ``run``
+subcommand via ``--tui``/``--no-tui`` flags.
 """
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Optional
 
 import click
-from orchestration.config import (
-    common_options,
-    resolve_data_path,
-    resolve_tags_path,
-    validate_paths,
-)
 
-
-@click.command(
-    "review",
-    help="Enter HITL review TUI for codes, themes, or interpretations. "
-    "Default (no --type) reviews all pending artifacts.",
-)
-@click.option(
-    "--type",
-    "review_type",
-    type=click.Choice(["code", "theme", "interpretation"]),
-    help="Artifact type to review (default: all pending)",
-)
-@common_options
-@click.pass_context
-def review_cmd(
-    ctx: click.Context,
-    review_type: Optional[str],
-    dry_run: bool,
-    verbose: bool,  # noqa: ARG001
-    quiet: bool,  # noqa: ARG001
-) -> None:
-    """Enter HITL review TUI."""
-    obj = ctx.obj
-    data_path = resolve_data_path(obj)
-    tags_path = resolve_tags_path(obj)
-
-    if not validate_paths(data_path, tags_path):
-        sys.exit(1)
-
-    if dry_run:
-        click.echo("Dry-run: ready to enter review TUI.")
-        click.echo(f"  Type: {review_type or 'all'}")
-        return
-
-    from persistence.duckdb_connection import DEFAULT_DB_PATH
-    from persistence.duckdb_init import init_or_migrate
-
-    con = init_or_migrate()
-    try:
-        enter_review(con, review_type, DEFAULT_DB_PATH)
-    finally:
-        con.close()
-
-
-# ── Public dispatch (used by generate.py and default.py) ────────────────────
+# ── Public dispatch (used by runner.py) ─────────────────────────────────────
 
 
 def enter_review(con, review_type: Optional[str], db_path: Path) -> None:
@@ -105,4 +54,4 @@ def _try_review_interpretations(con, db_path: Path) -> None:
     hitl_review_interpretations(con, db_path=db_path)
 
 
-__all__ = ["enter_review", "review_cmd"]
+__all__ = ["enter_review"]

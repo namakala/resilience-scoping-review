@@ -34,7 +34,6 @@ class TestCliHelp(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("ingest", result.output)
         self.assertIn("run", result.output)
-        self.assertIn("review", result.output)
 
     def test_ingest_help_shows_options(self) -> None:
         result = self.runner.invoke(cli, ["ingest", "--help"])
@@ -52,12 +51,6 @@ class TestCliHelp(unittest.TestCase):
         self.assertIn("code", result.output)
         self.assertIn("theme", result.output)
         self.assertIn("interpretation", result.output)
-        self.assertIn("--dry-run", result.output)
-
-    def test_review_help_shows_type_option(self) -> None:
-        result = self.runner.invoke(cli, ["review", "--help"])
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("--type", result.output)
         self.assertIn("--dry-run", result.output)
 
 
@@ -298,55 +291,6 @@ class TestCliRun(unittest.TestCase):
         )
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("mutually exclusive", result.output)
-
-
-class TestCliReview(unittest.TestCase):
-    """Tests for the review subcommand."""
-
-    def setUp(self) -> None:
-        self.runner = CliRunner()
-        self.tmpdir = tempfile.TemporaryDirectory()
-        self.tmp = Path(self.tmpdir.name)
-        self.data_csv = self.tmp / "data.csv"
-        self.tags_csv = self.tmp / "tags.csv"
-        self.data_csv.write_text("id,content\n1,test")
-        self.tags_csv.write_text("tag,description\nroot,root tag")
-
-    def tearDown(self) -> None:
-        self.tmpdir.cleanup()
-
-    def test_review_dry_run(self) -> None:
-        """review --dry-run exits 0 and shows type info."""
-        result = self.runner.invoke(
-            cli,
-            [
-                "--data",
-                str(self.data_csv),
-                "--tags",
-                str(self.tags_csv),
-                "review",
-                "--dry-run",
-            ],
-        )
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("review", result.output.lower())
-
-    def test_review_with_type(self) -> None:
-        """review --type code is accepted."""
-        result = self.runner.invoke(
-            cli,
-            [
-                "--data",
-                str(self.data_csv),
-                "--tags",
-                str(self.tags_csv),
-                "review",
-                "--type",
-                "code",
-                "--dry-run",
-            ],
-        )
-        self.assertEqual(result.exit_code, 0)
 
 
 class TestCliGlobalOptions(unittest.TestCase):

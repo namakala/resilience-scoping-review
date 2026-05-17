@@ -19,7 +19,6 @@ import duckdb
 from orchestration.config import load_configuration
 from orchestration.default import handle_default
 from orchestration.ingest import ingest_cmd
-from orchestration.review import review_cmd
 from orchestration.run import run_cmd
 from persistence.duckdb_connection import get_connection
 from utils.exceptions import ConfigurationError
@@ -108,7 +107,6 @@ def cli(
 
 cli.add_command(ingest_cmd)
 cli.add_command(run_cmd)
-cli.add_command(review_cmd)
 
 
 # ── Public entry point ──────────────────────────────────────────────────────

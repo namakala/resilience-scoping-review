@@ -1,13 +1,14 @@
 """Run subcommand — standalone click command registered via ``cli.add_command``.
 
-Drives the full pipeline (stages 1-10) or selected types.  Replaces the
-former ``generate`` subcommand.  Launches an interactive TUI when
-running in a terminal.
+Drives the full pipeline (stages 1-10) or selected types.  Supports
+``--force`` for destructive re-inference and ``--tui``/``--no-tui``
+for interactive mode control.
 """
 
 from __future__ import annotations
 
 import sys
+from typing import Optional
 
 import click
 from orchestration.config import (
@@ -17,12 +18,10 @@ from orchestration.config import (
     resolve_tags_path,
     validate_paths,
 )
+from orchestration.runner import resolve_target_stage
 from utils.logging import get_logger
 
 logger = get_logger(__name__)
-
-# If we are in a TTY, launch the Textual TUI; otherwise fall back to CLI.
-_INTERACTIVE_SESSION: bool = sys.stdout.isatty() and sys.stdin.isatty()
 
 
 @click.command(
@@ -53,6 +52,25 @@ _INTERACTIVE_SESSION: bool = sys.stdout.isatty() and sys.stdin.isatty()
     help="Limit processing to N tags with exemplars (0=all). "
     "Tags with the fewest exemplars are selected first.",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Delete existing artifacts before re-inferring. Requires --type.",
+)
+@click.option(
+    "--tui/--no-tui",
+    "tui_mode",
+    default=None,
+    help="Force TUI or CLI review mode (default: auto-detect).",
+)
+@click.option(
+    "--interactive/--no-interactive",
+    "interactive_mode",
+    default=None,
+    hidden=True,
+    help="Alias for --tui/--no-tui.",
+)
 @common_options
 @click.pass_context
 def run_cmd(
@@ -60,13 +78,20 @@ def run_cmd(
     types: tuple[str, ...],
     all_flag: bool,
     limit: int,
+    force: bool,
+    tui_mode: Optional[bool],
+    interactive_mode: Optional[bool],
     dry_run: bool,
-    verbose: bool,  # noqa: ARG001
-    quiet: bool,  # noqa: ARG001
+    verbose: bool,
+    quiet: bool,
 ) -> None:
     """Run pipeline stages with HITL validation between inference stages."""
     if types and all_flag:
         click.echo("Error: --type and --all are mutually exclusive.", err=True)
+        sys.exit(1)
+
+    if force and not types:
+        click.echo("Error: --force requires --type.", err=True)
         sys.exit(1)
 
     if limit < 0:
@@ -83,6 +108,10 @@ def run_cmd(
     if not check_groq_key():
         sys.exit(1)
 
+    # Resolve tui_mode from --interactive alias if --tui was not set
+    if tui_mode is None and interactive_mode is not None:
+        tui_mode = interactive_mode
+
     if dry_run:
         click.echo("Dry-run: configuration valid. Ready to run.")
         if types:
@@ -93,9 +122,11 @@ def run_cmd(
         click.echo(f"  Tags: {tags_path}")
         if limit > 0:
             click.echo(f"  Limit: {limit} tag(s)")
+        if force:
+            click.echo("  Force: enabled")
         return
 
-    run_sequence(types, ctx_obj=obj, limit=limit)
+    run_sequence(types, ctx_obj=obj, limit=limit, force=force, tui_mode=tui_mode)
 
 
 # ── Public helpers (used by default.py) ─────────────────────────────────────
@@ -105,6 +136,8 @@ def run_sequence(
     types: tuple[str, ...],
     ctx_obj: dict | None = None,
     limit: int = 0,
+    force: bool = False,
+    tui_mode: Optional[bool] = None,
 ) -> None:
     """Run pipeline from current state through target stage.
 
@@ -113,12 +146,11 @@ def run_sequence(
     resume via *ctx_obj* flags), creates config, and delegates to
     :func:`runner.run_pipeline` or the Textual TUI.
 
-    When running in an interactive terminal, the init connection is
-    closed before launching the TUI (the TUI opens its own connection).
+    When running in TUI mode, the init connection is closed before
+    launching the TUI (the TUI opens its own connection).
     """
     from config.config import Config
     from orchestration.resume import handle_reset, resolve_state
-    from orchestration.runner import resolve_target_stage
     from persistence.duckdb_init import init_or_migrate
 
     con = init_or_migrate()
@@ -128,6 +160,10 @@ def run_sequence(
         if ctx_obj and ctx_obj.get("reset"):
             handle_reset(con)
 
+        # ── Force mode: delete artifacts at chosen level before pipeline ──
+        if force and types:
+            _force_reset_for_types(con, types)
+
         state = resolve_state(
             con,
             resume=bool(ctx_obj and ctx_obj.get("resume")),
@@ -136,25 +172,14 @@ def run_sequence(
         )
         config = Config.from_env()
 
-        if _INTERACTIVE_SESSION and not types:
-            # Pre-warm tqdm multiprocessing lock before TUI starts.
-            # tqdm creates a multiprocessing.RLock on first use, which
-            # spawns a resource tracker subprocess via spawnv_passfds.
-            # Inside Textual's alternate screen this subprocess fails
-            # with "bad value(s) in fds_to_keep". Warming up the lock
-            # here caches it on the class so tqdm inside the TUI
-            # reuses it without spawning.
-            import tqdm as _tqdm
+        target = resolve_target_stage(types)
 
-            _tqdm.tqdm(total=0, disable=True)
-            con.close()
-            con = None
-            _launch_tui(state, config, limit=limit)
+        if _resolve_interactive(tui_mode, types):
+            _launch_tui(state, config, target_stage=target, limit=limit)
             return
 
         from orchestration.runner import run_pipeline
 
-        target = resolve_target_stage(types)
         final_state = run_pipeline(con, state, config, target_stage=target, limit=limit)
         logger.debug(
             "Pipeline complete",
@@ -165,9 +190,132 @@ def run_sequence(
             con.close()
 
 
+# ── Interactive mode resolution ──────────────────────────────────────────────
+
+
+def _resolve_interactive(tui_mode: Optional[bool], types: tuple[str, ...]) -> bool:
+    """Determine whether to use TUI or CLI mode.
+
+    Priority:
+      1. ``--tui`` → True
+      2. ``--no-tui`` → False
+      3. Auto (default) → True only if in a TTY and no --type specified
+         (full pipeline review).
+    """
+    if tui_mode is not None:
+        return tui_mode
+    return not types and sys.stdout.isatty() and sys.stdin.isatty()
+
+
+# ── Force-reset logic ────────────────────────────────────────────────────────
+
+
+def _force_reset_for_types(con, types: tuple[str, ...]) -> None:
+    """Delete all entities at and below the specified types.
+
+    For each type in *types*, deletes every entity of that type and all
+    downstream dependent types.  Operates as a soft-delete: sets
+    ``status = 'rejected'``, removes edges, clears inference status, and
+    invalidates embedding cache entries.
+
+    After deletion, resets ``current_stage`` to the lowest inference stage
+    needed and marks all ontology tags as dirty.
+    """
+    from graph import rebuild_graph
+    from persistence.embedding_cache import invalidate_entity
+    from persistence.state_updates import set_current_stage, update_dirty_flag
+
+    # Determine what to delete
+    delete_codes = "code" in types
+    delete_themes = "theme" in types or delete_codes
+    delete_interpretations = (
+        "interpretation" in types or "theme" in types or delete_codes
+    )
+
+    con.execute("BEGIN TRANSACTION")
+
+    try:
+        # ── Delete interpretations ──────────────────────────────────────
+        if delete_interpretations:
+            interp_ids = con.execute(
+                "SELECT id FROM nodes WHERE type = 'interpretation'"
+            ).fetchall()
+            for (iid,) in interp_ids:
+                _delete_edges_for(con, iid, "interpretation")
+                con.execute(
+                    "UPDATE nodes SET status = 'rejected', "
+                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [iid],
+                )
+                con.execute(
+                    "DELETE FROM inference_status WHERE entity_id = ?", [str(iid)]
+                )
+                invalidate_entity(con, str(iid), "interpretation")
+
+        # ── Delete themes ───────────────────────────────────────────────
+        if delete_themes:
+            theme_ids = con.execute(
+                "SELECT id FROM nodes WHERE type = 'theme'"
+            ).fetchall()
+            for (tid,) in theme_ids:
+                _delete_edges_for(con, tid, "theme")
+                con.execute(
+                    "UPDATE nodes SET status = 'rejected', "
+                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [tid],
+                )
+                con.execute(
+                    "DELETE FROM inference_status WHERE entity_id = ?", [str(tid)]
+                )
+                invalidate_entity(con, str(tid), "theme")
+
+        # ── Delete codes ────────────────────────────────────────────────
+        if delete_codes:
+            code_ids = con.execute(
+                "SELECT id FROM nodes WHERE type = 'code'"
+            ).fetchall()
+            for (cid,) in code_ids:
+                _delete_edges_for(con, cid, "code")
+                con.execute(
+                    "UPDATE nodes SET status = 'rejected', "
+                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [cid],
+                )
+                con.execute(
+                    "DELETE FROM inference_status WHERE entity_id = ?", [str(cid)]
+                )
+                invalidate_entity(con, str(cid), "code")
+
+        con.execute("COMMIT")
+    except Exception:
+        con.execute("ROLLBACK")
+        raise
+
+    # ── Set dirty flags for all tags ────────────────────────────────────
+    tag_rows = con.execute(
+        "SELECT DISTINCT tag FROM nodes WHERE tag IS NOT NULL"
+    ).fetchall()
+    for (tag,) in tag_rows:
+        update_dirty_flag(con, tag, True)
+
+    # ── Reset current_stage ─────────────────────────────────────────────
+    if delete_interpretations:
+        set_current_stage(con, 8)  # infer_interpretations
+    if delete_themes:
+        set_current_stage(con, 6)  # infer_themes
+    if delete_codes:
+        set_current_stage(con, 4)  # infer_codes
+
+    rebuild_graph()
+
+
+# ── TUI launcher ─────────────────────────────────────────────────────────────
+
+
 def _launch_tui(
     state,
     config,
+    target_stage: int = 10,
     limit: int = 0,
 ) -> None:
     """Launch the Textual TUI for interactive pipeline execution.
@@ -176,17 +324,24 @@ def _launch_tui(
     connection from :func:`run_sequence` is already closed before
     this function is called.
 
-    Wraps the TUI session with two context managers that suppress
-    stderr logging and console output, preventing raw terminal output
-    from corrupting Textual's alternate screen buffer.
+    Args:
+        state: Workflow state.
+        config: Pipeline configuration.
+        target_stage: Stop after this stage (default 10 = full pipeline).
+        limit: Tag limit for processing.
     """
+    # Pre-warm tqdm multiprocessing lock before TUI starts.
+    import tqdm as _tqdm
+
+    _tqdm.tqdm(total=0, disable=True)
+
     from hitl.shared import tui_mode
     from utils.logging import suppress_stderr_logging
 
     try:
         from hitl.tui import AnalystTUI
 
-        app = AnalystTUI(state, config, limit=limit)
+        app = AnalystTUI(state, config, limit=limit, target_stage=target_stage)
         try:
             with suppress_stderr_logging(), tui_mode():
                 app.run()
@@ -202,9 +357,52 @@ def _launch_tui(
 
         con = init_or_migrate()
         try:
-            run_pipeline(con, state, config, limit=limit)
+            run_pipeline(con, state, config, target_stage=target_stage, limit=limit)
         finally:
             con.close()
 
 
 __all__ = ["run_cmd", "run_sequence"]
+
+
+# ── Edge deletion helpers ─────────────────────────────────────────────────────
+
+
+def _delete_edges_for(con, node_id: int, node_type: str) -> None:
+    """Delete all graph edges incident to *node_id*.
+
+    Removes both incoming and outgoing edges whose type is relevant
+    to the given *node_type*.
+    """
+    if node_type == "interpretation":
+        con.execute(
+            "DELETE FROM edges WHERE source_id = ? "
+            "AND edge_type IN ('spans', 'derived-from')",
+            [node_id],
+        )
+        con.execute(
+            "DELETE FROM edges WHERE target_id = ? " "AND edge_type = 'derived-from'",
+            [node_id],
+        )
+    elif node_type == "theme":
+        con.execute(
+            "DELETE FROM edges WHERE source_id = ? "
+            "AND edge_type IN ('composed-of', 'derived-from')",
+            [node_id],
+        )
+        con.execute(
+            "DELETE FROM edges WHERE target_id = ? "
+            "AND edge_type IN ('spans', 'derived-from')",
+            [node_id],
+        )
+    elif node_type == "code":
+        con.execute(
+            "DELETE FROM edges WHERE source_id = ? "
+            "AND edge_type IN ('contains', 'derived-from')",
+            [node_id],
+        )
+        con.execute(
+            "DELETE FROM edges WHERE target_id = ? "
+            "AND edge_type IN ('composed-of', 'derived-from')",
+            [node_id],
+        )

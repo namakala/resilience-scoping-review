@@ -20,7 +20,7 @@ from config.config import Config
 from hitl.tui.widgets.entity_browser import EntityBrowser
 from hitl.tui.widgets.modals import EditModal, MergeModal, SplitModal
 from orchestration.state import WorkflowState
-from orchestration.state_rules import STAGE_NAMES
+from orchestration.state_rules import MAX_STAGE, STAGE_NAMES
 from persistence.duckdb_connection import DEFAULT_DB_PATH
 from persistence.state_repository import load_state, save_state
 from rich.text import Text as RichText
@@ -129,6 +129,7 @@ class AnalystTUI(App):
         config: Config,
         db_path: Path = DEFAULT_DB_PATH,
         limit: int = 0,
+        target_stage: int = MAX_STAGE,
     ) -> None:
         super().__init__()
         from persistence.duckdb_init import init_or_migrate
@@ -137,6 +138,7 @@ class AnalystTUI(App):
         self._state = state
         self._config = config
         self._db_path = db_path
+        self._target_stage = target_stage
         self._limit = limit
         self._limited_tags: list[str] | None = None
         self._pipeline_done = False
@@ -385,7 +387,7 @@ class AnalystTUI(App):
 
             set_llm_log_path(self._config.export_output_path / "llm_output.json")
             self._enable_artifact_tabs(con)
-            while state.current_stage <= 10:
+            while state.current_stage <= self._target_stage:
                 if self._pipeline_stop:
                     self._debug_log("pipeline stop requested — breaking stage loop")
                     break
