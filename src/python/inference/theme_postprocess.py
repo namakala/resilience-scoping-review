@@ -24,6 +24,7 @@ logger = get_logger(__name__)
 
 __all__ = [
     "auto_merge_single_code_themes",
+    "dedup_code_across_themes",
     "dedup_theme_names",
     "flag_small_themes",
     "validate_code_belonging",
@@ -139,6 +140,38 @@ def auto_merge_single_code_themes(
         result.extend(multi)
 
     return result
+
+
+def dedup_code_across_themes(themes: list[ThemeInference]) -> list[ThemeInference]:
+    """Deduplicate code_ids across themes — each code belongs to at most one theme.
+
+    If the LLM assigns the same code_id to multiple themes within a batch,
+    the code is kept only in the first theme that contains it and removed
+    from all subsequent themes.  A warning is logged for each dedup.
+
+    This is a pure in-memory operation; it does not touch the database.
+    Mutates ``theme.code_ids`` in place and returns the same list for
+    convenience.
+    """
+    seen: set[str] = set()
+    for theme in themes:
+        removed: list[str] = []
+        kept: list[str] = []
+        for cid in theme.code_ids:
+            if cid in seen:
+                removed.append(cid)
+            else:
+                seen.add(cid)
+                kept.append(cid)
+        if removed:
+            theme.code_ids = kept
+            logger.warning(
+                "Theme '%s': code(s) %s already assigned to earlier theme(s); "
+                "removed from this theme",
+                theme.theme_name,
+                removed,
+            )
+    return themes
 
 
 def validate_code_belonging(

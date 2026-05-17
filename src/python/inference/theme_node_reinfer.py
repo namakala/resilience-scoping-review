@@ -30,13 +30,30 @@ def load_existing_draft_themes(
     tag: str,
     db_path: Optional[Path] = None,
 ) -> dict[str, int]:
-    """Return ``{theme_name: node_id}`` for draft theme nodes in *tag*.
+    """Return ``{theme_name: node_id}`` for theme nodes in *tag* that
+    could block re-creation of a new theme with the same name.
+
+    Includes ``draft``, ``merged``, and ``rejected`` themes — any node
+    whose name is still occupied in the namespace.  Excludes
+    ``approved`` themes since those should not be overwritten by
+    re-inference.
 
     Used to detect re-inference: a new ``ThemeInference`` with the same
-    name as an existing draft theme is considered a re-generation.
+    name as an existing non-approved theme is considered a re-generation.
+    The old node is renamed (``_deprecated_{id}``) before the new one
+    is created.
+
+    .. versionchanged::
+        Previously only checked ``draft`` status.  Merged themes were
+        missed, causing ``create_node`` to fail with "node already
+        exists" on ``--resume``.
     """
     nodes = get_nodes_by_type_and_tag("theme", tag, db_path=db_path)
-    return {n["name"]: n["id"] for n in nodes if n.get("status") == "draft"}
+    return {
+        n["name"]: n["id"]
+        for n in nodes
+        if n.get("status") in ("draft", "merged", "rejected")
+    }
 
 
 def rename_node_raw(

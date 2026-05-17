@@ -36,7 +36,7 @@ from .interpretation_postprocess import (
 )
 from .interpretation_span_grouping import build_ontology_subtree, build_tag_hierarchy
 from .parsing import InterpretationInference, parse_interpretation_response
-from .prompts import render_interpretation_prompt
+from .prompts import PromptBundle, render_interpretation_prompt
 from .retry import infer_batch_with_retry
 from .status_updates import mark_success
 from .theme_loading_for_interpretation import _ThemeRow
@@ -59,6 +59,22 @@ class _InterpretationSpanItem:
     themes_by_tag: dict[str, list[_ThemeRow]] = field(default_factory=dict)
 
 
+def _render_interpretation_prompt_for_batch(
+    batch: Batch,
+    fewshot: list[dict] | None,
+    tag_hierarchy: list[list[str]],
+    ontology_subtree: str,
+    themes_by_tag: dict,
+) -> PromptBundle:
+    """Render interpretation prompt for a single span batch."""
+    return render_interpretation_prompt(
+        fewshot=fewshot,
+        tag_hierarchy=tag_hierarchy,
+        ontology_subtree=ontology_subtree,
+        themes_by_tag=themes_by_tag,
+    )
+
+
 def _process_interpretation_span(
     con,
     batch: Batch,
@@ -70,6 +86,7 @@ def _process_interpretation_span(
     themes_dict = {
         tag: [
             {
+                "id": t.id,
                 "theme_name": t.theme_name,
                 "narrative": t.narrative,
                 "code_ids": t.code_ids,
@@ -100,7 +117,7 @@ def _process_interpretation_span(
     responses = infer_batch_with_retry(
         batch=batch,
         render_fn=partial(
-            render_interpretation_prompt,
+            _render_interpretation_prompt_for_batch,
             fewshot=fewshot,
             tag_hierarchy=build_tag_hierarchy(set(item.span_tags)),
             ontology_subtree=build_ontology_subtree(set(item.span_tags)),

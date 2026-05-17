@@ -91,7 +91,12 @@ def synthesize_interpretations(
     if tag:
         ready_tags = [t for t in ready_tags if t == tag]
     if tags:
-        ready_tags = [t for t in ready_tags if t in tags]
+        from ontology import get_ancestors
+
+        _expanded = set(tags)
+        for t in tags:
+            _expanded.update(get_ancestors(t))
+        ready_tags = [t for t in ready_tags if t in _expanded]
     if not ready_tags:
         logger.info("No ready tags found for interpretation synthesis")
         return []

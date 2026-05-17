@@ -20,6 +20,7 @@ __all__ = ["build_index"]
 def build_index(
     keywords_lf: pl.LazyFrame,
     tokenizer_config: str = "lowercase,split_by_space",
+    exemplar_content_map: dict[int, str] | None = None,
 ) -> dict:
     """Build a BM25 index dict from in-memory keyword data.
 
@@ -30,6 +31,10 @@ def build_index(
     tokenizer_config :
         Comma-separated tokenizer toggles (default
         ``"lowercase,split_by_space"``).
+    exemplar_content_map :
+        Optional dict mapping exemplar_id → content text.  When provided,
+        content is appended to keywords in each corpus document for
+        enriched lexical retrieval.
 
     Returns
     -------
@@ -43,7 +48,11 @@ def build_index(
     toggles = _parse_tokenizer_config(tokenizer_config)
     tokenizer = _build_tokenizer(toggles)
 
-    corpus, entity_map = build_corpus_from_keywords(keywords_lf, tokenizer)
+    corpus, entity_map = build_corpus_from_keywords(
+        keywords_lf,
+        tokenizer,
+        exemplar_content_map=exemplar_content_map,
+    )
     corpus_hash = compute_corpus_hash(corpus)
 
     from rank_bm25 import BM25Okapi

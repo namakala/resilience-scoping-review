@@ -80,17 +80,9 @@ def handle_approve_theme(
     """Approve a theme: validate constraints, set status and inference status."""
     node_id = theme["id"]
 
-    try:
-        from ontology import ConstraintError, validate_constraint
+    from ontology import validate_constraint
 
-        validate_constraint({"id": node_id, "type": "theme"}, "approve")
-    except ConstraintError as exc:
-        console.print(f"[red]Constraint violation: {exc}[/red]")
-        logger.warning(
-            "Theme approve rejected by constraint",
-            extra={"error": str(exc), "constraint_type": exc.code},
-        )
-        return
+    validate_constraint({"id": node_id, "type": "theme"}, "approve")
 
     _update_node_status(con, node_id, "approved", db_path=db_path)
     set_status(

@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, ListItem, ListView, Static, TextArea
 
@@ -39,30 +39,37 @@ class EditModal(ModalScreen[Optional[tuple[str, str]]]):
 
     def compose(self) -> ComposeResult:
         label_entity = self._entity_type.capitalize()
-        yield Static(f"[bold]Edit {label_entity}[/bold]", id="edit-title")
-        yield Static(f"Current name: {self._entity_name}")
-        yield Label("New name (leave empty to keep):")
-        yield Input(
-            value="",
-            placeholder=self._entity_name,
-            id="edit-name-input",
-        )
-        yield Label(f"New {self._entity_type} definition/narrative:")
-        yield TextArea(
-            text="",
-            id="edit-definition-input",
-        )
-        with Horizontal(classes="modal-buttons"):
-            yield Button("Save", variant="primary", id="edit-save")
-            yield Button("Cancel", variant="default", id="edit-cancel")
+        with Vertical(id="edit-form"):
+            yield Static(f"[bold]Edit {label_entity}[/bold]", id="edit-title")
+            yield Static(f"Current name: {self._entity_name}")
+            yield Label("New name (leave empty to keep):")
+            yield Input(
+                value="",
+                placeholder=self._entity_name,
+                id="edit-name-input",
+            )
+            yield Label(f"New {self._entity_type} definition/narrative:")
+            yield TextArea(
+                text=self._entity_definition,
+                id="edit-definition-input",
+                soft_wrap=True,
+            )
+            with Horizontal(classes="modal-buttons"):
+                yield Button("Save", variant="primary", id="edit-save")
+                yield Button("Cancel", variant="default", id="edit-cancel")
 
     CSS = """
     EditModal {
         align: center middle;
     }
-    EditModal > Vertical, EditModal > Static, EditModal > Label,
-    EditModal > TextArea, EditModal > Horizontal {
+    #edit-form {
         width: 60;
+        max-width: 80vw;
+    }
+    #edit-form > Static, #edit-form > Label,
+    #edit-form > TextArea, #edit-form > Input,
+    #edit-form > Horizontal {
+        width: 100%;
     }
     #edit-title {
         text-align: center;
@@ -73,6 +80,7 @@ class EditModal(ModalScreen[Optional[tuple[str, str]]]):
     }
     #edit-definition-input {
         height: 10;
+        max-height: 40vh;
         margin: 0 0 1 0;
     }
     .modal-buttons {
@@ -158,7 +166,7 @@ class MergeModal(ModalScreen[Optional[int]]):
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.item is None:
             return
-        label = event.item.query_one(Static).renderable
+        label = str(event.item.query_one(Static).content)
         # Parse target id from the label format "#ID  name  [status]"
         try:
             target_id = int(str(label).split()[0].lstrip("#"))
@@ -262,7 +270,7 @@ class SplitModal(ModalScreen[Optional[list[int]]]):
             item = children[index]
             static = item.query_one(Static)
             # Extract text after the mark character
-            text = str(static.renderable)
+            text = str(static.content)
             # Strip existing mark
             clean = text[1:] if text and text[0] in " >" else text
             static.update(f"{mark}{clean}")

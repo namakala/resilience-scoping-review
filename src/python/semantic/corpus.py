@@ -24,12 +24,15 @@ __all__ = [
 def build_corpus_from_keywords(
     keywords_lf: pl.LazyFrame,
     tokenizer: Callable[[str], list[str]],
+    exemplar_content_map: dict[int, str] | None = None,
 ) -> tuple[list[list[str]], dict[int, int]]:
     """Construct tokenized corpus and exemplar_id→index map.
 
     Groups keyword rows by exemplar_id (ascending), sorts keywords
     alphabetically within each exemplar, then tokenizes via the provided
-    callable.
+    callable.  When *exemplar_content_map* is provided, each exemplar's
+    content text is appended to its keyword tokens before tokenizing,
+    enriching the BM25 index with full-content lexical signal.
 
     Parameters
     ----------
@@ -38,6 +41,9 @@ def build_corpus_from_keywords(
         optionally others — only those two are used).
     tokenizer :
         Callable that accepts a raw string and returns a list of tokens.
+    exemplar_content_map :
+        Optional dict mapping exemplar_id → content text.  When provided,
+        the content is appended to the keyword string before tokenization.
 
     Returns
     -------
@@ -64,7 +70,10 @@ def build_corpus_from_keywords(
     for idx, row in enumerate(grouped.iter_rows()):
         exemplar_id = row[0]
         keyword_list: list[str] = row[1]
-        tokenized = tokenizer(" ".join(keyword_list))
+        text = " ".join(keyword_list)
+        if exemplar_content_map and exemplar_id in exemplar_content_map:
+            text += " " + exemplar_content_map[exemplar_id]
+        tokenized = tokenizer(text)
         corpus.append(tokenized)
         entity_map[exemplar_id] = idx
 

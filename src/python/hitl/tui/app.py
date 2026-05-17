@@ -23,10 +23,12 @@ from orchestration.state import WorkflowState
 from orchestration.state_rules import STAGE_NAMES
 from persistence.duckdb_connection import DEFAULT_DB_PATH
 from persistence.state_repository import load_state, save_state
+from rich.text import Text as RichText
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.message import Message
-from textual.widgets import Footer, Header, RichLog, TabbedContent, TabPane
+from textual.widgets import Footer, Header, TabbedContent, TabPane, TextArea
+from utils.exceptions import StateError
 
 # ── Custom messages ──────────────────────────────────────────────────
 
@@ -122,8 +124,12 @@ class AnalystTUI(App):
         yield Header()
         with TabbedContent(initial="logs"):
             with TabPane("Logs", id="logs"):
-                yield RichLog(
-                    id="log-view", highlight=True, markup=True, auto_scroll=True
+                yield TextArea(
+                    id="log-view",
+                    read_only=True,
+                    show_line_numbers=False,
+                    soft_wrap=True,
+                    max_checkpoints=0,
                 )
             with TabPane("Codes", id="codes", disabled=True):
                 yield EntityBrowser(entity_type="code", db_path=self._db_path)
@@ -165,20 +171,30 @@ class AnalystTUI(App):
             f.write(f"[{ts}] {message}\n")
 
     def _update_log(self, text: str) -> None:
-        """Directly write to the log RichLog (main thread only)."""
+        """Directly write to the log TextArea (main thread only)."""
         try:
-            log = self.query_one("#log-view", RichLog)
-            log.write(text)
+            log = self.query_one("#log-view", TextArea)
+            plain = RichText.from_markup(text).plain
+            existing = log.text
+            log.text = f"{existing}{plain}\n" if existing else f"{plain}\n"
+            # Scroll to end via document row count
+            doc = log.document
+            log.cursor_location = (len(doc) - 1, 0)
         except Exception:
             self._debug_log(f"[_update_log fallback] {text}")
 
     def on_pipeline_log(self, msg: PipelineLog) -> None:
         """Write a log line to the log tab."""
         try:
-            log = self.query_one("#log-view", RichLog)
-            log.write(msg.text)
+            log = self.query_one("#log-view", TextArea)
+            plain = RichText.from_markup(msg.text).plain
+            existing = log.text
+            log.text = f"{existing}{plain}\n" if existing else f"{plain}\n"
+            # Scroll to end via document row count
+            doc = log.document
+            log.cursor_location = (len(doc) - 1, 0)
         except Exception:
-            self.call_from_thread(self._update_log, msg.text)
+            self._debug_log(f"[on_pipeline_log fallback] {msg.text}")
 
     def on_enable_tab(self, msg: EnableTab) -> None:
         """Enable and switch to the given tab."""
@@ -203,6 +219,7 @@ class AnalystTUI(App):
         if browser is not None:
             browser.limited_tags = self._limited_tags
             asyncio.create_task(browser.refresh_entities())
+            browser.focus()
 
     def _post_log(self, text: str) -> None:
         """Post a PipelineLog message; fall back to direct widget update."""
@@ -269,6 +286,7 @@ class AnalystTUI(App):
         self._debug_log("pipeline started (sync, threaded)")
 
         try:
+            self._enable_artifact_tabs(con)
             while state.current_stage <= 10:
                 if self._pipeline_stop:
                     self._debug_log("pipeline stop requested — breaking stage loop")
@@ -345,9 +363,16 @@ class AnalystTUI(App):
 
                     elif stage == 3:
                         kw_lf = load_keywords()
+                        # Build exemplar content map for enriched BM25 index
+                        ex_lf = load_exemplars().select(["id", "content"]).collect()
+                        exemplar_content_map = {
+                            row["id"]: row["content"]
+                            for row in ex_lf.iter_rows(named=True)
+                        }
                         build_index(
                             kw_lf,
                             tokenizer_config=(self._config.bm25_tokenizer_config),
+                            exemplar_content_map=exemplar_content_map,
                         )
                         build_traversal_cache()
                         self._post_log("[green]Index build complete[/green]")
@@ -461,7 +486,18 @@ class AnalystTUI(App):
             self._post_log(
                 "[bold green]All stages complete! " "Press q to exit.[/bold green]"
             )
+            # Enable any tabs that have artifacts (handles --resume
+            # and auto-advanced stages where EnableTab was never posted).
+            try:
+                self._enable_artifact_tabs(con)
+            except Exception:
+                self._debug_log("enable_artifact_tabs failed — non-fatal")
         finally:
+            from inference.llm_logger import _entries as _llm_entries
+            from inference.llm_logger import flush_llm_log
+
+            flush_llm_log(self._config.export_output_path / "llm_output.json")
+            self._debug_log(f"DIAG: LLM calls this run = {len(_llm_entries)}")
             con.close()
 
     # ── Review stage handling (synchronous, called from pipeline thread) ──
@@ -516,10 +552,25 @@ class AnalystTUI(App):
 
         self._review_artifact = None
 
-        # Reload state after review (captures HITL mutations)
+        # After code review, populate dirty flags for tags with approved codes
+        # so stage 6 (theme inference) knows which tags to process.
+        if artifact_type == "code":
+            from persistence.state_updates import update_dirty_flag
+
+            rows = conn.execute(
+                "SELECT DISTINCT tag FROM nodes "
+                "WHERE type = 'code' AND status = 'approved'"
+            ).fetchall()
+            for (tag,) in rows:
+                update_dirty_flag(conn, tag, True)
+
+        # Reload state after review (captures HITL mutations).
+        # NOTE: current_stage from DB may be stale because
+        # increment_user_action_count / update_dirty_flag previously
+        # used load-modify-save that wrote back old current_stage.
+        # The in-memory self._state.current_stage is authoritative.
         updated = load_state(con=self._con)
         new_state = WorkflowState.from_state_dict(updated)
-        self._state.current_stage = new_state.current_stage
         self._state.dirty_flags = new_state.dirty_flags
         self._state.user_action_count = new_state.user_action_count
         self._state.last_checkpoint = new_state.last_checkpoint
@@ -549,14 +600,53 @@ class AnalystTUI(App):
 
     # ── Checkpoint ───────────────────────────────────────────────────
 
+    def _enable_artifact_tabs(self, con) -> None:
+        """Enable review tabs that have artifacts in the database.
+
+        Queries each artifact type and posts EnableTab for any tab
+        that has at least one entity node.  Safely handles the case
+        where a tab is already enabled.
+        """
+        tab_ids = {
+            "code": "codes",
+            "theme": "themes",
+            "interpretation": "interpretations",
+        }
+        for artifact_type, tab_id in tab_ids.items():
+            count = con.execute(
+                "SELECT COUNT(*) FROM nodes WHERE type = ?", [artifact_type]
+            ).fetchone()[0]
+            if count > 0:
+                try:
+                    self.post_message(EnableTab(tab_id))
+                except Exception:
+                    self._debug_log(
+                        f"EnableTab({tab_id}) failed — tab may already be enabled"
+                    )
+
     def _save_checkpoint(self, state: WorkflowState, con=None) -> None:
-        """Persist workflow state to DuckDB.
+        """Persist workflow state to DuckDB with retry on transaction conflict.
 
         Uses *con* if provided, otherwise ``self._con``.
+        Retries up to 3 times with exponential backoff to handle DuckDB
+        transaction conflicts from concurrent state writes.
         """
         conn = con or self._con
         state.last_checkpoint = datetime.now(timezone.utc).isoformat()
-        save_state(conn, state.to_state_dict())
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                save_state(conn, state.to_state_dict())
+                return
+            except StateError as exc:
+                if "Conflict on update" in str(exc) and attempt < max_retries - 1:
+                    _time.sleep(0.1 * (attempt + 1))
+                    self._debug_log(
+                        f"State save conflict, retrying "
+                        f"({attempt + 1}/{max_retries})..."
+                    )
+                    continue
+                raise
 
     # ── Key handlers (main thread) ───────────────────────────────────
 
@@ -722,7 +812,12 @@ class AnalystTUI(App):
         entity_type: str,
         entity: dict,
     ) -> list[dict]:
-        """Return candidate entities for merge."""
+        """Return candidate entities for merge.
+
+        Includes same-tag candidates plus cross-tag neighbors with
+        similarity > 50%.  For themes, if no candidates are found,
+        falls back to all draft themes across all tags.
+        """
         tag = entity.get("tag", "")
         current_id = entity.get("id", 0)
 
@@ -730,12 +825,59 @@ class AnalystTUI(App):
             from hitl.queries_codes import get_all_codes
 
             all_codes = get_all_codes(con, tag=tag)
-            return [c for c in all_codes if c.get("id") != current_id]
+            same_tag = [c for c in all_codes if c.get("id") != current_id]
         elif entity_type == "theme":
             from hitl.queries_themes import get_other_draft_themes
 
-            return get_other_draft_themes(con, current_id, tag)
-        return []
+            same_tag = get_other_draft_themes(con, current_id, tag)
+        else:
+            return []
+
+        existing_ids = {c["id"] for c in same_tag}
+        candidates = list(same_tag)
+
+        # Cross-tag candidates — semantic neighbors with similarity > 50%.
+        # Only offered for themes (codes must stay within their tag).
+        if entity_type != "code":
+            from hitl.queries import _get_neighbors
+
+            neighbors = _get_neighbors(con, current_id, entity_type, k=10)
+            for nid, score, name in neighbors:
+                if nid != current_id and nid not in existing_ids and score > 0.5:
+                    row = con.execute(
+                        "SELECT id, name, tag, status FROM nodes WHERE id = ?",
+                        [nid],
+                    ).fetchone()
+                    if row:
+                        candidates.append(
+                            {
+                                "id": row[0],
+                                "name": name,
+                                "tag": row[2],
+                                "status": row[3],
+                            }
+                        )
+
+        # Fallback: if no candidates at all, show all draft themes across all tags
+        # This gives users a manual escape hatch when single-code themes block approval
+        if not candidates and entity_type == "theme":
+            rows = con.execute(
+                "SELECT id, name, tag, status FROM nodes "
+                "WHERE type = 'theme' AND status = 'draft' AND id != ? "
+                "ORDER BY tag, name",
+                [current_id],
+            ).fetchall()
+            for row in rows:
+                candidates.append(
+                    {
+                        "id": row[0],
+                        "name": row[1],
+                        "tag": row[2],
+                        "status": row[3],
+                    }
+                )
+
+        return candidates
 
     def key_enter(self) -> None:
         """Enter quits when pipeline is done."""

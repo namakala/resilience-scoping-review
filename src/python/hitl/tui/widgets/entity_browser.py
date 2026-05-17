@@ -16,6 +16,7 @@ from hitl.queries_interpretations import get_all_interpretations
 from hitl.queries_themes import get_all_themes
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
 from textual.widget import Widget
 from textual.widgets import ListItem, ListView, Static
@@ -36,13 +37,25 @@ class EntityBrowser(Widget):
     icons.  The right pane shows full detail for the selected entity.
 
     Actions (approve, reject, edit, merge, split) are dispatched via
-    methods that the parent App can call — or bound directly in the
-    App's keybindings.
+    methods that bubble up to the parent App.
     """
+
+    can_focus = True
+    BINDINGS = [
+        Binding("e", "edit_entity", "Edit", show=True),
+        Binding("a", "approve_entity", "Approve", show=True),
+        Binding("r", "reject_entity", "Reject", show=True),
+        Binding("m", "merge_entity", "Merge", show=True),
+        Binding("s", "split_entity", "Split", show=True),
+    ]
 
     DEFAULT_CSS = """
     EntityBrowser {
         height: 100%;
+    }
+
+    #entity-browser-horizontal {
+        height: 1fr;
     }
 
     #entity-list {
@@ -82,15 +95,11 @@ class EntityBrowser(Widget):
         self._selected_index: int = 0
 
     def compose(self) -> ComposeResult:
-        with Horizontal():
+        with Horizontal(id="entity-browser-horizontal"):
             with VerticalScroll(id="entity-list"):
                 yield ListView(id="entity-list-view")
             with VerticalScroll(id="entity-detail"):
                 yield Static(id="entity-detail-content")
-
-    def on_mount(self) -> None:
-        """No-op; the parent app triggers refresh explicitly when
-        the review tab is enabled."""
 
     # ── Connection ──────────────────────────────────────────────────
 
@@ -134,12 +143,14 @@ class EntityBrowser(Widget):
         await self._rebuild_list()
 
     async def _rebuild_list(self) -> None:
-        """Rebuild the ListView from _all_entities."""
+        """Rebuild the ListView from _all_entities, skipping merged entities."""
         list_view = self.query_one("#entity-list-view", ListView)
         await list_view.clear()
 
         for i, entity in enumerate(self._all_entities):
             status = entity.get("status", "draft")
+            if status == "merged":
+                continue
             icon = STATUS_ICONS.get(status, "[?]")
             name = entity.get(
                 "name",
@@ -206,14 +217,25 @@ class EntityBrowser(Widget):
                     )
                     break
                 quote = quotes.get(str(eid), "")
-                truncated = quote[:80] + "..." if len(quote) > 80 else quote
+                truncated = quote[:250] + "..." if len(quote) > 250 else quote
                 lines.append(f'  #{eid}: "{truncated}"')
 
         elif self.entity_type == "theme":
             code_ids: list = dj.get("code_ids", [])
             lines.append(f"[bold]Codes ({len(code_ids)}):[/bold]")
+            code_names = {}
+            try:
+                con2 = self._con()
+                for cid in code_ids:
+                    row = con2.execute(
+                        "SELECT name FROM nodes WHERE id = ?", [int(cid)]
+                    ).fetchone()
+                    code_names[cid] = row[0] if row else f"#{cid}"
+                con2.close()
+            except Exception:
+                code_names = {cid: f"#{cid}" for cid in code_ids}
             for cid in code_ids:
-                lines.append(f"  Code #{cid}")
+                lines.append(f"  {code_names.get(cid, f'#{cid}')}")
 
         elif self.entity_type == "interpretation":
             tag_spans: list = dj.get("tag_spans", [])
@@ -224,11 +246,25 @@ class EntityBrowser(Widget):
                 for insight in key_insights:
                     lines.append(f"  • {insight}")
 
+        # Semantic neighbors
+        lines.append("")
+        try:
+            con = self._con()
+            neighbor_lines = self._show_neighbors(con, entity.get("id", 0))
+            lines.extend(neighbor_lines)
+            con.close()
+        except Exception:
+            pass
+
         lines.append("")
         lines.append("[dim]─" * 40 + "[/dim]")
-        lines.append("[dim][e] Edit  [Enter] Approve  " "[r] Reject  [m] Merge[/dim]")
-        if self.entity_type == "interpretation":
-            lines.append("[dim][s] Split[/dim]")
+        if status in ("draft", "pending"):
+            hints = "[dim][e] Edit  [a] Approve  [r] Reject"
+            if self.entity_type in ("code", "theme"):
+                hints += "  [m] Merge"
+            lines.append(hints + "[/dim]")
+            if self.entity_type == "interpretation":
+                lines.append("[dim][s] Split[/dim]")
 
         content.update("\n".join(lines))
 
@@ -274,6 +310,7 @@ class EntityBrowser(Widget):
         entity = self.current_entity()
         if entity is None:
             return
+        entity_id = entity.get("id")
         try:
             con = self._con()
             from hitl.tui.actions.handlers import action_approve
@@ -281,6 +318,8 @@ class EntityBrowser(Widget):
             action_approve(con, entity, self.entity_type, self._db_path)
             con.close()
             await self.refresh_entities()
+            if entity_id is not None:
+                self._restore_selection(entity_id)
         except Exception as exc:
             self._show_error(f"Approve failed: {exc}")
 
@@ -289,6 +328,7 @@ class EntityBrowser(Widget):
         entity = self.current_entity()
         if entity is None:
             return
+        entity_id = entity.get("id")
         try:
             con = self._con()
             from hitl.tui.actions.handlers import action_reject
@@ -296,6 +336,8 @@ class EntityBrowser(Widget):
             action_reject(con, entity, self.entity_type, self._db_path)
             con.close()
             await self.refresh_entities()
+            if entity_id is not None:
+                self._restore_selection(entity_id)
         except Exception as exc:
             self._show_error(f"Reject failed: {exc}")
 
@@ -304,6 +346,7 @@ class EntityBrowser(Widget):
         entity = self.current_entity()
         if entity is None:
             return
+        entity_id = entity.get("id")
         try:
             con = self._con()
             from hitl.tui.actions.handlers import action_edit
@@ -318,14 +361,19 @@ class EntityBrowser(Widget):
             )
             con.close()
             await self.refresh_entities()
+            if entity_id is not None:
+                self._restore_selection(entity_id)
         except Exception as exc:
             self._show_error(f"Edit failed: {exc}")
 
     async def action_merge(self, target_id: int) -> None:
-        """Merge current entity into the target."""
+        """Merge current entity into the target, then show target's detail."""
         entity = self.current_entity()
         if entity is None:
             return
+        source_name = entity.get(
+            "name", entity.get("narrative", f"#{entity.get('id')}")
+        )
         try:
             con = self._con()
             from hitl.tui.actions.handlers import action_merge
@@ -338,7 +386,27 @@ class EntityBrowser(Widget):
                 self._db_path,
             )
             con.close()
+
+            # Look up target name for toast notification
+            target_name = f"#{target_id}"
+            try:
+                con2 = self._con()
+                row = con2.execute(
+                    "SELECT name FROM nodes WHERE id = ?", [target_id]
+                ).fetchone()
+                if row:
+                    target_name = row[0]
+                con2.close()
+            except Exception:
+                pass
+
+            self.app.notify(
+                f"Merged '{source_name}' into '{target_name}'",
+                severity="information",
+                timeout=3,
+            )
             await self.refresh_entities()
+            self._restore_selection(target_id)
         except Exception as exc:
             self._show_error(f"Merge failed: {exc}")
 
@@ -363,14 +431,55 @@ class EntityBrowser(Widget):
         except Exception as exc:
             self._show_error(f"Split failed: {exc}")
 
+    # ── Selection restoration ────────────────────────────────────────
+
+    def _restore_selection(self, entity_id: int) -> None:
+        """Restore list selection to the entity with the given ID."""
+        list_view = self.query_one("#entity-list-view", ListView)
+        for i, entity in enumerate(self._all_entities):
+            if entity.get("id") == entity_id:
+                list_view.index = i
+                self._show_detail(i)
+                return
+
     # ── Error display ───────────────────────────────────────────────
 
     def _show_error(self, message: str) -> None:
         """Show an error in the detail pane."""
         content = self.query_one("#entity-detail-content", Static)
-        current = content.renderable or ""
+        current = content.content or ""
         error_block = f"\n\n[bold red]Error:[/bold red] {message}"
         content.update(f"{current}{error_block}")
+
+    def _show_neighbors(self, con, entity_id: int) -> list[str]:
+        """Return rich-text lines for up to 3 semantic neighbors."""
+        lines = []
+        try:
+            if self.entity_type == "code":
+                from hitl.queries_codes import get_neighbors_code
+
+                neighbors = get_neighbors_code(con, entity_id, k=3)
+            elif self.entity_type == "theme":
+                from hitl.queries_themes import get_neighbors_theme
+
+                neighbors = get_neighbors_theme(con, entity_id, k=3)
+            elif self.entity_type == "interpretation":
+                from hitl.queries_interpretations import get_neighbors_interpretation
+
+                neighbors = get_neighbors_interpretation(con, entity_id, k=3)
+            else:
+                return []
+        except Exception:
+            return []
+
+        if not neighbors:
+            lines.append("[dim]No similar entities found.[/dim]")
+        else:
+            lines.append("[bold]Semantic Neighbors:[/bold]")
+            for nid, score, name in neighbors:
+                pct = score * 100
+                lines.append(f"  #{nid}  {name}  [green]{pct:.1f}%[/green]")
+        return lines
 
 
 __all__ = ["EntityBrowser"]

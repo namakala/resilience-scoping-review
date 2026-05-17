@@ -28,7 +28,6 @@ from ontology.constraints import (
     CONSTRAINT_CYCLE_AFTER_MERGE,
     CONSTRAINT_MIN_CODES,
     CONSTRAINT_NONCONTIGUOUS_SPAN,
-    CONSTRAINT_TAG_MISMATCH,
     CONSTRAINT_THEME_MULTI_INTERP,
     CONSTRAINT_UNKNOWN_TAG,
     ConstraintError,
@@ -341,7 +340,8 @@ class TestRule2ThemeMinimumCodesSameTag(unittest.TestCase):
             )
         self.assertEqual(ctx.exception.code, CONSTRAINT_MIN_CODES)
 
-    def test_theme_with_codes_from_different_tags_rejected(self):
+    def test_theme_with_codes_from_different_tags_allowed(self):
+        """Theme with codes from different tags is allowed (themes may span tags)."""
         G = _make_graph_with_nodes(
             [
                 {
@@ -368,14 +368,13 @@ class TestRule2ThemeMinimumCodesSameTag(unittest.TestCase):
             ],
             [(1, 10, "composed-of"), (1, 11, "composed-of")],
         )
-        with self.assertRaises(ConstraintError) as ctx:
-            validate_constraint(
-                {"id": 1, "type": "theme", "tag": "Problem"},
-                "approve",
-                graph=G,
-                tag_dag=self.tag_dag,
-            )
-        self.assertEqual(ctx.exception.code, CONSTRAINT_TAG_MISMATCH)
+        # Should not raise — themes may span multiple tags
+        validate_constraint(
+            {"id": 1, "type": "theme", "tag": "Problem"},
+            "approve",
+            graph=G,
+            tag_dag=self.tag_dag,
+        )
 
     def test_theme_with_three_codes_same_tag_approves(self):
         G = _make_graph_with_nodes(

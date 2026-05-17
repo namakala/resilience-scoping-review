@@ -77,6 +77,18 @@ def _resolve_tag_dag(tag_dag: Optional[nx.DiGraph] = None) -> nx.DiGraph:
     return get_tag_dag()
 
 
+def _get_theme_code_ids(graph: nx.DiGraph, theme_id: int) -> list[int]:
+    """Return all code node IDs linked by ``composed-of`` edges from *theme_id*."""
+    code_ids: list[int] = []
+    for src, tgt, data in graph.edges(data=True):
+        if data.get("type") != "composed-of":
+            continue
+        if src != theme_id:
+            continue
+        code_ids.append(tgt)
+    return code_ids
+
+
 # ---------------------------------------------------------------------------
 # Public dispatch
 # ---------------------------------------------------------------------------
@@ -126,6 +138,9 @@ def validate_constraint(
         elif entity_type == "theme" and entity_id is not None:
             validate_theme_approval(entity_id, resolved_graph)
             validate_theme_interpretation(entity_id, resolved_graph)
+            # Each code in the theme must not already belong to an approved theme
+            for code_id in _get_theme_code_ids(resolved_graph, entity_id):
+                validate_code_approval(code_id, resolved_graph)
         elif entity_type == "interpretation" and tag_spans is not None:
             validate_interpretation_contiguity(tag_spans, resolved_tag_dag)
 

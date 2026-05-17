@@ -21,6 +21,7 @@ All settings documented in `.env.example`. Key groups:
 - **Processing:** `batch_size()`, `log_level()`
 - **Paths:** `data_path()`, `tags_path()`, `processed_data_path()`
 - **BM25:** `bm25_tokenizer_config()`
+- **Auto-Assignment:** `similarity_score_threshold()` (default 0.8)
 - **Few-Shot:** `fewshot_enabled()`, `fewshot_count()`, `fewshot_shuffle()`
 
 ## Design

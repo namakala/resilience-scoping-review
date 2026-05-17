@@ -148,6 +148,17 @@ def _load_existing_code_names(
     return {n["name"] for n in nodes}
 
 
+def _load_all_code_names(
+    db_path: Optional[Path] = None,
+) -> set[str]:
+    """Fetch ALL existing code node names across all tags.
+
+    Used for cross-tag collision detection after tag-scoped dedup.
+    """
+    nodes = get_nodes_by_type_and_tag("code", None, db_path=db_path)
+    return {n["name"] for n in nodes}
+
+
 def _find_draft_code_by_name(
     tag: str,
     name: str,
@@ -186,6 +197,8 @@ def _create_code_nodes_for_tag(
 
     # Step 2: load existing names to detect external collisions
     existing_names = _load_existing_code_names(tag, db_path=db_path)
+    # Also load ALL code names globally for cross-tag collision safety net
+    all_code_names = _load_all_code_names(db_path=db_path)
 
     # Step 4: group codes by code_name for shared abstract codes
     by_name: dict[str, list[CodeInference]] = defaultdict(list)
@@ -253,6 +266,16 @@ def _create_code_nodes_for_tag(
             else:
                 # Create unique name if collision with existing (non-draft) codes
                 unique_name = _make_unique_name(code_name, existing_names)
+
+                # Cross-tag collision safety net: check against ALL code names
+                if unique_name in all_code_names:
+                    qualified = f"{unique_name} [{tag}]"
+                    logger.warning(
+                        "Cross-tag code name collision '%s' resolved to '%s'",
+                        unique_name,
+                        qualified,
+                    )
+                    unique_name = _make_unique_name(qualified, all_code_names)
 
                 data_json = _build_data_json(all_eids, all_quotes, all_related)
                 node_id = create_node(

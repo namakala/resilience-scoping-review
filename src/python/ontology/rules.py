@@ -19,7 +19,6 @@ from .constraints import (
     CONSTRAINT_CYCLE_AFTER_MERGE,
     CONSTRAINT_MIN_CODES,
     CONSTRAINT_NONCONTIGUOUS_SPAN,
-    CONSTRAINT_TAG_MISMATCH,
     CONSTRAINT_THEME_MULTI_INTERP,
     CONSTRAINT_UNKNOWN_TAG,
     ConstraintError,
@@ -60,7 +59,7 @@ def validate_theme_approval(
     theme_id: int,
     graph: nx.DiGraph,
 ) -> None:
-    """Rule 2: theme has >= 2 codes, all sharing the same parent tag."""
+    """Rule 2: theme has >= 2 codes (themes may span multiple tags)."""
     code_ids: list[int] = []
     for src, tgt, data in graph.edges(data=True):
         if data.get("type") != "composed-of":
@@ -75,20 +74,6 @@ def validate_theme_approval(
             CONSTRAINT_MIN_CODES,
             f"Theme '{theme_name}' has {len(code_ids)} code(s); "
             f"at least 2 are required.",
-        )
-
-    tags: set[str] = set()
-    for cid in code_ids:
-        tag = graph.nodes[cid].get("tag")
-        if tag is not None:
-            tags.add(tag)
-
-    if len(tags) > 1:
-        theme_name = graph.nodes[theme_id].get("name", str(theme_id))
-        raise ConstraintError(
-            CONSTRAINT_TAG_MISMATCH,
-            f"Theme '{theme_name}' contains codes from multiple tags: "
-            f"{sorted(tags)}. All codes must belong to the same tag.",
         )
 
 

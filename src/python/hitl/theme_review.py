@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 import duckdb
+from ontology import ConstraintError
 
 from .prompts import prompt_edit_text as prompt_edit_narrative
 from .prompts_themes import handle_merge_interactive_theme as handle_merge_interactive
@@ -97,8 +98,11 @@ def _review_single_theme(
     action = prompt_theme_action(theme["name"])
 
     if action == "approve":
-        handle_approve_theme(con, theme, db_path=db_path)
-        console.print(f"[green]Theme '{theme['name']}' approved.[/green]")
+        try:
+            handle_approve_theme(con, theme, db_path=db_path)
+            console.print(f"[green]Theme '{theme['name']}' approved.[/green]")
+        except ConstraintError as exc:
+            console.print(f"[red]Constraint violation: {exc}[/red]")
     elif action == "edit":
         new_narrative = prompt_edit_narrative(theme.get("narrative", ""))
         if new_narrative is not None:

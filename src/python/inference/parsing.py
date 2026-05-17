@@ -13,7 +13,7 @@ import json
 import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from utils.exceptions import ParseError
 from utils.logging import get_logger
 
@@ -59,6 +59,11 @@ class InterpretationInference(BaseModel):
     theme_ids: list[str]
     key_insights: list[str]
     tag: str = ""
+
+    @field_validator("theme_ids", mode="before")
+    @classmethod
+    def coerce_ids_to_strs(cls, v):
+        return [str(x) for x in v]
 
 
 # ── Wrapper keys (must match template Output Schema keys) ─────────────────

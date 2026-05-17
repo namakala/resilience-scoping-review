@@ -62,6 +62,18 @@ def coordinate_hitl(
 
     _enter_review(con, artifact_type, db_path)
 
+    # After code review, populate dirty flags for tags with approved codes
+    # so theme inference (stage 6) knows which tags to process.
+    if artifact_type == "code":
+        from persistence.state_updates import update_dirty_flag
+
+        rows = con.execute(
+            "SELECT DISTINCT tag FROM nodes "
+            "WHERE type = 'code' AND status = 'approved'"
+        ).fetchall()
+        for (tag,) in rows:
+            update_dirty_flag(con, tag, True)
+
     # Post-HITL: reload state to capture HITL-side mutations
     # (user_action_count, dirty_flags, etc.)
     from persistence.state_repository import load_state

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 import duckdb
-from graph import create_edge, create_node, graph_transaction
+from graph import create_edge, create_node, get_nodes_by_type_and_tag, graph_transaction
 from ontology import invalidate_cache_for_tags, is_contiguous_subtree
 from utils.logging import get_logger
 
@@ -37,6 +37,17 @@ from .parsing import InterpretationInference
 logger = get_logger(__name__)
 
 __all__ = ["create_interpretation_nodes"]
+
+
+def _load_all_interpretation_names(
+    db_path: Optional[Path] = None,
+) -> set[str]:
+    """Fetch ALL existing interpretation node names across all tags.
+
+    Used for cross-tag collision detection.
+    """
+    nodes = get_nodes_by_type_and_tag("interpretation", None, db_path=db_path)
+    return {n["name"] for n in nodes}
 
 
 def _build_data_json(tag_spans: set[str]) -> dict:
@@ -130,9 +141,27 @@ def create_interpretation_nodes(
                 )
 
         for interp in interpretations:
+            _, root_tag = tag_span_map[interp.interpretation_name]
             unique_name = make_unique_name(
                 interp.interpretation_name, used_names, entity_type="interpretation"
             )
+
+            # Cross-tag collision safety net: only check OTHER tags
+            other_tag_interp_names = set()
+            for n in get_nodes_by_type_and_tag("interpretation", None, db_path=db_path):
+                t = n.get("tag")
+                if t != root_tag and n.get("status") in ("draft", "approved"):
+                    other_tag_interp_names.add(n["name"])
+            other_tag_interp_names -= superseded_names
+            if unique_name in other_tag_interp_names:
+                qualified = f"{unique_name} [span]"
+                logger.warning(
+                    "Cross-tag interpretation name collision '%s' resolved to '%s'",
+                    unique_name,
+                    qualified,
+                )
+                unique_name = make_unique_name(qualified, other_tag_interp_names)
+
             used_names.add(unique_name)
 
             tag_spans, root_tag = tag_span_map[interp.interpretation_name]
@@ -160,7 +189,10 @@ def create_interpretation_nodes(
 
             for theme_id_str in interp.theme_ids:
                 try:
-                    theme_id = int(theme_id_str)
+                    clean_id = "".join(c for c in theme_id_str if c.isdigit())
+                    if not clean_id:
+                        raise ValueError(f"No digits in '{theme_id_str}'")
+                    theme_id = int(clean_id)
                 except (ValueError, TypeError):
                     logger.error(
                         "Invalid theme_id '%s' in interpretation '%s'; skipping edge",

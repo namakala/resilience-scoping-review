@@ -171,6 +171,16 @@ def log_level() -> str:
     return _optional_str("LOG_LEVEL", "INFO")
 
 
+def similarity_score_threshold() -> float:
+    """Auto-assignment threshold for exemplar-to-code similarity (default: 0.8).
+
+    Exemplars with combined score (0.6 cosine + 0.2 direct BM25 + 0.2
+    indirect exemplar-agreement) above this threshold are automatically
+    assigned to the best-matching existing code without LLM inference.
+    """
+    return _optional_float("SIMILARITY_SCORE_THRESHOLD", 0.8, lo=0.0, hi=1.0)
+
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 
 

@@ -123,6 +123,18 @@ def handle_merge(
             f"Both entities must be the same type.",
         )
 
+    source_tag = source_code.get("tag", "")
+    target_tag = target_code.get("tag", "")
+    if source_tag and target_tag and source_tag != target_tag:
+        raise ConstraintError(
+            "CONSTRAINT_TAG_MISMATCH",
+            f"Cannot merge code '{source_code.get('name', source_id)}' "
+            f"(tag: {source_tag}) into code "
+            f"'{target_code.get('name', target_id)}' (tag: {target_tag}). "
+            f"Codes from different tags cannot be merged because exemplars "
+            f"would span tags.",
+        )
+
     G = get_graph(db_path)
     try:
         validate_constraint(

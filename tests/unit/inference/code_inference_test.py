@@ -13,7 +13,7 @@ sys.path.insert(
 )  # noqa: E402
 
 from inference.batching import Batch  # noqa: E402
-from inference.code_inference import (  # noqa: E402
+from inference.code_inference import (
     _ExemplarRow,
     _exemplars_to_dicts,
     _get_existing_codes_for_tag,
@@ -78,19 +78,43 @@ class TestGetExistingCodesForTag(unittest.TestCase):
     @patch("inference.code_inference.get_nodes_by_type_and_tag")
     def test_filters_approved_only(self, mock_get):
         mock_get.return_value = [
-            {"id": 1, "name": "A", "definition": "def A", "status": "approved"},
-            {"id": 2, "name": "B", "definition": "def B", "status": "draft"},
-            {"id": 3, "name": "C", "definition": "def C", "status": "approved"},
+            {
+                "id": 1,
+                "name": "A",
+                "definition": "def A",
+                "status": "approved",
+                "tag": "T1",
+            },
+            {
+                "id": 2,
+                "name": "B",
+                "definition": "def B",
+                "status": "draft",
+                "tag": "T1",
+            },
+            {
+                "id": 3,
+                "name": "C",
+                "definition": "def C",
+                "status": "approved",
+                "tag": "T1",
+            },
         ]
         result = _get_existing_codes_for_tag("T1")
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result), 3)
         names = {c["name"] for c in result}
-        self.assertSetEqual(names, {"A", "C"})
+        self.assertSetEqual(names, {"A", "B", "C"})
 
     @patch("inference.code_inference.get_nodes_by_type_and_tag")
     def test_empty_when_no_approved(self, mock_get):
         mock_get.return_value = [
-            {"id": 1, "name": "A", "definition": "def A", "status": "draft"}
+            {
+                "id": 1,
+                "name": "A",
+                "definition": "def A",
+                "status": "rejected",
+                "tag": "T1",
+            }
         ]
         result = _get_existing_codes_for_tag("T1")
         self.assertEqual(result, [])
@@ -124,6 +148,7 @@ class TestInferCodes(unittest.TestCase):
     @patch("inference.code_inference._load_pending_exemplars")
     @patch("inference.code_inference.group_by_tag")
     @patch("inference.code_inference.get_tag_metadata")
+    @patch("inference.code_inference.get_nodes_by_type_and_tag")
     @patch("inference.code_inference._get_existing_codes_for_tag")
     @patch("inference.code_inference.load_fewshot")
     @patch("inference.code_inference.render_code_prompt")
@@ -142,6 +167,7 @@ class TestInferCodes(unittest.TestCase):
         mock_render,
         mock_fewshot,
         mock_existing,
+        mock_nodes,
         mock_meta,
         mock_group,
         mock_load,
@@ -159,6 +185,7 @@ class TestInferCodes(unittest.TestCase):
         mock_group.return_value = [batch]
 
         mock_meta.return_value = ("desc", ["root", "T1"])
+        mock_nodes.return_value = []  # no existing codes → skip auto-assign
         mock_existing.return_value = []
         mock_fewshot.return_value = None
 
@@ -205,6 +232,7 @@ class TestTokenTracking(unittest.TestCase):
     @patch("inference.code_inference._load_pending_exemplars")
     @patch("inference.code_inference.group_by_tag")
     @patch("inference.code_inference.get_tag_metadata")
+    @patch("inference.code_inference.get_nodes_by_type_and_tag")
     @patch("inference.code_inference._get_existing_codes_for_tag")
     @patch("inference.code_inference.load_fewshot")
     @patch("inference.code_inference.render_code_prompt")
@@ -221,6 +249,7 @@ class TestTokenTracking(unittest.TestCase):
         mock_render,
         mock_fewshot,
         mock_existing,
+        mock_nodes,
         mock_meta,
         mock_group,
         mock_load,
@@ -237,6 +266,7 @@ class TestTokenTracking(unittest.TestCase):
         mock_group.return_value = [batch]
 
         mock_meta.return_value = ("d", ["root", "T1"])
+        mock_nodes.return_value = []  # no existing codes → skip auto-assign
         mock_existing.return_value = []
         mock_fewshot.return_value = None
         bundle = MagicMock()

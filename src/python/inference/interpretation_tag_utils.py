@@ -41,7 +41,15 @@ def compute_tag_spans(
         theme_tags: set[str] = set()
         for tid_str in interp.theme_ids:
             try:
-                theme = get_node(int(tid_str), db_path=db_path)
+                # Strip any non-digit prefix (e.g., "T001" → "1") from LLM responses
+                clean_id = "".join(c for c in tid_str if c.isdigit())
+                if not clean_id:
+                    raise KeyError(
+                        f"Theme ID '{tid_str}' contains no numeric digits; "
+                        f"cannot resolve for interpretation "
+                        f"'{interp.interpretation_name}'"
+                    )
+                theme = get_node(int(clean_id), db_path=db_path)
             except (KeyError, ValueError):
                 raise KeyError(
                     f"Theme ID '{tid_str}' not found for interpretation "

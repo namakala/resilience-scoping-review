@@ -175,11 +175,20 @@ def _run_stage_embed(con: duckdb.DuckDBPyConnection) -> None:
 
 def _run_stage_index(con: duckdb.DuckDBPyConnection, config: Config) -> None:
     """Build BM25 index, ontology graph traversal cache."""
-    from persistence.loaders import load_keywords
+    from persistence.loaders import load_exemplars, load_keywords
     from semantic.index_builder import build_index
 
     kw_lf = load_keywords()
-    build_index(kw_lf, tokenizer_config=config.bm25_tokenizer_config)
+    # Build exemplar content map for enriched BM25 index
+    ex_lf = load_exemplars().select(["id", "content"]).collect()
+    exemplar_content_map = {
+        row["id"]: row["content"] for row in ex_lf.iter_rows(named=True)
+    }
+    build_index(
+        kw_lf,
+        tokenizer_config=config.bm25_tokenizer_config,
+        exemplar_content_map=exemplar_content_map,
+    )
 
     from ontology.cache import build_traversal_cache
 

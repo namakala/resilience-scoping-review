@@ -68,9 +68,11 @@ class TestInferThemes(unittest.TestCase):
         result = infer_themes(con, tag="T1")
         self.assertEqual(result, [])
 
+    @patch("inference.theme_inference.get_nodes_by_type_and_tag")
     @patch("inference.theme_inference.load_approved_codes_grouped")
     @patch("inference.theme_inference.group_by_tag")
     @patch("inference.theme_inference.get_tag_metadata")
+    @patch("inference.theme_inference._get_all_existing_themes")
     @patch("inference.theme_inference.load_fewshot")
     @patch("inference.theme_inference.render_theme_prompt")
     @patch("inference.theme_inference.infer_batch_with_retry")
@@ -87,9 +89,11 @@ class TestInferThemes(unittest.TestCase):
         mock_infer,
         mock_render,
         mock_fewshot,
+        mock_existing_themes,
         mock_meta,
         mock_group,
         mock_load,
+        mock_nodes,
     ):
         """Happy path: two codes grouped into one theme."""
         con = MagicMock(spec=duckdb.DuckDBPyConnection)
@@ -107,6 +111,8 @@ class TestInferThemes(unittest.TestCase):
         mock_group.return_value = [batch]
 
         mock_meta.return_value = ("desc", ["root", "T1"])
+        mock_existing_themes.return_value = {"same_tag": [], "other_tags": {}}
+        mock_nodes.return_value = []  # no existing themes → skip auto-assign
         mock_fewshot.return_value = None
 
         bundle = MagicMock(spec=PromptBundle)
@@ -134,26 +140,32 @@ class TestInferThemes(unittest.TestCase):
         mock_mark_success.assert_any_call(con, 1, "code", "theme")
         mock_mark_success.assert_any_call(con, 2, "code", "theme")
 
+    @patch("inference.theme_inference.get_nodes_by_type_and_tag")
     @patch("inference.theme_inference.load_approved_codes_grouped")
     @patch("inference.theme_inference.group_by_tag")
     @patch("inference.theme_inference.get_tag_metadata")
+    @patch("inference.theme_inference._get_all_existing_themes")
     @patch("inference.theme_inference.load_fewshot")
     @patch("inference.theme_inference.render_theme_prompt")
     @patch("inference.theme_inference.infer_batch_with_retry")
     @patch("inference.theme_inference.parse_theme_response")
     @patch("inference.theme_inference.mark_success")
     @patch("inference.theme_inference.mark_failure")
+    @patch("inference.theme_inference.logger")
     def test_code_not_covered_by_llm(
         self,
+        mock_logger,
         mock_mark_failure,
         mock_mark_success,
         mock_parse,
         mock_infer,
         mock_render,
         mock_fewshot,
+        mock_existing_themes,
         mock_meta,
         mock_group,
         mock_load,
+        mock_nodes,
     ):
         """When LLM misses a code, it gets mark_failure."""
         con = MagicMock(spec=duckdb.DuckDBPyConnection)
@@ -171,6 +183,8 @@ class TestInferThemes(unittest.TestCase):
         mock_group.return_value = [batch]
 
         mock_meta.return_value = ("d", ["root", "T1"])
+        mock_existing_themes.return_value = {"same_tag": [], "other_tags": {}}
+        mock_nodes.return_value = []
         mock_fewshot.return_value = None
         bundle = MagicMock()
         mock_render.return_value = bundle
@@ -201,26 +215,32 @@ class TestTokenTracking(unittest.TestCase):
 
         reset_tracker()
 
+    @patch("inference.theme_inference.get_nodes_by_type_and_tag")
     @patch("inference.theme_inference.load_approved_codes_grouped")
     @patch("inference.theme_inference.group_by_tag")
     @patch("inference.theme_inference.get_tag_metadata")
+    @patch("inference.theme_inference._get_all_existing_themes")
     @patch("inference.theme_inference.load_fewshot")
     @patch("inference.theme_inference.render_theme_prompt")
     @patch("inference.theme_inference.infer_batch_with_retry")
     @patch("inference.theme_inference.parse_theme_response")
     @patch("inference.theme_inference.mark_success")
     @patch("inference.theme_inference.mark_failure")
-    def test_token_usage_logged(
+    @patch("inference.theme_inference.logger")
+    def test_full_flow_success(
         self,
+        mock_logger,
         mock_mark_failure,
         mock_mark_success,
         mock_parse,
         mock_infer,
         mock_render,
         mock_fewshot,
+        mock_existing_themes,
         mock_meta,
         mock_group,
         mock_load,
+        mock_nodes,
     ):
         """Token usage appears in the summary log output."""
         con = MagicMock(spec=duckdb.DuckDBPyConnection)
@@ -235,6 +255,8 @@ class TestTokenTracking(unittest.TestCase):
         mock_group.return_value = [batch]
 
         mock_meta.return_value = ("d", ["root", "T1"])
+        mock_existing_themes.return_value = {"same_tag": [], "other_tags": {}}
+        mock_nodes.return_value = []
         mock_fewshot.return_value = None
         bundle = MagicMock()
         mock_render.return_value = bundle
