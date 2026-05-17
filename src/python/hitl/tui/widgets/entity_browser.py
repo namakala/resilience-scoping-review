@@ -15,7 +15,6 @@ import duckdb
 from hitl.queries_codes import get_all_codes
 from hitl.queries_interpretations import get_all_interpretations
 from hitl.queries_themes import get_all_themes
-from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
@@ -91,8 +90,6 @@ class EntityBrowser(Widget):
         self._selected_index: int = 0
         self._refreshing: bool = False
         self._needs_refresh: bool = False
-        self._exemplars_expanded: bool = False
-        self._exemplar_toggle_line: int = -1
 
     # ── Diagnostics ────────────────────────────────────────────────
 
@@ -275,47 +272,29 @@ class EntityBrowser(Widget):
             exemplar_ids: list = dj.get("exemplar_ids", [])
             quotes: dict = dj.get("supporting_quotes", {})
             lines.append(f"[bold]Exemplars ({len(exemplar_ids)}):[/bold]")
-            if self._exemplars_expanded:
-                for eid in exemplar_ids:
-                    quote = quotes.get(str(eid), "")
-                    truncated = quote[:250] + "..." if len(quote) > 250 else quote
-                    lines.append(f'  #{eid}: "{truncated}"')
-                toggle_text = "  (click to collapse)"
-            else:
-                for i, eid in enumerate(exemplar_ids):
-                    if i >= 3:
-                        break
-                    quote = quotes.get(str(eid), "")
-                    truncated = quote[:250] + "..." if len(quote) > 250 else quote
-                    lines.append(f'  #{eid}: "{truncated}"')
-                remaining = len(exemplar_ids) - 3
-                toggle_text = (
-                    f"  ... and {remaining} more (click to expand)"
-                    if remaining > 0
-                    else ""
-                )
-            if toggle_text:
-                self._exemplar_toggle_line = len(lines)
-                lines.append(f"  [dim]{toggle_text}[/dim]")
-            else:
-                self._exemplar_toggle_line = -1
+            for eid in exemplar_ids:
+                quote = quotes.get(str(eid), "[no quote]")
+                lines.append(f'  #{eid}: "{quote}"')
 
         elif self.entity_type == "theme":
-            code_ids: list = dj.get("code_ids", [])
-            lines.append(f"[bold]Codes ({len(code_ids)}):[/bold]")
-            code_names = {}
+            lines.append("[bold]Codes:[/bold]")
             try:
                 con2 = self._con()
-                for cid in code_ids:
-                    row = con2.execute(
-                        "SELECT name FROM nodes WHERE id = ?", [int(cid)]
-                    ).fetchone()
-                    code_names[cid] = row[0] if row else f"#{cid}"
+                from hitl.queries_themes import get_constituent_codes
+
+                codes = get_constituent_codes(con2, entity.get("id", 0))
                 con2.close()
+                if codes:
+                    for c in codes:
+                        icon = STATUS_ICONS.get(c["status"], "?")
+                        name = c.get("name", f"#{c.get('id', '?')}")
+                        count = c.get("exemplar_count", 0)
+                        ex_label = f"({count} exemplar{'s' if count != 1 else ''})"
+                        lines.append(f"  {icon} {name} {ex_label}")
+                else:
+                    lines.append("  [dim]No constituent codes[/dim]")
             except Exception:
-                code_names = {cid: f"#{cid}" for cid in code_ids}
-            for cid in code_ids:
-                lines.append(f"  {code_names.get(cid, f'#{cid}')}")
+                lines.append("  [dim]Could not load codes[/dim]")
 
         elif self.entity_type == "interpretation":
             tag_spans: list = dj.get("tag_spans", [])
@@ -325,8 +304,32 @@ class EntityBrowser(Widget):
                 lines.append("[bold]Key Insights:[/bold]")
                 for insight in key_insights:
                     lines.append(f"  \u2022 {insight}")
+            lines.append("")
+            lines.append("[bold]Themes:[/bold]")
+            try:
+                con3 = self._con()
+                from hitl.queries_interpretations import get_interpretation_themes
+
+                themes = get_interpretation_themes(con3, entity.get("id", 0))
+                con3.close()
+                if themes:
+                    for t in themes:
+                        icon = STATUS_ICONS.get(t["status"], "?")
+                        t_name = t.get("name", f"#{t.get('id', '?')}")
+                        t_tag = t.get("tag", "")
+                        lines.append(f"  {icon} {t_name}  [yellow]{t_tag}[/yellow]")
+                else:
+                    lines.append("  [dim]No themes linked[/dim]")
+            except Exception:
+                lines.append("  [dim]Could not load themes[/dim]")
 
         content.update("\n".join(lines))
+        # Scroll detail pane to top when switching entities.
+        try:
+            detail_scroll = self.query_one("#entity-detail", VerticalScroll)
+            detail_scroll.scroll_home(animate=False)
+        except Exception:
+            pass
 
     # ── List selection ──────────────────────────────────────────────
 
@@ -540,19 +543,6 @@ class EntityBrowser(Widget):
                 pct = score * 100
                 lines.append(f"  #{nid}  {name}  [green]{pct:.1f}%[/green]")
         return lines
-
-    def on_click(self, event: events.Click) -> None:
-        """Handle clicks on the exemplar toggle/collapse text."""
-        if self.entity_type != "code":
-            return
-        if self._exemplar_toggle_line < 0:
-            return
-        if not self._all_entities:
-            return
-        content = self.query_one("#entity-detail-content", Static)
-        if event.widget is content and event.y == self._exemplar_toggle_line:
-            self._exemplars_expanded = not self._exemplars_expanded
-            self._show_detail(self._selected_index)
 
 
 __all__ = ["EntityBrowser"]
