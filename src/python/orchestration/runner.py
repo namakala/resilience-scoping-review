@@ -77,6 +77,9 @@ def run_pipeline(
         return state
 
     limited_tags: list[str] | None = select_limited_tags(limit) if limit > 0 else None
+    from inference.llm_logger import set_llm_log_path
+
+    set_llm_log_path(config.export_output_path / "llm_output.json")
 
     def _checkpoint() -> None:
         _save_checkpoint(con, state)
@@ -135,7 +138,7 @@ def run_pipeline(
 
     from inference.llm_logger import flush_llm_log
 
-    flush_llm_log(config.export_output_path / "llm_output.json")
+    flush_llm_log()
     return state
 
 

@@ -26,8 +26,11 @@ from persistence.state_repository import load_state, save_state
 from rich.text import Text as RichText
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Container
 from textual.message import Message
 from textual.widgets import Footer, Header, TabbedContent, TabPane, TextArea
+from textual.widgets._progress_bar import ProgressBar
+from textual.widgets._static import Static
 from utils.exceptions import StateError
 
 # ── Custom messages ──────────────────────────────────────────────────
@@ -47,6 +50,21 @@ class EnableTab(Message):
     def __init__(self, tab_id: str) -> None:
         super().__init__()
         self.tab_id = tab_id
+
+
+class ProgressUpdate(Message):
+    """Posted to update the progress bar in the Logs tab.
+
+    When *total* is ``None`` the bar shows an indeterminate animation.
+    When *total* is a positive integer the bar shows a determinate
+    fraction ``completed / total``.
+    """
+
+    def __init__(self, total: int | None, completed: int, description: str) -> None:
+        super().__init__()
+        self.total = total
+        self.completed = completed
+        self.description = description
 
 
 # ── Debug log path ──────────────────────────────────────────────────
@@ -71,6 +89,21 @@ class AnalystTUI(App):
     #log-view {
         height: 1fr;
         border: solid $accent;
+    }
+
+    #progress-container {
+        height: 3;
+        dock: bottom;
+        background: $surface;
+    }
+
+    #progress-description {
+        text-style: bold;
+        padding: 0 1;
+    }
+
+    #progress-bar {
+        margin: 0 1;
     }
 
     EntityBrowser {
@@ -131,6 +164,11 @@ class AnalystTUI(App):
                     soft_wrap=True,
                     max_checkpoints=0,
                 )
+                yield Container(
+                    Static(id="progress-description"),
+                    ProgressBar(id="progress-bar"),
+                    id="progress-container",
+                )
             with TabPane("Codes", id="codes", disabled=True):
                 yield EntityBrowser(entity_type="code", db_path=self._db_path)
             with TabPane("Themes", id="themes", disabled=True):
@@ -170,31 +208,55 @@ class AnalystTUI(App):
         with open(str(self._debug_log_path), "a") as f:
             f.write(f"[{ts}] {message}\n")
 
-    def _update_log(self, text: str) -> None:
-        """Directly write to the log TextArea (main thread only)."""
+    def _append_log(self, plain: str) -> None:
+        """Append a plain text line to the log TextArea and scroll to end."""
         try:
             log = self.query_one("#log-view", TextArea)
-            plain = RichText.from_markup(text).plain
             existing = log.text
             log.text = f"{existing}{plain}\n" if existing else f"{plain}\n"
-            # Scroll to end via document row count
-            doc = log.document
-            log.cursor_location = (len(doc) - 1, 0)
+            log.scroll_end(animate=False)
         except Exception:
-            self._debug_log(f"[_update_log fallback] {text}")
+            self._debug_log(f"[_append_log fallback] {plain}")
+
+    def _update_log(self, text: str) -> None:
+        """Directly write to the log TextArea (main thread only)."""
+        plain = RichText.from_markup(text).plain
+        self._append_log(plain)
 
     def on_pipeline_log(self, msg: PipelineLog) -> None:
         """Write a log line to the log tab."""
+        plain = RichText.from_markup(msg.text).plain
+        self._append_log(plain)
+
+    # ── Progress bar handlers ──────────────────────────────────────
+
+    def _update_progress(
+        self, total: int | None, completed: int, description: str
+    ) -> None:
+        """Update the progress bar and description (main thread only).
+
+        When *total* is ``None`` the bar shows an indeterminate
+        animation.  When *total* is a positive integer the bar shows
+        a determinate fraction ``completed / total``.
+        """
         try:
-            log = self.query_one("#log-view", TextArea)
-            plain = RichText.from_markup(msg.text).plain
-            existing = log.text
-            log.text = f"{existing}{plain}\n" if existing else f"{plain}\n"
-            # Scroll to end via document row count
-            doc = log.document
-            log.cursor_location = (len(doc) - 1, 0)
+            pb = self.query_one("#progress-bar", ProgressBar)
+            desc = self.query_one("#progress-description", Static)
+            pb.total = total
+            pb.progress = completed
+            desc.update(description)
+            if total is not None and total > 0:
+                self._append_log(f"[{completed}/{total}] {description}")
+            else:
+                self._append_log(description)
         except Exception:
-            self._debug_log(f"[on_pipeline_log fallback] {msg.text}")
+            self._debug_log(
+                f"[_update_progress fallback] {description} " f"({completed}/{total})"
+            )
+
+    def on_progress_update(self, msg: ProgressUpdate) -> None:
+        """Update the progress bar from a ProgressUpdate message."""
+        self._update_progress(msg.total, msg.completed, msg.description)
 
     def on_enable_tab(self, msg: EnableTab) -> None:
         """Enable and switch to the given tab."""
@@ -218,6 +280,7 @@ class AnalystTUI(App):
         browser = self._entity_browser_for_type(artifact_type)
         if browser is not None:
             browser.limited_tags = self._limited_tags
+            self._debug_log(f"_schedule_review_tab_refresh: tab_id={tab_id}")
             asyncio.create_task(browser.refresh_entities())
             browser.focus()
 
@@ -227,6 +290,35 @@ class AnalystTUI(App):
             self.post_message(PipelineLog(text))
         except Exception:
             self.call_from_thread(self._update_log, text)
+
+    def _make_progress_callback(self):
+        """Return a thread-safe progress callback with throttling.
+
+        The returned closure posts ``ProgressUpdate`` messages to the
+        main thread's message queue.  Falls back to
+        ``call_from_thread`` if ``post_message`` fails.
+
+        Throttling: updates with < 1% change in progress are skipped
+        (except the final ``completed == total`` update) to avoid
+        flooding the message queue from tight loops.
+        """
+        last_pct = -1
+
+        def _cb(total: int | None, completed: int, description: str) -> None:
+            nonlocal last_pct
+            if total is not None and total > 0:
+                pct = int(100 * completed / total)
+                if completed < total and pct == last_pct:
+                    return
+                last_pct = pct
+            try:
+                self.post_message(ProgressUpdate(total, completed, description))
+            except Exception:
+                self.call_from_thread(
+                    self._update_progress, total, completed, description
+                )
+
+        return _cb
 
     # ── Pipeline execution (in thread executor) ─────────────────────
 
@@ -286,6 +378,10 @@ class AnalystTUI(App):
         self._debug_log("pipeline started (sync, threaded)")
 
         try:
+            progress_cb = self._make_progress_callback()
+            from inference.llm_logger import set_llm_log_path
+
+            set_llm_log_path(self._config.export_output_path / "llm_output.json")
             self._enable_artifact_tabs(con)
             while state.current_stage <= 10:
                 if self._pipeline_stop:
@@ -298,6 +394,7 @@ class AnalystTUI(App):
                 self._post_log(
                     f"[bold blue]Stage {stage} " f"({stage_name}) started[/bold blue]"
                 )
+                progress_cb(None, 0, stage_name)
                 start = _time.monotonic()
 
                 try:
@@ -335,7 +432,7 @@ class AnalystTUI(App):
 
                         try:
                             self._debug_log("stage 1: " "extract_keywords()...")
-                            extract_keywords(con)
+                            extract_keywords(con, progress_callback=progress_cb)
                             self._debug_log("stage 1: " "extract_keywords() OK")
                         except Exception as exc:
                             self._debug_log(
@@ -356,7 +453,7 @@ class AnalystTUI(App):
                         )
 
                     elif stage == 2:
-                        generate_exemplar_embeddings(con)
+                        generate_exemplar_embeddings(con, progress_callback=progress_cb)
                         self._post_log(
                             "[green]Embedding generation " "complete[/green]"
                         )
@@ -383,14 +480,18 @@ class AnalystTUI(App):
 
                             self._limited_tags = select_limited_tags(self._limit)
                         seed_pending_exemplars(con)
-                        codes = infer_codes(con, tags=self._limited_tags)
+                        codes = infer_codes(
+                            con,
+                            tags=self._limited_tags,
+                            progress_callback=progress_cb,
+                        )
                         if codes:
                             create_code_nodes(
                                 con,
                                 codes,
                                 db_path=DEFAULT_DB_PATH,
                             )
-                            generate_code_embeddings(con)
+                            generate_code_embeddings(con, progress_callback=progress_cb)
                         self._post_log(
                             f"[green]Code inference complete "
                             f"({len(codes) if codes else 0} "
@@ -409,7 +510,11 @@ class AnalystTUI(App):
                             if is_dirty and (
                                 self._limited_tags is None or tag in self._limited_tags
                             ):
-                                themes = infer_themes(con, tag=tag)
+                                themes = infer_themes(
+                                    con,
+                                    tag=tag,
+                                    progress_callback=progress_cb,
+                                )
                                 if themes:
                                     create_theme_nodes(
                                         con,
@@ -417,7 +522,9 @@ class AnalystTUI(App):
                                         tag=tag,
                                         db_path=DEFAULT_DB_PATH,
                                     )
-                                    generate_theme_embeddings(con)
+                                    generate_theme_embeddings(
+                                        con, progress_callback=progress_cb
+                                    )
                         self._post_log("[green]Theme inference " "complete[/green]")
 
                     elif stage == 7:
@@ -426,7 +533,9 @@ class AnalystTUI(App):
 
                     elif stage == 8:
                         interpretations = synthesize_interpretations(
-                            con, tags=self._limited_tags
+                            con,
+                            tags=self._limited_tags,
+                            progress_callback=progress_cb,
                         )
                         if interpretations:
                             create_interpretation_nodes(
@@ -434,7 +543,9 @@ class AnalystTUI(App):
                                 interpretations,
                                 db_path=DEFAULT_DB_PATH,
                             )
-                            generate_interpretation_embeddings(con)
+                            generate_interpretation_embeddings(
+                                con, progress_callback=progress_cb
+                            )
                         count = len(interpretations) if interpretations else 0
                         self._post_log(
                             "[green]Interpretation synthesis "
@@ -496,7 +607,7 @@ class AnalystTUI(App):
             from inference.llm_logger import _entries as _llm_entries
             from inference.llm_logger import flush_llm_log
 
-            flush_llm_log(self._config.export_output_path / "llm_output.json")
+            flush_llm_log()
             self._debug_log(f"DIAG: LLM calls this run = {len(_llm_entries)}")
             con.close()
 
@@ -825,7 +936,11 @@ class AnalystTUI(App):
             from hitl.queries_codes import get_all_codes
 
             all_codes = get_all_codes(con, tag=tag)
-            same_tag = [c for c in all_codes if c.get("id") != current_id]
+            same_tag = [
+                c
+                for c in all_codes
+                if c.get("id") != current_id and c.get("status") != "merged"
+            ]
         elif entity_type == "theme":
             from hitl.queries_themes import get_other_draft_themes
 
@@ -848,7 +963,7 @@ class AnalystTUI(App):
                         "SELECT id, name, tag, status FROM nodes WHERE id = ?",
                         [nid],
                     ).fetchone()
-                    if row:
+                    if row and row[3] != "merged":
                         candidates.append(
                             {
                                 "id": row[0],

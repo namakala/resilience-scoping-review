@@ -22,6 +22,7 @@ All settings documented in `.env.example`. Key groups:
 - **Paths:** `data_path()`, `tags_path()`, `processed_data_path()`
 - **BM25:** `bm25_tokenizer_config()`
 - **Auto-Assignment:** `similarity_score_threshold()` (default 0.8)
+- **Exemplar Clustering:** `exemplar_similarity_threshold()` (default 0.6) for similarity-based batch grouping during code inference
 - **Few-Shot:** `fewshot_enabled()`, `fewshot_count()`, `fewshot_shuffle()`
 
 ## Design

@@ -105,6 +105,7 @@ class MergeModal(ModalScreen[Optional[int]]):
     """Modal for selecting a target entity to merge into.
 
     Shows a list of candidate entities (same type, excluding self).
+    Supports real-time fuzzy filtering by entity name.
     Returns the target id, or None if cancelled.
     """
 
@@ -120,28 +121,37 @@ class MergeModal(ModalScreen[Optional[int]]):
     ) -> None:
         super().__init__()
         self._entity_type = entity_type
-        self._candidates = candidates
+        self._all_candidates = [c for c in candidates if c.get("id") != current_id]
         self._current_id = current_id
 
     def compose(self) -> ComposeResult:
         label = self._entity_type.capitalize()
-        yield Static(f"[bold]Merge {label} Into...[/bold]", id="merge-title")
-        yield Static("Select the target entity to merge the current one into:")
-        yield ListView(id="merge-list")
-        with Horizontal(classes="modal-buttons"):
-            yield Button("Cancel", variant="default", id="merge-cancel")
+        with Vertical(id="merge-form"):
+            yield Static(f"[bold]Merge {label} Into...[/bold]", id="merge-title")
+            yield Static("Type to filter, select a target to merge into:")
+            yield Input(placeholder="Search by name...", id="merge-search-input")
+            yield ListView(id="merge-list")
+            with Horizontal(classes="modal-buttons"):
+                yield Button("Cancel", variant="default", id="merge-cancel")
 
     CSS = """
     MergeModal {
         align: center middle;
     }
-    MergeModal > Vertical, MergeModal > Static, MergeModal > ListView,
-    MergeModal > Horizontal {
+    #merge-form {
         width: 60;
+        max-width: 80vw;
+    }
+    #merge-form > Static, #merge-form > ListView,
+    #merge-form > Horizontal, #merge-form > Input {
+        width: 100%;
     }
     #merge-title {
         text-align: center;
         padding: 1 0;
+    }
+    #merge-search-input {
+        margin: 0 0 1 0;
     }
     #merge-list {
         height: 16;
@@ -153,15 +163,34 @@ class MergeModal(ModalScreen[Optional[int]]):
     }
     """
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
+        await self._filter_and_rebuild("")
+        self.query_one("#merge-search-input", Input).focus()
+
+    async def _filter_and_rebuild(self, filter_text: str) -> None:
+        """Rebuild the ListView with candidates matching filter_text
+        (case-insensitive substring match on entity name)."""
         list_view = self.query_one("#merge-list", ListView)
-        for cand in self._candidates:
-            cid = cand.get("id", 0)
-            if cid == self._current_id:
+        await list_view.clear()
+
+        lower = filter_text.lower()
+        for cand in self._all_candidates:
+            name = cand.get("name", cand.get("narrative", f"#{cand.get('id', 0)}"))
+            if lower and lower not in name.lower():
                 continue
-            name = cand.get("name", cand.get("narrative", f"#{cid}"))
+            cid = cand["id"]
             status = cand.get("status", "")
-            list_view.append(ListItem(Static(f"#{cid}  {name}  [{status}]")))
+            await list_view.append(ListItem(Static(f"#{cid}  {name}  [{status}]")))
+
+        if not list_view.children and filter_text:
+            await list_view.append(ListItem(Static("[dim]No matching entities[/dim]")))
+        elif list_view.children:
+            list_view.index = 0
+
+    async def on_input_changed(self, event: Input.Changed) -> None:
+        """Real-time filter candidates as the user types."""
+        if event.input.id == "merge-search-input":
+            await self._filter_and_rebuild(event.value)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.item is None:

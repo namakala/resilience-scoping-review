@@ -181,6 +181,16 @@ def similarity_score_threshold() -> float:
     return _optional_float("SIMILARITY_SCORE_THRESHOLD", 0.8, lo=0.0, hi=1.0)
 
 
+def exemplar_similarity_threshold() -> float:
+    """Threshold for similarity-based exemplar clustering (default: 0.6).
+
+    Exemplar pairs with cosine similarity above this threshold are grouped
+    into the same cluster. Each cluster receives one abstract code via LLM.
+    Remaining unclustered exemplars form a single misc batch.
+    """
+    return _optional_float("EXEMPLAR_SIMILARITY_THRESHOLD", 0.6, lo=0.0, hi=1.0)
+
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 
 

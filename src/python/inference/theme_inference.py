@@ -28,7 +28,7 @@ from __future__ import annotations
 import json
 import time
 from functools import partial
-from typing import Any
+from typing import Any, Callable
 
 import duckdb
 import numpy as np
@@ -384,6 +384,7 @@ def _log_theme_summary(
 def infer_themes(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> list[ThemeInference]:
     """Batch LLM inference to group approved codes into themes.
 
@@ -437,7 +438,12 @@ def infer_themes(
                 len(batches),
             )
             tag_themes, trk = run_batches(
-                con, batches, _process_theme_batch, STAGE_THEME, failure_fn
+                con,
+                batches,
+                _process_theme_batch,
+                STAGE_THEME,
+                failure_fn,
+                progress_callback=progress_callback,
             )
             all_themes.extend(tag_themes)
             tracker = trk

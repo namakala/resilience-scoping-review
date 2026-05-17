@@ -1,0 +1,32 @@
+## Hierarchical Context
+{% for tag_path in tag_hierarchy %}
+- {{ tag_path | join(" → ") }}
+{% endfor %}
+
+## Ontology Subtree
+
+{{ ontology_subtree }}
+
+## Themes Across Tags
+{% for tag_name, tag_themes in themes_by_tag.items() %}
+### Tag: {{ tag_name }}
+{% for theme in tag_themes %}
+- Theme: {{ theme.theme_name }}
+  Theme ID: {{ theme.id }}
+  Narrative: {{ theme.narrative }}
+  Code IDs: {{ theme.code_ids | join(", ") }}
+  {% if theme.codes_detail %}
+  Constituent codes:
+  {% for code in theme.codes_detail %}
+  - Code: {{ code.name }}
+    Definition: {{ code.definition }}
+    {% if code.exemplar_contents %}
+    Supporting exemplars:
+    {% for content in code.exemplar_contents %}
+    > {{ content }}
+    {% endfor %}
+    {% endif %}
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+{% endfor %}

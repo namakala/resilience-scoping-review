@@ -7,6 +7,7 @@ merge, and split actions via keybindings passed up to the parent app.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Optional
 
@@ -14,19 +15,19 @@ import duckdb
 from hitl.queries_codes import get_all_codes
 from hitl.queries_interpretations import get_all_interpretations
 from hitl.queries_themes import get_all_themes
-from rich.text import Text
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
 from textual.widget import Widget
-from textual.widgets import ListItem, ListView, Static
+from textual.widgets import Label, ListItem, ListView, Static
 
 STATUS_ICONS = {
-    "draft": "[d]",
-    "pending": "[p]",
-    "approved": "[a]",
-    "merged": "[m]",
-    "rejected": "[r]",
+    "draft": "\u25c7",
+    "pending": "\u25cb",
+    "approved": "\u2713",
+    "merged": "\u2295",
+    "rejected": "\u2717",
 }
 
 
@@ -58,11 +59,10 @@ class EntityBrowser(Widget):
         height: 1fr;
     }
 
-    #entity-list {
+    #entity-list-view {
         width: 35%;
         height: 100%;
         border: solid $primary;
-        overflow-y: auto;
     }
 
     #entity-detail {
@@ -71,10 +71,6 @@ class EntityBrowser(Widget):
         border: solid $accent;
         overflow-y: auto;
         padding: 0 1;
-    }
-
-    #entity-list-view {
-        height: auto;
     }
 
     #entity-detail-content {
@@ -93,11 +89,26 @@ class EntityBrowser(Widget):
         self.limited_tags: list[str] | None = None
         self._all_entities: list[dict[str, Any]] = []
         self._selected_index: int = 0
+        self._refreshing: bool = False
+        self._needs_refresh: bool = False
+        self._exemplars_expanded: bool = False
+        self._exemplar_toggle_line: int = -1
+
+    # ── Diagnostics ────────────────────────────────────────────────
+
+    def _debug_log(self, message: str) -> None:
+        """Log to AnalystTUI debug log if PYTHONFAULTHANDLER is set."""
+        if not os.getenv("PYTHONFAULTHANDLER"):
+            return
+        try:
+            if hasattr(self.app, "_debug_log"):
+                self.app._debug_log(f"[EntityBrowser/{self.entity_type}] {message}")
+        except Exception:
+            pass
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="entity-browser-horizontal"):
-            with VerticalScroll(id="entity-list"):
-                yield ListView(id="entity-list-view")
+            yield ListView(id="entity-list-view")
             with VerticalScroll(id="entity-detail"):
                 yield Static(id="entity-detail-content")
 
@@ -113,51 +124,85 @@ class EntityBrowser(Widget):
 
     async def refresh_entities(self) -> None:
         """Re-query the database and rebuild the entity list."""
-        try:
-            con = self._con()
-        except Exception:
-            self._all_entities = []
-            await self._rebuild_list()
+        if self._refreshing:
+            self._debug_log("refresh_entities: already running, queueing retry")
+            self._needs_refresh = True
             return
-
+        self._refreshing = True
+        self._needs_refresh = False
         try:
-            if self.entity_type == "code":
-                all_entities = get_all_codes(con)
-            elif self.entity_type == "theme":
-                all_entities = get_all_themes(con)
-            elif self.entity_type == "interpretation":
-                all_entities = get_all_interpretations(con)
-            else:
+            try:
+                con = self._con()
+            except Exception as exc:
+                self._debug_log(f"refresh_entities: con() failed: {exc}")
+                self._all_entities = []
+                await self._rebuild_list()
+                return
+
+            try:
+                if self.entity_type == "code":
+                    all_entities = get_all_codes(con)
+                elif self.entity_type == "theme":
+                    all_entities = get_all_themes(con)
+                elif self.entity_type == "interpretation":
+                    all_entities = get_all_interpretations(con)
+                else:
+                    all_entities = []
+                self._debug_log(
+                    f"refresh_entities: fetched {len(all_entities)} entities"
+                )
+            except Exception as exc:
+                self._debug_log(f"refresh_entities: query failed: {exc}")
                 all_entities = []
-        except Exception:
-            all_entities = []
+            finally:
+                con.close()
+
+            if self.limited_tags is not None:
+                pre = len(all_entities)
+                all_entities = [
+                    e for e in all_entities if e.get("tag") in self.limited_tags
+                ]
+                self._debug_log(
+                    f"refresh_entities: tag-filtered from {pre} to {len(all_entities)}"
+                )
+
+            self._all_entities = all_entities
+            await self._rebuild_list()
         finally:
-            con.close()
+            self._refreshing = False
 
-        if self.limited_tags is not None:
-            all_entities = [
-                e for e in all_entities if e.get("tag") in self.limited_tags
-            ]
-
-        self._all_entities = all_entities
-        await self._rebuild_list()
+        if self._needs_refresh:
+            self._debug_log("refresh_entities: retrying queued refresh")
+            await self.refresh_entities()
 
     async def _rebuild_list(self) -> None:
         """Rebuild the ListView from _all_entities, skipping merged entities."""
         list_view = self.query_one("#entity-list-view", ListView)
         await list_view.clear()
 
+        appended = 0
         for i, entity in enumerate(self._all_entities):
             status = entity.get("status", "draft")
             if status == "merged":
                 continue
-            icon = STATUS_ICONS.get(status, "[?]")
+            icon = STATUS_ICONS.get(status, "?")
             name = entity.get(
                 "name",
                 entity.get("narrative", "unnamed"),
             )
-            label = Text(f"{icon} {name}")
-            await list_view.append(ListItem(Static(label), id=f"entity-{i}"))
+            label = f"{icon} {name}"
+            await list_view.append(
+                ListItem(Label(label, markup=False), id=f"entity-{i}")
+            )
+            appended += 1
+            if appended <= 5:
+                self._debug_log(
+                    f"_rebuild_list: appended #{i} name={name} status={status}"
+                )
+
+        self._debug_log(f"_rebuild_list: total appended={appended}")
+        if not self._all_entities:
+            self._debug_log("_rebuild_list: no entities, showing empty message")
 
         if self._all_entities:
             list_view.index = 0
@@ -181,6 +226,10 @@ class EntityBrowser(Widget):
 
         entity = self._all_entities[index]
         self._selected_index = index
+        self._debug_log(
+            f"_show_detail: index={index} "
+            f"id={entity.get('id')} name={entity.get('name','?')}"
+        )
 
         content = self.query_one("#entity-detail-content", Static)
         lines: list[str] = []
@@ -197,6 +246,7 @@ class EntityBrowser(Widget):
         )
         dj: dict = entity.get("data_json") or {}
 
+        # ── Top section (above separator) ──
         lines.append(f"[bold cyan]{name}[/bold cyan]")
         lines.append(f"Status: [bold]{status}[/bold]")
         if tag:
@@ -206,19 +256,49 @@ class EntityBrowser(Widget):
         lines.append(definition)
         lines.append("")
 
+        # Semantic neighbors
+        try:
+            con = self._con()
+            neighbor_lines = self._show_neighbors(con, entity.get("id", 0))
+            lines.extend(neighbor_lines)
+            con.close()
+        except Exception:
+            pass
+
+        # Universal separator
+        lines.append("")
+        lines.append("[dim]─" * 40 + "[/dim]")
+        lines.append("")
+
+        # ── Bottom section (below separator) ──
         if self.entity_type == "code":
             exemplar_ids: list = dj.get("exemplar_ids", [])
             quotes: dict = dj.get("supporting_quotes", {})
             lines.append(f"[bold]Exemplars ({len(exemplar_ids)}):[/bold]")
-            for i, eid in enumerate(exemplar_ids):
-                if i >= 3:
-                    lines.append(
-                        f"  [dim]... and " f"{len(exemplar_ids) - 3} more[/dim]"
-                    )
-                    break
-                quote = quotes.get(str(eid), "")
-                truncated = quote[:250] + "..." if len(quote) > 250 else quote
-                lines.append(f'  #{eid}: "{truncated}"')
+            if self._exemplars_expanded:
+                for eid in exemplar_ids:
+                    quote = quotes.get(str(eid), "")
+                    truncated = quote[:250] + "..." if len(quote) > 250 else quote
+                    lines.append(f'  #{eid}: "{truncated}"')
+                toggle_text = "  (click to collapse)"
+            else:
+                for i, eid in enumerate(exemplar_ids):
+                    if i >= 3:
+                        break
+                    quote = quotes.get(str(eid), "")
+                    truncated = quote[:250] + "..." if len(quote) > 250 else quote
+                    lines.append(f'  #{eid}: "{truncated}"')
+                remaining = len(exemplar_ids) - 3
+                toggle_text = (
+                    f"  ... and {remaining} more (click to expand)"
+                    if remaining > 0
+                    else ""
+                )
+            if toggle_text:
+                self._exemplar_toggle_line = len(lines)
+                lines.append(f"  [dim]{toggle_text}[/dim]")
+            else:
+                self._exemplar_toggle_line = -1
 
         elif self.entity_type == "theme":
             code_ids: list = dj.get("code_ids", [])
@@ -244,27 +324,7 @@ class EntityBrowser(Widget):
             if key_insights:
                 lines.append("[bold]Key Insights:[/bold]")
                 for insight in key_insights:
-                    lines.append(f"  • {insight}")
-
-        # Semantic neighbors
-        lines.append("")
-        try:
-            con = self._con()
-            neighbor_lines = self._show_neighbors(con, entity.get("id", 0))
-            lines.extend(neighbor_lines)
-            con.close()
-        except Exception:
-            pass
-
-        lines.append("")
-        lines.append("[dim]─" * 40 + "[/dim]")
-        if status in ("draft", "pending"):
-            hints = "[dim][e] Edit  [a] Approve  [r] Reject"
-            if self.entity_type in ("code", "theme"):
-                hints += "  [m] Merge"
-            lines.append(hints + "[/dim]")
-            if self.entity_type == "interpretation":
-                lines.append("[dim][s] Split[/dim]")
+                    lines.append(f"  \u2022 {insight}")
 
         content.update("\n".join(lines))
 
@@ -480,6 +540,19 @@ class EntityBrowser(Widget):
                 pct = score * 100
                 lines.append(f"  #{nid}  {name}  [green]{pct:.1f}%[/green]")
         return lines
+
+    def on_click(self, event: events.Click) -> None:
+        """Handle clicks on the exemplar toggle/collapse text."""
+        if self.entity_type != "code":
+            return
+        if self._exemplar_toggle_line < 0:
+            return
+        if not self._all_entities:
+            return
+        content = self.query_one("#entity-detail-content", Static)
+        if event.widget is content and event.y == self._exemplar_toggle_line:
+            self._exemplars_expanded = not self._exemplars_expanded
+            self._show_detail(self._selected_index)
 
 
 __all__ = ["EntityBrowser"]

@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import duckdb
 import numpy as np
@@ -33,6 +33,7 @@ import polars as pl
 from config import (
     code_model,
     code_temperature,
+    exemplar_similarity_threshold,
     fewshot_count,
     fewshot_enabled,
     fewshot_shuffle,
@@ -46,7 +47,8 @@ from persistence.loaders import load_exemplars
 from utils.logging import get_logger
 
 from .batch_processor import record_tokens, run_batches
-from .batching import Batch, group_by_tag, group_items_by_tag
+from .batching import Batch, group_by_similarity, group_by_tag, group_items_by_tag
+from .exemplar_clustering import cluster_by_similarity, compute_pairwise_similarity
 from .fewshot_loader import load_fewshot
 from .inference_status_crud import set_status
 from .inference_status_queries import get_pending_items
@@ -522,6 +524,7 @@ def _process_code_batch(
         if eid in code_map:
             c = code_map[eid]
             c.tag = batch.tag
+            c.supporting_quote = item.content  # fill from actual exemplar content
             mark_success(con, item.id, "exemplar", "code")
             results.append(c)
         else:
@@ -533,6 +536,7 @@ def infer_codes(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
     tags: list[str] | None = None,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> list[CodeInference]:
     if tag is not None and tags is not None:
         raise ValueError("Provide either 'tag' or 'tags', not both")
@@ -569,15 +573,34 @@ def infer_codes(
             len(pending),
         )
 
-        # Step 2: LLM for remaining exemplars
+        # Step 2: LLM for remaining exemplars — similarity-based clustering
         if pending:
-            batches = group_by_tag(pending, max_per_batch=15, prefix="code")
-            logger.info(
-                "Prepared %d batches for tag '%s' (%d exemplars)",
-                len(batches),
-                tg,
-                len(pending),
-            )
+            try:
+                sim_matrix = compute_pairwise_similarity(pending, con)
+                cluster_groups, misc_group = cluster_by_similarity(
+                    pending,
+                    sim_matrix,
+                    threshold=exemplar_similarity_threshold(),
+                    min_cluster_size=5,
+                )
+                batches = group_by_similarity(
+                    tg, cluster_groups, misc_group, prefix="code"
+                )
+                logger.info(
+                    "Tag '%s': %d cluster batch(es), %d misc (total %d pending)",
+                    tg,
+                    len(cluster_groups),
+                    1 if misc_group else 0,
+                    len(pending),
+                )
+            except ValueError as exc:
+                logger.warning(
+                    "Similarity clustering failed for tag '%s': %s — "
+                    "falling back to count-based batching (max 15)",
+                    tg,
+                    exc,
+                )
+                batches = group_by_tag(pending, max_per_batch=15, prefix="code")
 
             def failure_fn(c, item, err):
                 mark_failure(c, item.id, err)
@@ -588,6 +611,7 @@ def infer_codes(
                 _process_code_batch,
                 STAGE_CODE,
                 failure_fn,
+                progress_callback=progress_callback,
             )
             all_results.extend(results)
             tracker = trk

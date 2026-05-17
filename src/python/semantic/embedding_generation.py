@@ -7,6 +7,7 @@ keyword_embedding.py.
 """
 
 import time
+from collections.abc import Callable
 
 import duckdb
 import polars as pl
@@ -75,6 +76,7 @@ def _encode_and_store_generic(
     batch_size: int,
     desc: str,
     unit: str,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> int:
     """Batch-encode items and store in cache.
 
@@ -86,6 +88,8 @@ def _encode_and_store_generic(
         batch_size: Encode batch size.
         desc: tqdm progress bar description.
         unit: tqdm progress bar unit label.
+        progress_callback: Optional callback ``(total, completed, desc)``
+            for TUI progress reporting.
 
     Returns:
         Number of items encoded.
@@ -110,6 +114,9 @@ def _encode_and_store_generic(
 
             pbar.update(len(batch_items))
 
+            if progress_callback:
+                progress_callback(count, pbar.n, desc)
+
     return count
 
 
@@ -119,6 +126,7 @@ def _encode_and_store_generic(
 def generate_exemplar_embeddings(
     con: duckdb.DuckDBPyConnection,
     batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> dict:
     """Batch-generate embeddings for all uncached exemplars.
 
@@ -156,7 +164,11 @@ def generate_exemplar_embeddings(
     cached_count = total - len(to_encode)
 
     generated_count = _encode_and_store_exemplars(
-        con, to_encode, model_hash, batch_size
+        con,
+        to_encode,
+        model_hash,
+        batch_size,
+        progress_callback=progress_callback,
     )
 
     elapsed = time.perf_counter() - start
@@ -203,6 +215,7 @@ def _encode_and_store_exemplars(
     to_encode: list[tuple[str, str, str]],
     model_hash: str,
     batch_size: int,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> int:
     """Batch-encode exemplars and store in cache.
 
@@ -216,6 +229,7 @@ def _encode_and_store_exemplars(
         batch_size,
         desc="Embedding exemplars",
         unit="ex",
+        progress_callback=progress_callback,
     )
 
 
@@ -263,6 +277,7 @@ def _identify_uncached_codes(
 def generate_code_embeddings(
     con: duckdb.DuckDBPyConnection,
     batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> dict:
     """Batch-generate embeddings for all uncached code nodes.
 
@@ -307,6 +322,7 @@ def generate_code_embeddings(
         batch_size,
         desc="Embedding codes",
         unit="codes",
+        progress_callback=progress_callback,
     )
 
     elapsed = time.perf_counter() - start
@@ -368,6 +384,7 @@ def _identify_uncached_themes(
 def generate_theme_embeddings(
     con: duckdb.DuckDBPyConnection,
     batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> dict:
     """Batch-generate embeddings for all uncached theme nodes."""
     start = time.perf_counter()
@@ -396,6 +413,7 @@ def generate_theme_embeddings(
         batch_size,
         desc="Embedding themes",
         unit="themes",
+        progress_callback=progress_callback,
     )
 
     elapsed = time.perf_counter() - start
@@ -458,6 +476,7 @@ def _identify_uncached_interpretations(
 def generate_interpretation_embeddings(
     con: duckdb.DuckDBPyConnection,
     batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> dict:
     """Batch-generate embeddings for all uncached interpretation nodes."""
     start = time.perf_counter()
@@ -486,6 +505,7 @@ def generate_interpretation_embeddings(
         batch_size,
         desc="Embedding interpretations",
         unit="interps",
+        progress_callback=progress_callback,
     )
 
     elapsed = time.perf_counter() - start

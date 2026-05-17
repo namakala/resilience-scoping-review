@@ -1,0 +1,32 @@
+## Ontology Context
+
+Ontology path: {{ ontology_path | join(" → ") }}
+Tag description: {{ tag_description }}
+
+## Existing Codes for This Tag
+{% if existing_codes %}
+{% for code in existing_codes %}
+- {{ code.name }}: {{ code.definition }}
+{% endfor %}
+{% else %}
+No existing codes for this tag.
+{% endif %}
+
+## Existing Codes in Other Tags
+{% if other_tag_codes %}
+{% for tag_name, codes in other_tag_codes.items() %}
+### Tag: {{ tag_name }}
+{% for code in codes %}
+- {{ code.name }}: {{ code.definition }}
+{% endfor %}
+{% endfor %}
+{% else %}
+No codes in other tags.
+{% endif %}
+
+## Exemplars to Code (similarity cluster — identify ONE shared code)
+{% for exemplar in exemplars %}
+### Exemplar {{ exemplar.id }}
+Content: {{ exemplar.content }}
+Keywords: {{ exemplar.keywords | join(", ") }}
+{% endfor %}

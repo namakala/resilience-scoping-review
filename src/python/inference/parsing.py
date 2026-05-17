@@ -3,7 +3,7 @@
 Usage:
     from inference.parsing import parse_code_response
 
-    raw = '{"codes": [{"exemplar_id": "E001", "code_name": "...", ...}]}'
+    raw = '{"codes": [{"exemplar_ids": ["E001"], "code_name": "...", ...}]}'
     codes = parse_code_response(raw)
     for c in codes:
         print(c.code_name)
@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 
 __all__ = [
     "CodeInference",
+    "CodeClusterResponse",
     "ThemeInference",
     "InterpretationInference",
     "parse_code_response",
@@ -40,6 +41,19 @@ class CodeInference(BaseModel):
     supporting_quote: str
     related_existing_codes: list[str] = Field(default_factory=list)
     tag: str = ""
+
+
+class CodeClusterResponse(BaseModel):
+    """A cluster code returned by LLM with array of exemplar IDs.
+
+    This intermediate type is parsed from the LLM response before expanding
+    into individual CodeInference objects.
+    """
+
+    exemplar_ids: list[str]
+    code_name: str
+    definition: str
+    related_existing_codes: list[str] = Field(default_factory=list)
 
 
 class ThemeInference(BaseModel):
@@ -198,13 +212,33 @@ def _normalize_exemplar_id(eid: str) -> str:
 def parse_code_response(text: str) -> list[CodeInference]:
     """Parse and validate a code inference LLM response.
 
-    Expects ``{"codes": [{exemplar_id, code_name, definition,
-    supporting_quote, related_existing_codes}, ...]}``.
+    Expects ``{"codes": [{exemplar_ids: [...], code_name, definition,
+    related_existing_codes}, ...]}``.
+
+    The ``exemplar_ids`` array is expanded into individual ``CodeInference``
+    objects, each with ``supporting_quote`` set to empty string (filled
+    later by post-processing in the inference pipeline).
+    The ``_normalize_exemplar_id`` transformation is applied after expansion.
     """
-    items = _parse_response(text, _CODE_WRAPPER, CodeInference)
-    for item in items:
-        item.exemplar_id = _normalize_exemplar_id(item.exemplar_id)
-    return items
+    clusters = _parse_response(text, _CODE_WRAPPER, CodeClusterResponse)
+    expanded: list[CodeInference] = []
+    for cluster in clusters:
+        for raw in cluster.exemplar_ids:
+            eid = _normalize_exemplar_id(raw)
+            expanded.append(
+                CodeInference(
+                    exemplar_id=eid,
+                    code_name=cluster.code_name,
+                    definition=cluster.definition,
+                    supporting_quote="",  # filled by post-processing
+                    related_existing_codes=cluster.related_existing_codes,
+                    tag="",
+                )
+            )
+    return expanded
+
+
+# ── Theme/Interpretation parsing (unchanged) ────────────────────────────────────
 
 
 def parse_theme_response(text: str) -> list[ThemeInference]:

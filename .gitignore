@@ -13,6 +13,7 @@
 # Track specific filetypes
 !*R
 !*py
+!*j2
 !*sql
 !*sh
 !*md

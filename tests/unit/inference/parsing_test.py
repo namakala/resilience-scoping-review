@@ -11,6 +11,7 @@ sys.path.insert(
 )  # noqa: E402
 
 from inference.parsing import (  # noqa: E402
+    CodeClusterResponse,
     CodeInference,
     InterpretationInference,
     ThemeInference,
@@ -70,10 +71,9 @@ class TestParseCodeResponse(unittest.TestCase):
     VALID_JSON = """{
         "codes": [
             {
-                "exemplar_id": "E001",
+                "exemplar_ids": ["E001"],
                 "code_name": "Config Drift",
                 "definition": "Gradual config degradation",
-                "supporting_quote": "crept over time",
                 "related_existing_codes": []
             }
         ]
@@ -113,13 +113,12 @@ class TestParseCodeResponse(unittest.TestCase):
 
     def test_schema_validation_failure(self):
         with self.assertRaises(ParseError):
-            parse_code_response('{"codes": [{"exemplar_id": "E001"}]}')
+            parse_code_response('{"codes": [{"code_name": "N", "definition": "D"}]}')
 
     def test_preserves_extra_fields(self):
         result = parse_code_response(
-            '{"codes": [{"exemplar_id": "E001", "code_name": "N", '
-            '"definition": "D", "supporting_quote": "Q", '
-            '"extra": "ignored"}]}'
+            '{"codes": [{"exemplar_ids": ["E001"], "code_name": "N", '
+            '"definition": "D", "extra": "ignored"}]}'
         )
         self.assertEqual(len(result), 1)
         self.assertFalse(hasattr(result[0], "extra"))
@@ -129,16 +128,15 @@ class TestParseCodeResponse(unittest.TestCase):
             """{
             "codes": [
                 {
-                    "exemplar_id": "E001",
+                    "exemplar_ids": ["E001"],
                     "code_name": "CodeA",
                     "definition": "DefA",
-                    "supporting_quote": "QuoteA"
+                    "related_existing_codes": []
                 },
                 {
-                    "exemplar_id": "E002",
+                    "exemplar_ids": ["E002"],
                     "code_name": "CodeB",
                     "definition": "DefB",
-                    "supporting_quote": "QuoteB",
                     "related_existing_codes": ["CodeA"]
                 }
             ]
@@ -150,28 +148,47 @@ class TestParseCodeResponse(unittest.TestCase):
     def test_trailing_comma_in_array(self):
         with self.assertRaises(ParseError) as ctx:
             parse_code_response(
-                '{"codes": [{"exemplar_id": "E001", "code_name": "N", '
-                '"definition": "D", "supporting_quote": "Q"},]}'
+                '{"codes": [{"exemplar_ids": ["E001"], "code_name": "N", '
+                '"definition": "D"}],}'
             )
         self.assertIn("trailing comma", str(ctx.exception).lower())
 
     def test_trailing_comma_in_object(self):
         with self.assertRaises(ParseError) as ctx:
             parse_code_response(
-                '{"codes": [{"exemplar_id": "E001", "code_name": "N",}],}'
+                '{"codes": [{"exemplar_ids": ["E001"], "code_name": "N",}],}'
             )
         self.assertIn("trailing comma", str(ctx.exception).lower())
 
     def test_extra_fields_emits_warning(self):
         with self.assertLogs(parsing_logger, level=logging.WARNING) as log:
             parse_code_response(
-                '{"codes": [{"exemplar_id": "E001", "code_name": "N", '
-                '"definition": "D", "supporting_quote": "Q", '
-                '"unexpected_field": "ignored"}]}'
+                '{"codes": [{"exemplar_ids": ["E001"], "code_name": "N", '
+                '"definition": "D", "unexpected_field": "ignored"}]}'
             )
         self.assertTrue(
-            any("Extra fields" in msg and "CodeInference" in msg for msg in log.output)
+            any(
+                "Extra fields" in msg and "CodeClusterResponse" in msg
+                for msg in log.output
+            )
         )
+
+    def test_array_of_ids_expands(self):
+        raw = """{
+            "codes": [{
+                "exemplar_ids": ["E001", "E002", "E003"],
+                "code_name": "Shared Code",
+                "definition": "Common theme across exemplars"
+            }]
+        }"""
+        result = parse_code_response(raw)
+        self.assertEqual(len(result), 3)
+        ids = {c.exemplar_id for c in result}
+        self.assertEqual(ids, {"001", "002", "003"})
+        for c in result:
+            self.assertEqual(c.code_name, "Shared Code")
+            self.assertEqual(c.definition, "Common theme across exemplars")
+            self.assertEqual(c.supporting_quote, "")
 
 
 class TestParseThemeResponse(unittest.TestCase):

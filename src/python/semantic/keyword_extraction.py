@@ -6,6 +6,7 @@ by existence check). Phase 2 LLM refinement was evaluated but not needed:
 KeyBERT alone provides sufficient quality for downstream inference.
 """
 
+from collections.abc import Callable
 from pathlib import Path
 
 import polars as pl
@@ -35,6 +36,7 @@ def extract_keywords(
     top_n: int = 5,
     diversity: float = 0.5,
     ngram_range: tuple[int, int] = (1, 2),
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> pl.LazyFrame:
     """Extract keywords from exemplars using KeyBERT with MMR.
 
@@ -114,6 +116,8 @@ def extract_keywords(
                 )
 
             pbar.update(1)
+            if progress_callback:
+                progress_callback(total, pbar.n, "Extracting keywords")
 
     kw_df = pl.DataFrame(
         rows,

@@ -192,10 +192,69 @@ def split_batch_in_half(batch: Batch) -> list[Batch]:
     return [half1, half2]
 
 
+def group_by_similarity(
+    tag: str,
+    cluster_groups: list[list],
+    misc_group: list,
+    prefix: str = "cluster",
+) -> list[Batch]:
+    """Wrap similarity clusters into :class:`Batch` objects for batch_processor.
+
+    Each cluster becomes one batch.  The misc group (leftover exemplars
+    below threshold with all clusters) becomes the final batch.
+
+    Parameters
+    ----------
+    tag :
+        The parent tag for all items.
+    cluster_groups :
+        List of clusters, each a list of items with ``.id`` and ``.tag``.
+    misc_group :
+        Single list of leftover items (may be empty).
+    prefix :
+        Prefix for batch IDs (default ``"cluster"``).
+
+    Returns
+    -------
+    list[Batch]
+        Cluster batches first, then misc batch (if non-empty).
+    """
+    batches: list[Batch] = []
+    n_clusters = len(cluster_groups)
+    for idx, group in enumerate(cluster_groups):
+        batch = Batch(
+            tag=tag,
+            items=group,
+            batch_index=idx,
+            total_batches=n_clusters + (1 if misc_group else 0),
+        )
+        batch._prefix = prefix
+        batches.append(batch)
+
+    if misc_group:
+        misc = Batch(
+            tag=tag,
+            items=misc_group,
+            batch_index=n_clusters,
+            total_batches=n_clusters + 1,
+        )
+        misc._prefix = f"{prefix}_misc"
+        batches.append(misc)
+
+    logger.info(
+        "Prepared %d cluster batch(es) + %s for tag %s",
+        n_clusters,
+        "1 misc batch" if misc_group else "no misc",
+        tag,
+    )
+    return batches
+
+
 __all__ = [
     "Batch",
     "BatchableItem",
     "group_by_tag",
+    "group_by_similarity",
     "group_items_by_tag",
     "split_batch_in_half",
 ]

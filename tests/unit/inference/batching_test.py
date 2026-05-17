@@ -14,6 +14,7 @@ from inference.batching import (  # noqa: E402
     Batch,
     BatchableItem,
     _chunk_list,
+    group_by_similarity,
     group_by_tag,
 )
 
@@ -247,6 +248,70 @@ class TestBatchDataclass(unittest.TestCase):
     def test_item_count_reflects_items(self):
         b = Batch(tag="T", items=[], batch_index=0, total_batches=1)
         self.assertEqual(b.item_count, 0)
+
+
+# ── group_by_similarity ────────────────────────────────────────────────────
+
+
+class TestGroupBySimilarity(unittest.TestCase):
+    """Wrap similarity clusters into Batch objects."""
+
+    def test_clusters_only_no_misc(self):
+        items_a = [_make_item("T1", i) for i in range(5)]
+        items_b = [_make_item("T1", i) for i in range(5, 10)]
+        batches = group_by_similarity("T1", [items_a, items_b], [], prefix="code")
+        self.assertEqual(len(batches), 2)
+        self.assertEqual(batches[0].tag, "T1")
+        self.assertEqual(batches[0].item_count, 5)
+        self.assertEqual(batches[0].batch_index, 0)
+        self.assertEqual(batches[0].total_batches, 2)
+        self.assertIn("code_T1_batch_00", batches[0].batch_id)
+        self.assertEqual(batches[1].item_count, 5)
+        self.assertEqual(batches[1].batch_index, 1)
+
+    def test_misc_batch_last(self):
+        items_a = [_make_item("T1", i) for i in range(5)]
+        misc = [_make_item("T1", i) for i in range(5, 8)]
+        batches = group_by_similarity("T1", [items_a], misc, prefix="code")
+        self.assertEqual(len(batches), 2)
+        self.assertEqual(batches[0].tag, "T1")
+        self.assertEqual(batches[1].tag, "T1")
+        self.assertEqual(batches[0].item_count, 5)
+        self.assertEqual(batches[1].item_count, 3)
+        self.assertEqual(batches[1].batch_index, 1)
+        self.assertEqual(batches[1].total_batches, 2)
+        self.assertIn("misc", batches[1].batch_id)
+
+    def test_no_clusters_all_misc(self):
+        misc = [_make_item("T1", i) for i in range(10)]
+        batches = group_by_similarity("T1", [], misc, prefix="code")
+        self.assertEqual(len(batches), 1)
+        self.assertEqual(batches[0].item_count, 10)
+        self.assertIn("misc", batches[0].batch_id)
+
+    def test_empty_clusters_and_misc(self):
+        batches = group_by_similarity("T1", [], [], prefix="code")
+        self.assertEqual(len(batches), 0)
+
+    def test_multiple_clusters_with_correct_indexing(self):
+        c1 = [_make_item("T1", i) for i in range(5)]
+        c2 = [_make_item("T1", i) for i in range(5, 10)]
+        c3 = [_make_item("T1", i) for i in range(10, 15)]
+        misc = [_make_item("T1", i) for i in range(15, 17)]
+        batches = group_by_similarity("T1", [c1, c2, c3], misc, prefix="code")
+        self.assertEqual(len(batches), 4)
+        self.assertEqual(batches[0].batch_index, 0)
+        self.assertEqual(batches[1].batch_index, 1)
+        self.assertEqual(batches[2].batch_index, 2)
+        self.assertEqual(batches[3].batch_index, 3)
+        self.assertEqual(batches[0].total_batches, 4)
+        self.assertEqual(batches[3].total_batches, 4)
+        self.assertIn("misc", batches[3].batch_id)
+
+    def test_items_retain_identity(self):
+        items = [_make_item("T1", i) for i in range(5)]
+        batches = group_by_similarity("T1", [items], [], prefix="code")
+        self.assertIs(batches[0].items[0], items[0])
 
 
 if __name__ == "__main__":

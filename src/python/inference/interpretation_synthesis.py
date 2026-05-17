@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 import duckdb
 from utils.logging import get_logger
@@ -61,6 +62,7 @@ def synthesize_interpretations(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
     tags: list[str] | None = None,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> list[InterpretationInference]:
     """Synthesize cross-cutting interpretations from approved themes.
 
@@ -117,6 +119,7 @@ def synthesize_interpretations(
         _process_interpretation_span,
         STAGE_INTERPRETATION,
         _mark_span_failure,
+        progress_callback=progress_callback,
     )
 
     _log_summary(start_time, all_results, tracker)
