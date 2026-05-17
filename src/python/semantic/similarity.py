@@ -7,13 +7,14 @@ already L2-normalized, so cosine similarity = dot product.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 import duckdb
 import numpy as np
 from persistence.embedding_cache import get_embedding
 from utils.logging import get_logger
 
+from .embeddings import generate_embedding
 from .exceptions import CacheMissError
 
 logger = get_logger(__name__)
@@ -73,6 +74,68 @@ def compute_similarity(
     np.fill_diagonal(sim, 1.0)
 
     return sim
+
+
+def compute_theme_hybrid_similarity(
+    name_a: str,
+    narrative_a: str,
+    exemplar_ids_a: List[int],
+    name_b: str,
+    narrative_b: str,
+    exemplar_ids_b: List[int],
+    con: duckdb.DuckDBPyConnection,
+) -> float:
+    """Compute hybrid similarity between two themes.
+
+    Averages three components:
+
+    1. **Name cosine** — on-the-fly embedding of each theme's name.
+    2. **Narrative cosine** — on-the-fly embedding of each theme's
+       narrative.
+    3. **Exemplar pairwise cosine** — average of max-pooled cross-pair
+       cosine from cached exemplar embeddings.
+
+    All embeddings are L2-normalised, so cosine = dot product.
+
+    Returns a float in ``[0, 1]``.  Returns 0.0 if both theme names are
+    empty or no exemplar embeddings are found.
+    """
+    name_emb_a = generate_embedding(name_a) if name_a else None
+    name_emb_b = generate_embedding(name_b) if name_b else None
+    narr_emb_a = generate_embedding(narrative_a) if narrative_a else None
+    narr_emb_b = generate_embedding(narrative_b) if narrative_b else None
+
+    components: list[float] = []
+
+    if name_emb_a is not None and name_emb_b is not None:
+        components.append(float(name_emb_a @ name_emb_b))
+    if narr_emb_a is not None and narr_emb_b is not None:
+        components.append(float(narr_emb_a @ narr_emb_b))
+
+    # Exemplar pairwise similarity
+    ex_embs_a: list[np.ndarray] = []
+    for eid in exemplar_ids_a:
+        emb = get_embedding(con, str(eid), "exemplar")
+        if emb is not None:
+            ex_embs_a.append(emb)
+
+    ex_embs_b: list[np.ndarray] = []
+    for eid in exemplar_ids_b:
+        emb = get_embedding(con, str(eid), "exemplar")
+        if emb is not None:
+            ex_embs_b.append(emb)
+
+    if ex_embs_a and ex_embs_b:
+        matrix_a = np.stack(ex_embs_a, axis=0)  # (n_a, 384)
+        matrix_b = np.stack(ex_embs_b, axis=0)  # (n_b, 384)
+        cross = matrix_a @ matrix_b.T  # (n_a, n_b)
+        sim_a = float(cross.max(axis=1).mean())  # avg best match for each A
+        sim_b = float(cross.max(axis=0).mean())  # avg best match for each B
+        components.append(0.5 * sim_a + 0.5 * sim_b)
+
+    if not components:
+        return 0.0
+    return sum(components) / len(components)
 
 
 def _minmax_normalize_2d(scores: np.ndarray) -> np.ndarray:

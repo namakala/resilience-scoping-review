@@ -44,7 +44,10 @@ class ConstraintError(ValueError):
 # ---------------------------------------------------------------------------
 # Import rule implementations (ConstraintError must be defined first)
 # ---------------------------------------------------------------------------
-from .contiguity import is_contiguous_subtree  # noqa: E402, F401
+from .contiguity import (  # noqa: E402, F401
+    is_contiguous_subtree,
+    partition_into_contiguous_components,
+)
 from .rules import (  # noqa: E402
     validate_code_approval,
     validate_interpretation_contiguity,
