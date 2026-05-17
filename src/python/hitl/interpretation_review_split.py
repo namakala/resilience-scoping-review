@@ -343,63 +343,69 @@ def _build_data_json_regroup(tag_spans: set[str]) -> dict[str, Any]:
 def handle_split_interpretation_regroup(
     con: duckdb.DuckDBPyConnection,
     interp: dict[str, Any],
-    first_theme_ids: list[int],
-    second_theme_ids: list[int],
+    groups: list[list[int]],
     db_path: Optional[Path] = None,
-) -> tuple[int, int]:
-    """Split *interp* into two new interpretations with LLM re-inference.
+) -> list[int]:
+    """Split *interp* into N new interpretations with LLM re-inference.
 
-    Unlike ``handle_split_interpretation`` (which copies the original
-    narrative), this function sends each group of themes to the LLM
-    to generate a new name, narrative, and key insights.
-
-    The original interpretation is marked ``superseded``.
+    Each group of themes is sent to the LLM to generate a new name,
+    narrative, and key insights. The original interpretation is marked
+    ``superseded``.
 
     Args:
         con: Active DuckDB connection.
         interp: Original interpretation dict.
-        first_theme_ids: Theme IDs for the first new interpretation.
-        second_theme_ids: Theme IDs for the second new interpretation.
+        groups: List of theme-ID groups. Each group becomes one new
+            interpretation. Must contain at least 2 groups.
         db_path: Optional DuckDB path for graph module.
 
     Returns:
-        Tuple of ``(first_new_id, second_new_id)``.
+        List of new interpretation node IDs, one per group.
+
+    Raises:
+        ValueError: If fewer than 2 groups, any group is empty, or
+            any group has non-contiguous tag_spans.
     """
     source_id = interp["id"]
 
-    if not first_theme_ids or not second_theme_ids:
-        raise ValueError("Both split interpretations must have at least one theme.")
+    if len(groups) < 2:
+        raise ValueError("Split requires at least 2 groups of themes.")
+    for i, g in enumerate(groups):
+        if not g:
+            raise ValueError(f"Group {i+1} must have at least one theme.")
 
-    # Compute and validate tag_spans
-    first_tags = _compute_tag_spans(first_theme_ids, con)
-    second_tags = _compute_tag_spans(second_theme_ids, con)
-
-    if len(first_tags) > 1 and not is_contiguous_subtree(first_tags):
-        raise ValueError(
-            f"First split has non-contiguous tag_spans: " f"{sorted(first_tags)}"
+    # Pre-compute per-group metadata (tag_spans, root tag)
+    group_meta: list[dict[str, Any]] = []
+    for i, theme_ids in enumerate(groups):
+        tags = _compute_tag_spans(theme_ids, con)
+        if len(tags) > 1 and not is_contiguous_subtree(tags):
+            raise ValueError(
+                f"Group {i+1} has non-contiguous tag_spans: {sorted(tags)}"
+            )
+        root_tag = sorted(tags)[0] if tags else interp.get("tag", "")
+        group_meta.append(
+            {
+                "theme_ids": theme_ids,
+                "tags": tags,
+                "root_tag": root_tag,
+            }
         )
-    if len(second_tags) > 1 and not is_contiguous_subtree(second_tags):
-        raise ValueError(
-            f"Second split has non-contiguous tag_spans: " f"{sorted(second_tags)}"
-        )
 
-    first_root = sorted(first_tags)[0] if first_tags else interp.get("tag", "")
-    second_root = sorted(second_tags)[0] if second_tags else interp.get("tag", "")
+    all_theme_ids = [tid for g in groups for tid in g]
 
     G = get_graph(db_path)
     snapshot = copy.deepcopy(G)
 
+    # ── Transaction 1: Mark original as superseded ───────────────────
     con.execute("BEGIN TRANSACTION")
     _active_tx_conn.set(con)
     _active_tx_db_path.set(db_path)
     committed = False
 
     try:
-        # Mark original as superseded
         dj = interp.get("data_json") or {}
         dj["merged_info"] = {
-            "split_first_theme_ids": first_theme_ids,
-            "split_second_theme_ids": second_theme_ids,
+            "split_groups": groups,
         }
         con.execute(
             "UPDATE nodes SET status = 'superseded', data_json = ?, "
@@ -407,7 +413,6 @@ def handle_split_interpretation_regroup(
             [json.dumps(dj, ensure_ascii=False), source_id],
         )
 
-        # Delete existing spans edges from original
         con.execute(
             "DELETE FROM edges WHERE source_id = ? AND edge_type = 'spans'",
             [source_id],
@@ -415,7 +420,6 @@ def handle_split_interpretation_regroup(
 
         committed = True
         con.execute("COMMIT")
-
     except Exception:
         if not committed:
             try:
@@ -426,7 +430,6 @@ def handle_split_interpretation_regroup(
                     "transaction may already be closed"
                 )
         raise
-
     finally:
         _active_tx_conn.set(None)
         _active_tx_db_path.set(None)
@@ -436,14 +439,14 @@ def handle_split_interpretation_regroup(
             _g_singleton._graph = snapshot
             clear_traversal_cache()
 
-    # ── Step 2: LLM re-inference for both groups ──────────────────────
+    # ── Step 2: LLM re-inference for each group ──────────────────────
     try:
-        first_interp = _infer_interpretation_for_group(
-            con, first_theme_ids, f"split_{source_id}_part1"
-        )
-        second_interp = _infer_interpretation_for_group(
-            con, second_theme_ids, f"split_{source_id}_part2"
-        )
+        interp_results = []
+        for i, gd in enumerate(group_meta):
+            result = _infer_interpretation_for_group(
+                con, gd["theme_ids"], f"split_{source_id}_part{i+1}"
+            )
+            interp_results.append(result)
     except Exception as exc:
         logger.error(
             "Interpretation re-inference failed for split (interp %d): %s",
@@ -454,60 +457,39 @@ def handle_split_interpretation_regroup(
         raise
 
     # ── Step 3: Create nodes inside a new transaction ─────────────────
+    node_ids: list[int] = []
     con.execute("BEGIN TRANSACTION")
     _active_tx_conn.set(con)
     _active_tx_db_path.set(db_path)
     committed = False
 
     try:
-        first_id = create_node(
-            node_type="interpretation",
-            name=first_interp.interpretation_name,
-            definition=first_interp.narrative,
-            tag=first_root,
-            status="draft",
-            data_json=_build_data_json_regroup(first_tags),
-            db_path=db_path,
-        )
-        second_id = create_node(
-            node_type="interpretation",
-            name=second_interp.interpretation_name,
-            definition=second_interp.narrative,
-            tag=second_root,
-            status="draft",
-            data_json=_build_data_json_regroup(second_tags),
-            db_path=db_path,
-        )
-
-        # Create spans edges
-        for tid in first_theme_ids:
-            create_edge(
-                source_id=first_id,
-                target_id=tid,
-                edge_type="spans",
+        for gd, interp_result in zip(group_meta, interp_results):
+            nid = create_node(
+                node_type="interpretation",
+                name=interp_result.interpretation_name,
+                definition=interp_result.narrative,
+                tag=gd["root_tag"],
+                status="draft",
+                data_json=_build_data_json_regroup(gd["tags"]),
                 db_path=db_path,
             )
-        for tid in second_theme_ids:
+            node_ids.append(nid)
+
+            for tid in gd["theme_ids"]:
+                create_edge(
+                    source_id=nid,
+                    target_id=tid,
+                    edge_type="spans",
+                    db_path=db_path,
+                )
+
             create_edge(
-                source_id=second_id,
-                target_id=tid,
-                edge_type="spans",
+                source_id=source_id,
+                target_id=nid,
+                edge_type="derived-from",
                 db_path=db_path,
             )
-
-        # Create derived-from edges
-        create_edge(
-            source_id=source_id,
-            target_id=first_id,
-            edge_type="derived-from",
-            db_path=db_path,
-        )
-        create_edge(
-            source_id=source_id,
-            target_id=second_id,
-            edge_type="derived-from",
-            db_path=db_path,
-        )
 
         log_user_action(
             con,
@@ -515,17 +497,16 @@ def handle_split_interpretation_regroup(
             source_id,
             old_value={
                 "status": interp.get("status", "draft"),
-                "theme_ids": first_theme_ids + second_theme_ids,
+                "theme_ids": all_theme_ids,
             },
             new_value={
                 "status": "superseded",
-                "split_into": [first_id, second_id],
+                "split_into": node_ids,
             },
         )
         committed = True
         con.execute("COMMIT")
         increment_user_action_count(con)
-
     except Exception:
         if not committed:
             try:
@@ -536,7 +517,6 @@ def handle_split_interpretation_regroup(
                     "transaction may already be closed"
                 )
         raise
-
     finally:
         _active_tx_conn.set(None)
         _active_tx_db_path.set(None)
@@ -558,10 +538,9 @@ def handle_split_interpretation_regroup(
     rebuild_graph(db_path)
 
     logger.info(
-        "Interpretation %d split into %d (part1) and %d (part2) " "via re-inference",
+        "Interpretation %d split into %d new nodes via re-inference",
         source_id,
-        first_id,
-        second_id,
+        len(node_ids),
     )
 
-    return first_id, second_id
+    return node_ids

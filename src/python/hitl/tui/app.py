@@ -13,7 +13,7 @@ import time as _time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import duckdb
 from config.config import Config
@@ -863,11 +863,12 @@ class AnalystTUI(App):
         )
 
     def action_split_entity(self) -> None:
-        """Open split modal for the currently active entity.
+        """Open iterative split modal sequence for the active entity.
 
-        Supports splitting codes (by exemplars), themes (by codes), and
-        interpretations (by themes).  Each triggers LLM re-inference
-        for the regrouped items.
+        Shows modals in sequence: each time the user selects items for
+        one group, a new modal appears with the remaining items. When
+        all items are assigned to groups, the backend handler is called
+        with all groups for LLM re-inference.
         """
         if self._split_in_progress:
             self.notify("Split already in progress", severity="warning")
@@ -883,7 +884,6 @@ class AnalystTUI(App):
         if entity is None:
             return
 
-        # Fetch constituent items based on entity type
         try:
             con = self._get_db_con()
             items = self._get_split_items(con, active, entity)
@@ -894,30 +894,70 @@ class AnalystTUI(App):
 
         if not items:
             self._post_log(
-                f"[yellow]No items found for this {active}; " f"cannot split[/yellow]"
+                f"[yellow]No items found for this {active}; cannot split[/yellow]"
             )
             return
 
-        def on_split(result: Optional[list[int]]) -> None:
+        self._split_in_progress = True
+        self._set_split_key_visible(False)
+        self._start_iterative_split(items, [], entity, browser, active)
+
+    def _start_iterative_split(
+        self,
+        remaining_items: list[dict],
+        accumulated_groups: list[list[int]],
+        entity: dict,
+        browser: Any,
+        entity_type: str,
+    ) -> None:
+        """Recursively show split modals until all items are grouped."""
+
+        round_n = len(accumulated_groups) + 1
+
+        def on_split_result(result: Optional[list[int]]) -> None:
             if result is None:
-                return
-            self._split_in_progress = True
-            self._set_split_key_visible(False)
-            self._post_log(
-                f"[bold yellow]Re-inferring {active}s after " f"split...[/bold yellow]"
-            )
-            try:
-                browser.call_after_refresh(browser.action_split, result)
-                self._post_log(
-                    "[bold green]Split + re-inference " "complete[/bold green]"
-                )
-            except Exception as exc:
-                self._post_log(f"[bold red]Split failed: {exc}[/bold red]")
-            finally:
                 self._split_in_progress = False
                 self._set_split_key_visible(True)
+                return
 
-        self.push_screen(SplitModal(items, entity_type=active), on_split)
+            new_groups = accumulated_groups + [result]
+            item_ids_in_result = set(result)
+            next_remaining = [
+                i for i in remaining_items if i["id"] not in item_ids_in_result
+            ]
+
+            if not next_remaining:
+                self._post_log(
+                    f"[bold yellow]Re-inferring {entity_type}s after "
+                    f"split ({len(new_groups)} groups)...[/bold yellow]"
+                )
+                try:
+                    browser.call_after_refresh(browser.action_split, new_groups)
+                    self._post_log(
+                        "[bold green]Split + re-inference complete[/bold green]"
+                    )
+                except Exception as exc:
+                    self._post_log(f"[bold red]Split failed: {exc}[/bold red]")
+                finally:
+                    self._split_in_progress = False
+                    self._set_split_key_visible(True)
+            else:
+                self._start_iterative_split(
+                    next_remaining,
+                    new_groups,
+                    entity,
+                    browser,
+                    entity_type,
+                )
+
+        self.push_screen(
+            SplitModal(
+                remaining_items,
+                entity_type=entity_type,
+                round_number=round_n,
+            ),
+            on_split_result,
+        )
 
     def _get_split_items(
         self,

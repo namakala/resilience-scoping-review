@@ -138,67 +138,53 @@ def action_defer(
 def action_split(
     con: duckdb.DuckDBPyConnection,
     entity: dict[str, Any],
-    selected_ids: list[int],
+    all_groups: list[list[int]],
     entity_type: str = "interpretation",
     db_path: Optional[Path] = None,
-) -> tuple[int, int]:
+) -> list[int]:
     """Split an entity by regrouping its constituent items.
 
-    Computes the second group automatically (remaining items),
-    then dispatches to the type-specific split handler.
+    All groups are passed directly from the iterative split flow
+    (no auto-compute of remaining items). Dispatches to the
+    type-specific backend handler.
 
-    For codes: splits exemplars into two groups, re-infers via LLM.
-    For themes: splits codes into two groups, re-infers via LLM.
-    For interpretations: splits themes into two groups, re-infers via LLM.
+    For codes: splits exemplars into N groups, re-infers via LLM.
+    For themes: splits codes into N groups, re-infers via LLM.
+    For interpretations: splits themes into N groups, re-infers via LLM.
     """
-    first_ids = selected_ids
+    if len(all_groups) < 2:
+        raise ValueError("Split requires at least 2 groups.")
+    for i, g in enumerate(all_groups):
+        if not g:
+            raise ValueError(f"Group {i+1} must have at least one item.")
 
     if entity_type == "code":
         from hitl.code_review_split import handle_split_code_regroup
-        from hitl.queries_codes import get_code_exemplar_ids
 
-        all_ids = get_code_exemplar_ids(con, entity["id"])
-        second_ids = [eid for eid in all_ids if eid not in first_ids]
-        if not first_ids or not second_ids:
-            raise ValueError("Split requires at least one exemplar in each group")
         return handle_split_code_regroup(
             con=con,
             code=entity,
-            first_exemplar_ids=first_ids,
-            second_exemplar_ids=second_ids,
+            groups=all_groups,
             db_path=db_path,
         )
 
     elif entity_type == "theme":
-        from hitl.queries_themes import get_theme_code_ids
         from hitl.theme_review_split import handle_split_theme_regroup
 
-        all_ids = get_theme_code_ids(con, entity["id"])
-        second_ids = [cid for cid in all_ids if cid not in first_ids]
-        if not first_ids or not second_ids:
-            raise ValueError("Split requires at least one code in each group")
         return handle_split_theme_regroup(
             con=con,
             theme=entity,
-            first_code_ids=first_ids,
-            second_code_ids=second_ids,
+            groups=all_groups,
             db_path=db_path,
         )
 
     elif entity_type == "interpretation":
         from hitl.interpretation_review_split import handle_split_interpretation_regroup
-        from hitl.queries_interpretations import get_interpretation_themes
 
-        all_themes = get_interpretation_themes(con, entity["id"])
-        all_theme_ids = [t["id"] for t in all_themes]
-        second_ids = [tid for tid in all_theme_ids if tid not in first_ids]
-        if not first_ids or not second_ids:
-            raise ValueError("Split requires at least one theme in each group")
         return handle_split_interpretation_regroup(
             con=con,
             interp=entity,
-            first_theme_ids=first_ids,
-            second_theme_ids=second_ids,
+            groups=all_groups,
             db_path=db_path,
         )
 

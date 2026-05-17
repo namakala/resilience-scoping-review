@@ -113,6 +113,10 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 - [ ] @docs/plan/71-dynamic-fewshot-retrieval.md
 
+## Post-Phase Refinements
+
+- [x] Iterative multi-group split: three backend handlers converted from two-group to N-group (`groups: list[list[int]]`); SplitModal shows round_number + remaining count; TUI recursively shows modals until all items assigned (2026-05-17)
+
 ---
 
 ## How to Use

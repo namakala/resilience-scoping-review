@@ -1089,5 +1089,468 @@ class TestInterpretationReviewSplitInteractive(unittest.TestCase):
         self.assertEqual(status, "draft")
 
 
+class TestHandleSplitInterpretationRegroupMultiGroup(unittest.TestCase):
+    """Tests for handle_split_interpretation_regroup with N groups."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+        init_inference_status_table(self.con)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+        self.tag_dag = _build_split_test_tag_dag()
+        self._dag_patcher = mock.patch(
+            "ontology.dag.get_tag_dag", return_value=self.tag_dag
+        )
+        self._dag_patcher.start()
+
+    def tearDown(self):
+        self._dag_patcher.stop()
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def _insert_theme(self, theme_id, name="Theme", tag="T1"):
+        dj = json.dumps({"code_ids": []})
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'theme', ?, ?, ?, 'approved', ?)",
+            [theme_id, name, f"{name} narrative", tag, dj],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+
+    def _insert_interpretation(
+        self, interp_id, name="InterpA", narrative="narrative", theme_ids=None
+    ):
+        theme_ids = theme_ids or []
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'interpretation', ?, ?, 'T1', 'draft', '{}')",
+            [interp_id, name, narrative],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+        for tid in theme_ids:
+            self.con.execute(
+                "INSERT INTO edges (source_id, target_id, edge_type) "
+                "VALUES (?, ?, 'spans')",
+                [interp_id, tid],
+            )
+
+    def _interp_dict(self, interp_id):
+        row = self.con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE id = ?",
+            [interp_id],
+        ).fetchone()
+        dj = json.loads(row[4]) if row[4] else {}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "narrative": row[2],
+            "tag": row[3],
+            "data_json": dj,
+            "status": row[5],
+        }
+
+    def test_regroup_three_groups(self):
+        """3-group interpretation split creates 3 new nodes."""
+        from hitl.interpretation_review_split import handle_split_interpretation_regroup
+        from inference.parsing import InterpretationInference
+
+        self._insert_interpretation(1, theme_ids=[10, 11, 12])
+        self._insert_theme(10, "ThemeA", tag="T1")
+        self._insert_theme(11, "ThemeB", tag="T2")
+        self._insert_theme(12, "ThemeC", tag="T3")
+
+        interp = self._interp_dict(1)
+
+        mock_results = [
+            InterpretationInference(
+                interpretation_name="Alpha Insights",
+                narrative="Narrative A",
+                theme_ids=["10"],
+                key_insights=["k1"],
+            ),
+            InterpretationInference(
+                interpretation_name="Beta Synthesis",
+                narrative="Narrative B",
+                theme_ids=["11"],
+                key_insights=["k2"],
+            ),
+            InterpretationInference(
+                interpretation_name="Gamma Findings",
+                narrative="Narrative C",
+                theme_ids=["12"],
+                key_insights=["k3"],
+            ),
+        ]
+
+        with mock.patch(
+            "hitl.interpretation_review_split._infer_interpretation_for_group",
+            side_effect=mock_results,
+        ):
+            node_ids = handle_split_interpretation_regroup(
+                self.con,
+                interp,
+                groups=[[10], [11], [12]],
+                db_path=self.db_path,
+            )
+
+        self.assertEqual(len(node_ids), 3)
+
+        orig_status = self.con.execute(
+            "SELECT status FROM nodes WHERE id = 1"
+        ).fetchone()[0]
+        self.assertEqual(orig_status, "superseded")
+
+        row = self.con.execute("SELECT data_json FROM nodes WHERE id = 1").fetchone()
+        dj = json.loads(row[0]) if row[0] else {}
+        self.assertEqual(dj["merged_info"]["split_groups"], [[10], [11], [12]])
+
+        for nid in node_ids:
+            status = self.con.execute(
+                "SELECT status FROM nodes WHERE id = ?", [nid]
+            ).fetchone()[0]
+            self.assertEqual(status, "draft")
+
+        for i, nid in enumerate(node_ids):
+            themes = self.con.execute(
+                "SELECT target_id FROM edges WHERE source_id = ? AND edge_type = 'spans'",
+                [nid],
+            ).fetchall()
+            self.assertEqual([r[0] for r in themes], [[10], [11], [12]][i])
+
+        derived = self.con.execute(
+            "SELECT target_id FROM edges WHERE source_id = ? AND edge_type = 'derived-from'",
+            [1],
+        ).fetchall()
+        self.assertEqual(sorted([r[0] for r in derived]), sorted(node_ids))
+
+    def test_regroup_too_few_groups_raises_valueerror(self):
+        """Fewer than 2 groups raises ValueError."""
+        from hitl.interpretation_review_split import handle_split_interpretation_regroup
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA")
+        self._insert_theme(11, "ThemeB")
+        interp = self._interp_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_interpretation_regroup(
+                self.con,
+                interp,
+                groups=[[10]],
+                db_path=self.db_path,
+            )
+
+    def test_regroup_empty_group_raises_valueerror(self):
+        """An empty group inside a split raises ValueError."""
+        from hitl.interpretation_review_split import handle_split_interpretation_regroup
+
+        self._insert_interpretation(1, theme_ids=[10, 11])
+        self._insert_theme(10, "ThemeA")
+        self._insert_theme(11, "ThemeB")
+        interp = self._interp_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_interpretation_regroup(
+                self.con,
+                interp,
+                groups=[[10], []],
+                db_path=self.db_path,
+            )
+
+
+class TestHandleSplitCodeRegroupMultiGroup(unittest.TestCase):
+    """Tests for handle_split_code_regroup with N groups."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+        init_inference_status_table(self.con)
+        import graph.singleton as singleton
+        from inference.inference_status_crud import set_status
+        from inference.inference_status_types import (
+            ENTITY_EXEMPLAR,
+            PENDING,
+            STAGE_CODE,
+        )
+
+        singleton._graph = None
+
+    def tearDown(self):
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def _make_code(self, code_id, tag="T1", exemplar_ids=None):
+        exemplar_ids = exemplar_ids or []
+        dj = json.dumps({"exemplar_ids": exemplar_ids})
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'code', ?, ?, ?, 'draft', ?)",
+            [code_id, f"Code{code_id}", f"Definition {code_id}", tag, dj],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+        for eid in exemplar_ids:
+            self.con.execute(
+                "INSERT INTO edges (source_id, target_id, edge_type) "
+                "VALUES (?, ?, 'contains')",
+                [code_id, eid],
+            )
+
+    def _code_dict(self, code_id):
+        row = self.con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE id = ?",
+            [code_id],
+        ).fetchone()
+        dj = json.loads(row[4]) if row[4] else {}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "definition": row[2],
+            "tag": row[3],
+            "data_json": dj,
+            "status": row[5],
+        }
+
+    def test_code_split_three_groups_validates_merged_info(self):
+        """3-group code split stores all groups in merged_info."""
+        from hitl.code_review_split import handle_split_code_regroup
+        from inference.parsing import CodeInference
+
+        self._make_code(1, exemplar_ids=[100, 200, 300])
+        code = self._code_dict(1)
+
+        mock_codes = [
+            CodeInference(
+                exemplar_id="100",
+                code_name="CodeA",
+                definition="DefA",
+                supporting_quote="Q1",
+                tag="T1",
+            ),
+            CodeInference(
+                exemplar_id="200",
+                code_name="CodeB",
+                definition="DefB",
+                supporting_quote="Q2",
+                tag="T1",
+            ),
+            CodeInference(
+                exemplar_id="300",
+                code_name="CodeC",
+                definition="DefC",
+                supporting_quote="Q3",
+                tag="T1",
+            ),
+        ]
+
+        with (
+            mock.patch("hitl.code_review_split.infer_codes", return_value=mock_codes),
+            mock.patch(
+                "hitl.code_review_split.create_code_nodes", return_value=[101, 102, 103]
+            ),
+            mock.patch("hitl.code_review_split.generate_code_embeddings"),
+            mock.patch("hitl.code_review_split.invalidate_themes", return_value=[]),
+            mock.patch("hitl.code_review_split.invalidate_interpretations"),
+            mock.patch("hitl.code_review_split.increment_user_action_count"),
+            mock.patch("hitl.code_review_split.log_user_action"),
+        ):
+            node_ids = handle_split_code_regroup(
+                self.con,
+                code,
+                groups=[[100], [200], [300]],
+                db_path=self.db_path,
+            )
+
+        self.assertEqual(node_ids, [101, 102, 103])
+
+        row = self.con.execute(
+            "SELECT status, data_json FROM nodes WHERE id = 1"
+        ).fetchone()
+        self.assertEqual(row[0], "superseded")
+        dj = json.loads(row[1]) if row[1] else {}
+        self.assertEqual(dj["merged_info"]["split_groups"], [[100], [200], [300]])
+
+    def test_code_split_too_few_groups_raises_valueerror(self):
+        """Fewer than 2 groups raises ValueError for code split."""
+        from hitl.code_review_split import handle_split_code_regroup
+
+        self._make_code(1, exemplar_ids=[100, 200])
+        code = self._code_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_code_regroup(
+                self.con,
+                code,
+                groups=[[100]],
+                db_path=self.db_path,
+            )
+
+    def test_code_split_empty_group_raises_valueerror(self):
+        """Empty group raises ValueError for code split."""
+        from hitl.code_review_split import handle_split_code_regroup
+
+        self._make_code(1, exemplar_ids=[100, 200])
+        code = self._code_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_code_regroup(
+                self.con,
+                code,
+                groups=[[100], []],
+                db_path=self.db_path,
+            )
+
+
+class TestHandleSplitThemeRegroupMultiGroup(unittest.TestCase):
+    """Tests for handle_split_theme_regroup with N groups."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+        init_inference_status_table(self.con)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def tearDown(self):
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.singleton as singleton
+
+        singleton._graph = None
+
+    def _make_theme(self, theme_id, tag="T1", code_ids=None):
+        code_ids = code_ids or []
+        dj = json.dumps({"code_ids": code_ids})
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, 'theme', ?, ?, ?, 'draft', ?)",
+            [theme_id, f"Theme{theme_id}", f"Narrative {theme_id}", tag, dj],
+        )
+        self.con.execute("SELECT nextval('nodes_id_seq')")
+        for cid in code_ids:
+            self.con.execute(
+                "INSERT INTO edges (source_id, target_id, edge_type) "
+                "VALUES (?, ?, 'composed-of')",
+                [theme_id, cid],
+            )
+
+    def _theme_dict(self, theme_id):
+        row = self.con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE id = ?",
+            [theme_id],
+        ).fetchone()
+        dj = json.loads(row[4]) if row[4] else {}
+        return {
+            "id": row[0],
+            "name": row[1],
+            "narrative": row[2],
+            "tag": row[3],
+            "data_json": dj,
+            "status": row[5],
+        }
+
+    def test_theme_split_three_groups_validates_merged_info(self):
+        """3-group theme split stores all groups in merged_info."""
+        from hitl.theme_review_split import handle_split_theme_regroup
+        from inference.parsing import ThemeInference
+
+        self._make_theme(1, code_ids=[10, 20, 30])
+        theme = self._theme_dict(1)
+
+        mock_themes = [
+            ThemeInference(
+                theme_name="SubThemeA", narrative="Na", code_ids=["10"], tag="T1"
+            ),
+            ThemeInference(
+                theme_name="SubThemeB", narrative="Nb", code_ids=["20"], tag="T1"
+            ),
+            ThemeInference(
+                theme_name="SubThemeC", narrative="Nc", code_ids=["30"], tag="T1"
+            ),
+        ]
+
+        with (
+            mock.patch(
+                "hitl.theme_review_split.infer_themes", return_value=mock_themes
+            ),
+            mock.patch(
+                "hitl.theme_review_split.create_theme_nodes",
+                return_value=[101, 102, 103],
+            ),
+            mock.patch("hitl.theme_review_split.generate_theme_embeddings"),
+            mock.patch("hitl.theme_review_split.invalidate_interpretations"),
+            mock.patch("hitl.theme_review_split.increment_user_action_count"),
+            mock.patch("hitl.theme_review_split.log_user_action"),
+        ):
+            node_ids = handle_split_theme_regroup(
+                self.con,
+                theme,
+                groups=[[10], [20], [30]],
+                db_path=self.db_path,
+            )
+
+        self.assertEqual(node_ids, [101, 102, 103])
+
+        row = self.con.execute(
+            "SELECT status, data_json FROM nodes WHERE id = 1"
+        ).fetchone()
+        self.assertEqual(row[0], "superseded")
+        dj = json.loads(row[1]) if row[1] else {}
+        self.assertEqual(dj["merged_info"]["split_groups"], [[10], [20], [30]])
+
+    def test_theme_split_too_few_groups_raises_valueerror(self):
+        """Fewer than 2 groups raises ValueError for theme split."""
+        from hitl.theme_review_split import handle_split_theme_regroup
+
+        self._make_theme(1, code_ids=[10, 20])
+        theme = self._theme_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_theme_regroup(
+                self.con,
+                theme,
+                groups=[[10]],
+                db_path=self.db_path,
+            )
+
+    def test_theme_split_empty_group_raises_valueerror(self):
+        """Empty group raises ValueError for theme split."""
+        from hitl.theme_review_split import handle_split_theme_regroup
+
+        self._make_theme(1, code_ids=[10, 20])
+        theme = self._theme_dict(1)
+
+        with self.assertRaises(ValueError):
+            handle_split_theme_regroup(
+                self.con,
+                theme,
+                groups=[[10], []],
+                db_path=self.db_path,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

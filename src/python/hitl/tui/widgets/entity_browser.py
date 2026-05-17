@@ -552,8 +552,8 @@ class EntityBrowser(Widget):
         except Exception as exc:
             self._show_error(f"Merge failed: {exc}")
 
-    async def action_split(self, selected_ids: list[int]) -> None:
-        """Split the current entity by regrouping its constituent items.
+    async def action_split(self, all_groups: list[list[int]]) -> None:
+        """Split the current entity by regrouping into N groups.
 
         Dispatches to the type-specific split handler (code, theme, or
         interpretation) for LLM re-inference, then refreshes the list.
@@ -568,7 +568,7 @@ class EntityBrowser(Widget):
             action_split(
                 con,
                 entity,
-                selected_ids,
+                all_groups,
                 entity_type=self.entity_type,
                 db_path=self._db_path,
             )

@@ -39,7 +39,7 @@ Six atomic actions:
 - **Approve** — Mark entity as approved, persist to graph
 - **Edit** — Modify definition or narrative; resets status to draft; invalidates affected embeddings
 - **Merge** — Combine two entities; redirect evidence; mark source as merged; invalidate caches
-- **Split** — Divide entity into two by regrouping constituent items (exemplars for codes, codes for themes, themes for interpretations); triggers LLM re-inference for each group; original marked superseded
+- **Split** — Divide entity into N groups by iteratively regrouping constituent items (exemplars for codes, codes for themes, themes for interpretations); each round shows a SplitModal with remaining items; triggers LLM re-inference for all groups; original marked superseded
 - **Reject** — Mark as rejected; do not propagate downstream
 - **Defer** — Skip for later; keep in draft state
 

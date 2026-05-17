@@ -25,7 +25,7 @@ Six actions available via single-key bindings:
 - `a` — Approve
 - `r` — Reject
 - `m` — Merge (opens modal)
-- `s` — Split (opens modal, all three entity types; triggers LLM re-inference after regroup)
+- `s` — Split (iterative multi-modal: each round shows remaining items; triggers LLM re-inference after all groups collected)
 - `d` — Defer (log only, entity stays in review queue)
 
 ## Pipeline Integration

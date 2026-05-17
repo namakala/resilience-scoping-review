@@ -1,12 +1,13 @@
 """Split action handler for code review HITL.
 
-``handle_split_code_regroup`` divides a code into two by letting the
-user select a subset of exemplars for the first new code; the remaining
-exemplars form the second.  Both groups are sent through LLM code
-inference to generate new names, definitions, and supporting quotes.
+``handle_split_code_regroup`` divides a code into N new codes by
+letting the user iteratively select subsets of exemplars. Each
+selected subset forms one group. All groups are sent through LLM
+code inference to generate new names, definitions, and supporting
+quotes.
 
 The original code is marked ``superseded`` and ``derived-from`` edges
-link it to the two new nodes.
+link it to all new nodes.
 """
 
 import copy
@@ -35,15 +36,11 @@ logger = get_logger(__name__)
 __all__ = ["handle_split_code_regroup"]
 
 
-def _build_merged_info(
-    first_ids: list[int],
-    second_ids: list[int],
-) -> dict:
+def _build_merged_info(groups: list[list[int]]) -> dict:
     """Build the ``data_json`` merge metadata for the superseded code."""
     return {
         "merged_info": {
-            "split_first_exemplar_ids": first_ids,
-            "split_second_exemplar_ids": second_ids,
+            "split_groups": groups,
         }
     }
 
@@ -51,43 +48,45 @@ def _build_merged_info(
 def handle_split_code_regroup(
     con: duckdb.DuckDBPyConnection,
     code: dict,
-    first_exemplar_ids: list[int],
-    second_exemplar_ids: list[int],
+    groups: list[list[int]],
     db_path: Optional[Path] = None,
-) -> tuple[int, int]:
-    """Split *code* into two new codes by regrouping exemplars.
+) -> list[int]:
+    """Split *code* into N new codes by regrouping exemplars.
 
-    The original code is marked ``superseded``.  The exemplars in both
-    groups are reset to ``pending`` in ``inference_status`` for the code
-    stage, then ``infer_codes`` is called to re-infer names/definitions
-    for both groups.
+    The original code is marked ``superseded``.  All exemplars across
+    all groups are reset to ``pending`` in ``inference_status`` for the
+    code stage, then ``infer_codes`` is called to re-infer names and
+    definitions.
 
     Args:
         con: Active DuckDB connection.
         code: Original code dict (expects keys ``id``, ``name``,
             ``definition``, ``tag``, ``data_json``).
-        first_exemplar_ids: Exemplar IDs for the first new code.
-        second_exemplar_ids: Exemplar IDs for the second new code.
+        groups: List of exemplar-ID groups. Each group becomes one new
+            code. Must contain at least 2 groups.
         db_path: Optional DuckDB path for graph module.
 
     Returns:
-        Tuple of ``(first_new_id, second_new_id)``.
+        List of new code node IDs, one per group.
 
     Raises:
-        ValueError: If either exemplar list is empty.
+        ValueError: If fewer than 2 groups, or any group is empty.
     """
     source_id = code["id"]
     tag = code.get("tag", "")
 
-    if not first_exemplar_ids or not second_exemplar_ids:
-        raise ValueError("Both split codes must have at least one exemplar.")
+    if len(groups) < 2:
+        raise ValueError("Split requires at least 2 groups of exemplars.")
+    for i, g in enumerate(groups):
+        if not g:
+            raise ValueError(f"Group {i+1} must have at least one exemplar.")
 
     db_path = db_path or DEFAULT_DB_PATH
-    all_eids = first_exemplar_ids + second_exemplar_ids
+    all_eids = [eid for g in groups for eid in g]
 
     # ── Step 1: Mark original as superseded ────────────────────────
     dj = code.get("data_json") or {}
-    dj.update(_build_merged_info(first_exemplar_ids, second_exemplar_ids))
+    dj.update(_build_merged_info(groups))
 
     G = get_graph(db_path)
     snapshot = copy.deepcopy(G)
@@ -154,12 +153,12 @@ def handle_split_code_regroup(
         codes = infer_codes(con, tag=tag)
         if not codes:
             logger.warning(
-                "Code re-inference produced no results for tag '%s' " "(code %d split)",
+                "Code re-inference produced no results for tag '%s' (code %d split)",
                 tag,
                 source_id,
             )
             rebuild_graph(db_path)
-            return -1, -1
+            return []
 
         node_ids = create_code_nodes(con, codes, db_path=db_path)
         generate_code_embeddings(con)
@@ -208,7 +207,4 @@ def handle_split_code_regroup(
         node_ids,
     )
 
-    # Return first two created node IDs
-    if len(node_ids) >= 2:
-        return node_ids[0], node_ids[1]
-    return node_ids[0], -1
+    return node_ids

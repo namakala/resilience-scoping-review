@@ -1,12 +1,12 @@
 """Split action handler for theme review HITL.
 
-``handle_split_theme_regroup`` divides a theme into two by letting the
-user select a subset of codes for the first new theme; the remaining
-codes form the second.  Both code groups are sent through scoped LLM
-theme inference to generate new names and narratives.
+``handle_split_theme_regroup`` divides a theme into N new themes by
+letting the user iteratively select subsets of codes. Each selected
+subset forms one group. All groups are sent through scoped LLM theme
+inference to generate new names and narratives.
 
 The original theme is marked ``superseded`` and ``derived-from`` edges
-link it to the two new nodes.
+link it to all new nodes.
 """
 
 import copy
@@ -33,15 +33,11 @@ logger = get_logger(__name__)
 __all__ = ["handle_split_theme_regroup"]
 
 
-def _build_merged_info(
-    first_code_ids: list[int],
-    second_code_ids: list[int],
-) -> dict:
+def _build_merged_info(groups: list[list[int]]) -> dict:
     """Build the ``data_json`` merge metadata for the superseded theme."""
     return {
         "merged_info": {
-            "split_first_code_ids": first_code_ids,
-            "split_second_code_ids": second_code_ids,
+            "split_groups": groups,
         }
     }
 
@@ -49,13 +45,12 @@ def _build_merged_info(
 def handle_split_theme_regroup(
     con: duckdb.DuckDBPyConnection,
     theme: dict,
-    first_code_ids: list[int],
-    second_code_ids: list[int],
+    groups: list[list[int]],
     db_path: Optional[Path] = None,
-) -> tuple[int, int]:
-    """Split *theme* into two new themes by regrouping codes.
+) -> list[int]:
+    """Split *theme* into N new themes by regrouping codes.
 
-    The original theme is marked ``superseded``.  The codes in both
+    The original theme is marked ``superseded``.  The codes in all
     groups are sent through scoped LLM theme inference (with auto-assign
     disabled) to generate new names and narratives.
 
@@ -63,28 +58,31 @@ def handle_split_theme_regroup(
         con: Active DuckDB connection.
         theme: Original theme dict (expects keys ``id``, ``name``,
             ``narrative``, ``tag``, ``data_json``).
-        first_code_ids: Code IDs for the first new theme.
-        second_code_ids: Code IDs for the second new theme.
+        groups: List of code-ID groups. Each group becomes one new
+            theme. Must contain at least 2 groups.
         db_path: Optional DuckDB path for graph module.
 
     Returns:
-        Tuple of ``(first_new_id, second_new_id)``.
+        List of new theme node IDs, one per group.
 
     Raises:
-        ValueError: If either code ID list is empty.
+        ValueError: If fewer than 2 groups, or any group is empty.
     """
     source_id = theme["id"]
     tag = theme.get("tag", "")
 
-    if not first_code_ids or not second_code_ids:
-        raise ValueError("Both split themes must have at least one code.")
+    if len(groups) < 2:
+        raise ValueError("Split requires at least 2 groups of codes.")
+    for i, g in enumerate(groups):
+        if not g:
+            raise ValueError(f"Group {i+1} must have at least one code.")
 
     db_path = db_path or DEFAULT_DB_PATH
-    all_code_ids = first_code_ids + second_code_ids
+    all_code_ids = [cid for g in groups for cid in g]
 
     # ── Step 1: Mark original as superseded ────────────────────────
     dj = theme.get("data_json") or {}
-    dj.update(_build_merged_info(first_code_ids, second_code_ids))
+    dj.update(_build_merged_info(groups))
 
     G = get_graph(db_path)
     snapshot = copy.deepcopy(G)
@@ -159,13 +157,12 @@ def handle_split_theme_regroup(
         )
         if not themes:
             logger.warning(
-                "Theme re-inference produced no results for tag '%s' "
-                "(theme %d split)",
+                "Theme re-inference produced no results for tag '%s' (theme %d split)",
                 tag,
                 source_id,
             )
             rebuild_graph(db_path)
-            return -1, -1
+            return []
 
         node_ids = create_theme_nodes(con, themes, tag=tag, db_path=db_path)
         generate_theme_embeddings(con)
@@ -220,6 +217,4 @@ def handle_split_theme_regroup(
         node_ids,
     )
 
-    if len(node_ids) >= 2:
-        return node_ids[0], node_ids[1]
-    return node_ids[0], -1
+    return node_ids

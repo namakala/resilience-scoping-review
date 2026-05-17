@@ -212,8 +212,10 @@ class SplitModal(ModalScreen[Optional[list[int]]]):
 
     Shows a list of constituent items (exemplars for codes, codes for
     themes, themes for interpretations). The user selects which items
-    should go into the first new entity; remaining items form the
-    second. Returns list of item IDs for the first group, or None.
+    should go into the current group. Multiple modals may be shown
+    iteratively until all items are assigned.
+
+    Returns list of item IDs for the current group, or None if cancelled.
     """
 
     BINDINGS = [
@@ -236,19 +238,22 @@ class SplitModal(ModalScreen[Optional[list[int]]]):
         self,
         items: list[dict[str, Any]],
         entity_type: str = "interpretation",
+        round_number: int = 1,
     ) -> None:
         super().__init__()
         self._items = items
         self._entity_type = entity_type
+        self._round_number = round_number
         self._selected: set[int] = set()
 
     def compose(self) -> ComposeResult:
         label = self._TYPE_LABELS.get(self._entity_type, "Entity")
         component = self._TYPE_INSTRUCTIONS.get(self._entity_type, "items")
+        round_text = f" (group {self._round_number})" if self._round_number > 1 else ""
         yield Static(
-            f"[bold]Split {label}[/bold]\n"
-            f"Select {component} for the FIRST new {label.lower()} "
-            f"(space to toggle):",
+            f"[bold]Split {label}{round_text}[/bold]\n"
+            f"Select {component} for group {self._round_number} "
+            f"({len(self._items)} remaining, space to toggle):",
             id="split-title",
         )
         yield ListView(id="split-list")
