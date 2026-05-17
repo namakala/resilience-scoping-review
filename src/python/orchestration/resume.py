@@ -64,7 +64,7 @@ def resolve_state(
         msg = (
             f"Configuration has changed since last session "
             f"(stored={stored_version[:16]}, current={current_hash[:16]}). "
-            f"Use --force-resume to override or --reset to restart."
+            f"Use --force-resume to override or --no-resume to restart."
         )
         if not force_resume:
             logger.error(msg)

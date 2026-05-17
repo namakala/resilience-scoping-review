@@ -414,8 +414,8 @@ class TestComputeConfigHash(unittest.TestCase):
 class TestCLIIntegration(unittest.TestCase):
     """Spot-check that CLI flags are properly defined.
 
-    Full CLI integration (e.g., invoking Click with --reset) is
-    covered by cli_test.py — this just verifies the flags exist.
+    Full CLI integration is covered by cli_test.py — this just
+    verifies the flags exist.
     """
 
     def test_resume_flag_in_help(self):
@@ -427,7 +427,7 @@ class TestCLIIntegration(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("--resume", result.output)
         self.assertIn("--force-resume", result.output)
-        self.assertIn("--reset", result.output)
+        self.assertIn("--no-resume", result.output)
 
 
 if __name__ == "__main__":

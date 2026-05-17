@@ -156,20 +156,28 @@ def run_sequence(
     con = init_or_migrate()
     try:
         env_file = ctx_obj.get("env_file") if ctx_obj else None
+        resume = bool(ctx_obj and ctx_obj.get("resume"))
 
-        if ctx_obj and ctx_obj.get("reset"):
+        # ── No-resume: clear old session state before resolve ────────────────
+        if not resume:
             handle_reset(con)
 
-        # ── Force mode: delete artifacts at chosen level before pipeline ──
-        if force and types:
-            _force_reset_for_types(con, types)
-
+        # ── Resolve state (config validation for --resume happens here, safe) ─
         state = resolve_state(
             con,
-            resume=bool(ctx_obj and ctx_obj.get("resume")),
+            resume=resume,
             force_resume=bool(ctx_obj and ctx_obj.get("force_resume")),
             env_file=env_file,
         )
+
+        # ── Force mode: delete artifacts at chosen level, then re-infer ──────
+        if force and types:
+            _force_reset_for_types(con, types)
+            # Reload state from DB to pick up current_stage set by force reset
+            from orchestration.state import WorkflowState
+            from persistence.state_repository import load_state
+
+            state = WorkflowState.from_state_dict(load_state(con))
         config = Config.from_env()
 
         target = resolve_target_stage(types)
