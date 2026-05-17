@@ -168,6 +168,21 @@ def get_other_draft_themes(
     return results
 
 
+def get_theme_code_ids(con, theme_id: int) -> list[int]:
+    """Fetch code IDs from a theme's ``data_json``.
+
+    Returns list of integer code IDs.  Empty list if none found.
+    """
+    row = con.execute(
+        "SELECT data_json FROM nodes WHERE id = ? AND type = 'theme'",
+        [theme_id],
+    ).fetchone()
+    if not row:
+        return []
+    dj = _parse_json(row[0])
+    return [int(cid) for cid in (dj.get("code_ids") or [])]
+
+
 def get_theme_codes(con, theme_id: int) -> list[dict[str, Any]]:
     """Fetch codes linked by ``composed-of`` edges from a theme.
 

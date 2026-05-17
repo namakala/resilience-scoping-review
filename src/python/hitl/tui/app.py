@@ -120,6 +120,7 @@ class AnalystTUI(App):
         Binding("r", "reject_entity", "Reject", show=True),
         Binding("m", "merge_entity", "Merge", show=True),
         Binding("s", "split_entity", "Split", show=True),
+        Binding("d", "defer_entity", "Defer", show=True),
     ]
 
     def __init__(
@@ -143,6 +144,7 @@ class AnalystTUI(App):
         self._review_artifact: Optional[str] = None
         self._pipeline_exc: Optional[Exception] = None
         self._worker = None
+        self._split_in_progress: bool = False
         self._debug_log_path: Path = _resolve_debug_log_path(config)
         self._debug_log("AnalystTUI.__init__ complete")
 
@@ -646,7 +648,7 @@ class AnalystTUI(App):
             f"[bold yellow]Review {len(pending)} "
             f"{artifact_type}(s) in the '{tab_id}' tab. "
             f"Use keys: [e]dit, [a]pprove, [r]eject, "
-            f"[m]erge[/bold yellow]"
+            f"[m]erge, [d]efer[/bold yellow]"
         )
 
         # Polling loop — blocks the pipeline thread but leaves the
@@ -822,6 +824,12 @@ class AnalystTUI(App):
         if browser:
             await browser.action_reject()
 
+    async def action_defer_entity(self) -> None:
+        """Defer the currently selected entity."""
+        browser = self._get_active_browser()
+        if browser:
+            await browser.action_defer()
+
     def action_merge_entity(self) -> None:
         """Open merge modal for the currently active entity."""
         active = self._get_active_review_tab()
@@ -855,40 +863,94 @@ class AnalystTUI(App):
         )
 
     def action_split_entity(self) -> None:
-        """Open split modal for an interpretation."""
-        active = self._get_active_review_tab()
-        if active != "interpretation":
+        """Open split modal for the currently active entity.
+
+        Supports splitting codes (by exemplars), themes (by codes), and
+        interpretations (by themes).  Each triggers LLM re-inference
+        for the regrouped items.
+        """
+        if self._split_in_progress:
+            self.notify("Split already in progress", severity="warning")
             return
-        browser = self._entity_browser_for_type("interpretation")
+
+        active = self._get_active_review_tab()
+        if not active:
+            return
+        browser = self._entity_browser_for_type(active)
         if browser is None:
             return
         entity = browser.current_entity()
         if entity is None:
             return
 
-        # Fetch themes for this interpretation via spans edges
+        # Fetch constituent items based on entity type
         try:
             con = self._get_db_con()
-            from hitl.queries_interpretations import get_interpretation_themes
-
-            themes = get_interpretation_themes(con, entity["id"])
+            items = self._get_split_items(con, active, entity)
             con.close()
-        except Exception:
+        except Exception as exc:
+            self._post_log(f"[yellow]Cannot fetch items for split: {exc}[/yellow]")
             return
 
-        if not themes:
+        if not items:
             self._post_log(
-                "[yellow]No themes found for this "
-                "interpretation; cannot split[/yellow]"
+                f"[yellow]No items found for this {active}; " f"cannot split[/yellow]"
             )
             return
 
         def on_split(result: Optional[list[int]]) -> None:
             if result is None:
                 return
-            browser.call_after_refresh(browser.action_split, result)
+            self._split_in_progress = True
+            self._set_split_key_visible(False)
+            self._post_log(
+                f"[bold yellow]Re-inferring {active}s after " f"split...[/bold yellow]"
+            )
+            try:
+                browser.call_after_refresh(browser.action_split, result)
+                self._post_log(
+                    "[bold green]Split + re-inference " "complete[/bold green]"
+                )
+            except Exception as exc:
+                self._post_log(f"[bold red]Split failed: {exc}[/bold red]")
+            finally:
+                self._split_in_progress = False
+                self._set_split_key_visible(True)
 
-        self.push_screen(SplitModal(themes), on_split)
+        self.push_screen(SplitModal(items, entity_type=active), on_split)
+
+    def _get_split_items(
+        self,
+        con: duckdb.DuckDBPyConnection,
+        entity_type: str,
+        entity: dict,
+    ) -> list[dict]:
+        """Fetch constituent items for the split modal.
+
+        Returns a list of dicts with keys ``id``, ``name`` (or
+        ``content`` for code exemplars), and ``tag``.
+        """
+        eid = entity.get("id", 0)
+        if entity_type == "code":
+            from hitl.queries_codes import get_code_exemplars_with_content
+
+            return get_code_exemplars_with_content(con, eid)
+        elif entity_type == "theme":
+            from hitl.queries_themes import get_constituent_codes
+
+            return get_constituent_codes(con, eid)
+        elif entity_type == "interpretation":
+            from hitl.queries_interpretations import get_interpretation_themes
+
+            return get_interpretation_themes(con, eid)
+        return []
+
+    def _set_split_key_visible(self, visible: bool) -> None:
+        """Show or hide the split keybinding in the footer."""
+        try:
+            self.set_key_display("s", "Split" if visible else "")
+        except Exception:
+            pass
 
     # ── Helpers ──────────────────────────────────────────────────────
 

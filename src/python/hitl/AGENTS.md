@@ -1,7 +1,7 @@
 ---
 title: "Human-in-the-Loop Validation Layer"
 description: "CLI-based review and mutation workflows for qualitative validation"
-updated_at: "2026-05-16"
+updated_at: "2026-05-17"
 ---
 
 # Human-in-the-Loop Validation Layer
@@ -34,11 +34,12 @@ Three review modes operate independently:
 
 ## User Actions
 
-Five atomic actions:
+Six atomic actions:
 
 - **Approve** — Mark entity as approved, persist to graph
 - **Edit** — Modify definition or narrative; resets status to draft; invalidates affected embeddings
 - **Merge** — Combine two entities; redirect evidence; mark source as merged; invalidate caches
+- **Split** — Divide entity into two by regrouping constituent items (exemplars for codes, codes for themes, themes for interpretations); triggers LLM re-inference for each group; original marked superseded
 - **Reject** — Mark as rejected; do not propagate downstream
 - **Defer** — Skip for later; keep in draft state
 
@@ -84,8 +85,10 @@ Check rejected if constraints violated. Error message includes remediation sugge
 - **`theme_review_actions.py`** — Action handlers for themes
 - **`interpretation_review_actions.py`** — Action handlers for interpretations
 - **`code_review_merge.py`** — Merge orchestration for codes with transaction management
+- **`code_review_split.py`** — Split orchestration for codes with LLM re-inference
 - **`theme_review_merge.py`** — Merge orchestration for themes
-- **`interpretation_review_split.py`** — Split orchestration for interpretations
+- **`theme_review_split.py`** — Split orchestration for themes with LLM re-inference
+- **`interpretation_review_split.py`** — Split orchestration for interpretations (both direct copy and LLM re-inference)
 - **`shared.py`** — Shared utilities (console, node update helpers, common action patterns)
 - **`queries.py`** — Shared database utilities (`_parse_json`, `_get_neighbors`)
 - **`queries_codes.py`** — Code-specific database queries (pending, exemplars, neighbors, all)

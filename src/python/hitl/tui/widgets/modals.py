@@ -208,11 +208,12 @@ class MergeModal(ModalScreen[Optional[int]]):
 
 
 class SplitModal(ModalScreen[Optional[list[int]]]):
-    """Modal for splitting an interpretation.
+    """Modal for splitting an entity by regrouping its components.
 
-    Shows a list of constituent themes. The user selects which themes
-    should go into the first new interpretation; remaining themes form
-    the second. Returns list of theme ids for the first group, or None.
+    Shows a list of constituent items (exemplars for codes, codes for
+    themes, themes for interpretations). The user selects which items
+    should go into the first new entity; remaining items form the
+    second. Returns list of item IDs for the first group, or None.
     """
 
     BINDINGS = [
@@ -220,19 +221,34 @@ class SplitModal(ModalScreen[Optional[list[int]]]):
         Binding("space", "toggle_selection", "Toggle", show=False),
     ]
 
+    _TYPE_LABELS = {
+        "code": "Code",
+        "theme": "Theme",
+        "interpretation": "Interpretation",
+    }
+    _TYPE_INSTRUCTIONS = {
+        "code": "exemplars",
+        "theme": "codes",
+        "interpretation": "themes",
+    }
+
     def __init__(
         self,
-        themes: list[dict[str, Any]],
+        items: list[dict[str, Any]],
+        entity_type: str = "interpretation",
     ) -> None:
         super().__init__()
-        self._themes = themes
+        self._items = items
+        self._entity_type = entity_type
         self._selected: set[int] = set()
 
     def compose(self) -> ComposeResult:
+        label = self._TYPE_LABELS.get(self._entity_type, "Entity")
+        component = self._TYPE_INSTRUCTIONS.get(self._entity_type, "items")
         yield Static(
-            "[bold]Split Interpretation[/bold]\n"
-            "Select themes for the FIRST new interpretation "
-            "(space to toggle):",
+            f"[bold]Split {label}[/bold]\n"
+            f"Select {component} for the FIRST new {label.lower()} "
+            f"(space to toggle):",
             id="split-title",
         )
         yield ListView(id="split-list")
@@ -265,47 +281,59 @@ class SplitModal(ModalScreen[Optional[list[int]]]):
     }
     """
 
+    def _format_item(self, item: dict[str, Any]) -> str:
+        """Format a constituent item for display based on entity type."""
+        item_id = item.get("id", 0)
+        tag = item.get("tag", "")
+        tag_suffix = f"  [{tag}]" if tag else ""
+
+        if self._entity_type == "code":
+            # Show exemplar content snippet
+            content = item.get("content", "")
+            if len(content) > 50:
+                content = content[:50] + "..."
+            return f'  #{item_id}  "{content}"{tag_suffix}'
+        else:
+            # Show name (for themes and interpretations — codes show code name)
+            name = item.get("name", f"#{item_id}")
+            return f"  #{item_id}  {name}{tag_suffix}"
+
     def on_mount(self) -> None:
         list_view = self.query_one("#split-list", ListView)
-        for theme in self._themes:
-            tid = theme.get("id", 0)
-            name = theme.get("name", f"#{tid}")
-            tag = theme.get("tag", "")
+        for item in self._items:
+            item_id = item.get("id", 0)
             list_view.append(
                 ListItem(
-                    Static(f"  #{tid}  {name}  [{tag}]"),
-                    id=f"theme-{tid}",
+                    Static(self._format_item(item)),
+                    id=f"split-item-{item_id}",
                 )
             )
 
     def action_toggle_selection(self) -> None:
         list_view = self.query_one("#split-list", ListView)
         idx = list_view.index
-        if idx is None or idx >= len(self._themes):
+        if idx is None or idx >= len(self._items):
             return
-        theme = self._themes[idx]
-        tid = theme.get("id", 0)
-        if tid in self._selected:
-            self._selected.discard(tid)
+        item = self._items[idx]
+        item_id = item.get("id", 0)
+        if item_id in self._selected:
+            self._selected.discard(item_id)
             self._update_item_mark(idx, " ")
         else:
-            self._selected.add(tid)
+            self._selected.add(item_id)
             self._update_item_mark(idx, ">")
 
     def _update_item_mark(self, index: int, mark: str) -> None:
         list_view = self.query_one("#split-list", ListView)
         children = list(list_view.children)
         if 0 <= index < len(children):
-            item = children[index]
-            static = item.query_one(Static)
-            # Extract text after the mark character
+            item_widget = children[index]
+            static = item_widget.query_one(Static)
             text = str(static.content)
-            # Strip existing mark
             clean = text[1:] if text and text[0] in " >" else text
             static.update(f"{mark}{clean}")
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
-        # Treat selection as toggle (same as space)
         self.action_toggle_selection()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

@@ -384,6 +384,8 @@ def _log_theme_summary(
 def infer_themes(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    code_ids: list[int] | None = None,
+    skip_auto_assign: bool = False,
     progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> list[ThemeInference]:
     """Batch LLM inference to group approved codes into themes.
@@ -393,21 +395,38 @@ def infer_themes(
     then groups remaining codes into batches of <=5 and calls Groq
     with the theme inference prompt.
 
+    When *code_ids* is provided (and *tag* is also given), only those
+    specific codes are processed.  This scoped mode is used by split
+    re-inference to avoid re-processing the entire tag.
+
+    When *skip_auto_assign* is ``True``, the auto-assignment guardrail
+    is bypassed and all codes go directly to the LLM.  Used by split
+    re-inference to prevent regrouping from being overridden.
+
     Args:
         con: Active DuckDB connection.
         tag: Optional ontology tag.  ``None`` discovers all tags with
             approved codes.
+        code_ids: Optional list of code IDs to scope processing to.
+            Requires *tag* to also be provided.
+        skip_auto_assign: If ``True``, skip auto-assignment to existing
+            themes and send all codes to LLM directly.
 
     Returns:
         Flat list of ``ThemeInference`` items across all processed tags.
     """
+    if code_ids is not None and tag is None:
+        raise ValueError("'code_ids' requires 'tag' to also be provided")
+
     start_time = time.time()
     logger.info(
-        "Starting theme inference%s",
+        "Starting theme inference%s%s%s",
         f" for tag '{tag}'" if tag else "",
+        f" ({len(code_ids)} scoped codes)" if code_ids else "",
+        " (skip_auto_assign)" if skip_auto_assign else "",
     )
 
-    codes_by_tag = load_approved_codes_grouped(con, tag=tag)
+    codes_by_tag = load_approved_codes_grouped(con, tag=tag, code_ids=code_ids)
     if not codes_by_tag:
         logger.info("No approved codes found for theme inference")
         return []
@@ -419,7 +438,11 @@ def infer_themes(
     tracker = None
     for tagname, codes in codes_by_tag.items():
         # Step 1: Auto-assign high-similarity codes to existing themes
-        auto_assigned, pending = _auto_assign_codes_to_themes(con, tagname, codes)
+        if skip_auto_assign:
+            auto_assigned: list[_CodeRow] = []
+            pending: list[_CodeRow] = codes
+        else:
+            auto_assigned, pending = _auto_assign_codes_to_themes(con, tagname, codes)
 
         logger.info(
             "Tag '%s': %d auto-assigned, %d pending for LLM",

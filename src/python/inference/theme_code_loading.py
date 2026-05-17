@@ -77,8 +77,15 @@ class _CodeRow:
     exemplar_contents: tuple[str, ...] = ()
 
 
-def load_approved_codes(tag: str) -> list[_CodeRow]:
+def load_approved_codes(
+    tag: str,
+    code_ids: list[int] | None = None,
+) -> list[_CodeRow]:
     """Fetch all approved code nodes for *tag* as ``_CodeRow`` items.
+
+    When *code_ids* is provided, only those specific code IDs are
+    loaded (must still have status ``approved``).  This scoped mode
+    is used by split re-inference to process only the regrouped codes.
 
     ``exemplar_count`` is derived from ``data_json["exemplar_ids"]``
     length (list of exemplar IDs supporting this code).
@@ -86,12 +93,18 @@ def load_approved_codes(tag: str) -> list[_CodeRow]:
     batch query.
     """
     nodes = get_nodes_by_type_and_tag("code", tag)
+
+    # Build ID set for optional scoping
+    code_ids_set: set[int] | None = set(code_ids) if code_ids is not None else None
+
     approved: list[_CodeRow] = []
     # First pass: collect all exemplar IDs across all approved codes
     all_exemplar_ids: set[str] = set()
     code_exemplar_map: dict[int, list[str]] = {}
     for n in sorted(nodes, key=lambda x: x["id"]):
         if n.get("status") != "approved":
+            continue
+        if code_ids_set is not None and n["id"] not in code_ids_set:
             continue
         dj = n.get("data_json") or {}
         if isinstance(dj, dict):
@@ -125,15 +138,20 @@ def load_approved_codes(tag: str) -> list[_CodeRow]:
 def load_approved_codes_grouped(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    code_ids: list[int] | None = None,
 ) -> dict[str, list[_CodeRow]]:
     """Return ``{tag: [approved_codes]}`` grouped by ontology tag.
 
     If *tag* is provided, only that tag is queried.  Otherwise discovers
     all tags that have approved code nodes via a ``DISTINCT tag`` lookup
     on the ``nodes`` table.
+
+    When *code_ids* is provided (and *tag* is also given), only those
+    specific code IDs are loaded.  This scoped mode is used by split
+    re-inference.
     """
     if tag:
-        codes = load_approved_codes(tag)
+        codes = load_approved_codes(tag, code_ids=code_ids)
         return {tag: codes} if codes else {}
 
     rows = con.execute(

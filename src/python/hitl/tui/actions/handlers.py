@@ -114,51 +114,96 @@ def action_merge(
         handle_merge_themes(con, source_entity, target_id, db_path=db_path)
 
 
+def action_defer(
+    con: duckdb.DuckDBPyConnection,
+    entity: dict[str, Any],
+    entity_type: str,
+    db_path: Optional[Path] = None,
+) -> None:
+    """Defer the current entity."""
+    if entity_type == "code":
+        from hitl.code_review_actions import handle_defer
+
+        handle_defer(con, entity, db_path=db_path)
+    elif entity_type == "theme":
+        from hitl.theme_review_actions import handle_defer_theme
+
+        handle_defer_theme(con, entity)
+    elif entity_type == "interpretation":
+        from hitl.interpretation_review_actions import handle_defer_interpretation
+
+        handle_defer_interpretation(con, entity)
+
+
 def action_split(
     con: duckdb.DuckDBPyConnection,
     entity: dict[str, Any],
-    selected_theme_ids: list[int],
+    selected_ids: list[int],
     entity_type: str = "interpretation",
     db_path: Optional[Path] = None,
 ) -> tuple[int, int]:
-    """Split an interpretation by the selected theme ids.
+    """Split an entity by regrouping its constituent items.
 
-    Computes the second group automatically (remaining themes),
-    auto-generates names, and reuses the original narrative.
+    Computes the second group automatically (remaining items),
+    then dispatches to the type-specific split handler.
+
+    For codes: splits exemplars into two groups, re-infers via LLM.
+    For themes: splits codes into two groups, re-infers via LLM.
+    For interpretations: splits themes into two groups, re-infers via LLM.
     """
-    if entity_type != "interpretation":
-        raise ValueError(
-            f"Split is only supported for interpretations, got {entity_type}"
+    first_ids = selected_ids
+
+    if entity_type == "code":
+        from hitl.code_review_split import handle_split_code_regroup
+        from hitl.queries_codes import get_code_exemplar_ids
+
+        all_ids = get_code_exemplar_ids(con, entity["id"])
+        second_ids = [eid for eid in all_ids if eid not in first_ids]
+        if not first_ids or not second_ids:
+            raise ValueError("Split requires at least one exemplar in each group")
+        return handle_split_code_regroup(
+            con=con,
+            code=entity,
+            first_exemplar_ids=first_ids,
+            second_exemplar_ids=second_ids,
+            db_path=db_path,
         )
 
-    from hitl.interpretation_review_split import handle_split_interpretation
+    elif entity_type == "theme":
+        from hitl.queries_themes import get_theme_code_ids
+        from hitl.theme_review_split import handle_split_theme_regroup
 
-    # Get all themes linked to this interpretation via spans edges
-    from hitl.queries_interpretations import get_interpretation_themes
+        all_ids = get_theme_code_ids(con, entity["id"])
+        second_ids = [cid for cid in all_ids if cid not in first_ids]
+        if not first_ids or not second_ids:
+            raise ValueError("Split requires at least one code in each group")
+        return handle_split_theme_regroup(
+            con=con,
+            theme=entity,
+            first_code_ids=first_ids,
+            second_code_ids=second_ids,
+            db_path=db_path,
+        )
 
-    all_themes = get_interpretation_themes(con, entity["id"])
-    all_theme_ids = [t["id"] for t in all_themes]
-    first_ids = selected_theme_ids
-    second_ids = [tid for tid in all_theme_ids if tid not in first_ids]
+    elif entity_type == "interpretation":
+        from hitl.interpretation_review_split import handle_split_interpretation_regroup
+        from hitl.queries_interpretations import get_interpretation_themes
 
-    if not first_ids or not second_ids:
-        raise ValueError("Split requires at least one theme in each group")
+        all_themes = get_interpretation_themes(con, entity["id"])
+        all_theme_ids = [t["id"] for t in all_themes]
+        second_ids = [tid for tid in all_theme_ids if tid not in first_ids]
+        if not first_ids or not second_ids:
+            raise ValueError("Split requires at least one theme in each group")
+        return handle_split_interpretation_regroup(
+            con=con,
+            interp=entity,
+            first_theme_ids=first_ids,
+            second_theme_ids=second_ids,
+            db_path=db_path,
+        )
 
-    first_name = f"{entity.get('name', 'Interpretation')} (Part 1)"
-    second_name = f"{entity.get('name', 'Interpretation')} (Part 2)"
-    narrative = entity.get("narrative", "")
-
-    return handle_split_interpretation(
-        con=con,
-        interp=entity,
-        first_theme_ids=first_ids,
-        second_theme_ids=second_ids,
-        first_name=first_name,
-        second_name=second_name,
-        first_narrative=narrative,
-        second_narrative=narrative,
-        db_path=db_path,
-    )
+    else:
+        raise ValueError(f"Split is not supported for entity type '{entity_type}'")
 
 
 __all__ = [
@@ -167,4 +212,5 @@ __all__ = [
     "action_edit",
     "action_merge",
     "action_split",
+    "action_defer",
 ]

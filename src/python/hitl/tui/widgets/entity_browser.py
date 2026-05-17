@@ -2,11 +2,13 @@
 
 Displays a list of entities (codes, themes, or interpretations) on the
 left and a detail pane on the right.  Supports approve, reject, edit,
-merge, and split actions via keybindings passed up to the parent app.
+merge, split, and defer actions via keybindings passed up to the
+parent app.
 """
 
 from __future__ import annotations
 
+import difflib
 import os
 from pathlib import Path
 from typing import Any, Optional
@@ -17,15 +19,16 @@ from hitl.queries_interpretations import get_all_interpretations
 from hitl.queries_themes import get_all_themes
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widget import Widget
-from textual.widgets import Label, ListItem, ListView, Static
+from textual.widgets import Input, Label, ListItem, ListView, Static
 
 STATUS_ICONS = {
     "draft": "\u25c7",
     "pending": "\u25cb",
     "approved": "\u2713",
     "merged": "\u2295",
+    "superseded": "\u2298",
     "rejected": "\u2717",
 }
 
@@ -47,6 +50,8 @@ class EntityBrowser(Widget):
         Binding("r", "reject_entity", "Reject", show=True),
         Binding("m", "merge_entity", "Merge", show=True),
         Binding("s", "split_entity", "Split", show=True),
+        Binding("d", "defer_entity", "Defer", show=True),
+        Binding("escape", "clear_search", "Clear search", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -58,9 +63,17 @@ class EntityBrowser(Widget):
         height: 1fr;
     }
 
-    #entity-list-view {
+    #entity-list-container {
         width: 35%;
         height: 100%;
+    }
+
+    #entity-search {
+        margin: 0 0 1 0;
+    }
+
+    #entity-list-view {
+        height: 1fr;
         border: solid $primary;
     }
 
@@ -90,6 +103,8 @@ class EntityBrowser(Widget):
         self._selected_index: int = 0
         self._refreshing: bool = False
         self._needs_refresh: bool = False
+        self._search_query: str = ""
+        self._filtered_indices: list[int] = []
 
     # ── Diagnostics ────────────────────────────────────────────────
 
@@ -103,9 +118,58 @@ class EntityBrowser(Widget):
         except Exception:
             pass
 
+    # ── Fuzzy search ────────────────────────────────────────────────
+
+    @staticmethod
+    def _fuzzy_match(name: str, query: str) -> float:
+        """Return a similarity score between name and query (0.0-1.0)."""
+        if not query:
+            return 1.0
+        name_lower = name.lower()
+        query_lower = query.lower()
+
+        # Exact substring match -> near-perfect score
+        if query_lower in name_lower:
+            return 0.9 + 0.1 * (len(query) / max(len(name), 1))
+
+        # Baseline fuzzy ratio
+        ratio = difflib.SequenceMatcher(None, query_lower, name_lower).ratio()
+
+        # Token overlap bonus
+        query_tokens = set(query_lower.split())
+        name_tokens = set(name_lower.split())
+        if query_tokens and name_tokens:
+            overlap = len(query_tokens & name_tokens) / len(query_tokens)
+            ratio = max(ratio, overlap * 0.8)
+
+        return ratio
+
+    def _compute_filtered_indices(self) -> None:
+        """Populate _filtered_indices sorted by fuzzy match score."""
+        _hidden = {"merged", "superseded"}
+        if not self._search_query:
+            self._filtered_indices = [
+                i
+                for i, e in enumerate(self._all_entities)
+                if e.get("status") not in _hidden
+            ]
+            return
+
+        scored: list[tuple[float, int]] = []
+        for i, entity in enumerate(self._all_entities):
+            name = entity.get("name", entity.get("narrative", "unnamed"))
+            score = self._fuzzy_match(name, self._search_query)
+            if score >= 0.25:
+                scored.append((score, i))
+
+        scored.sort(key=lambda x: (-x[0], x[1]))
+        self._filtered_indices = [idx for _, idx in scored]
+
     def compose(self) -> ComposeResult:
         with Horizontal(id="entity-browser-horizontal"):
-            yield ListView(id="entity-list-view")
+            with Vertical(id="entity-list-container"):
+                yield Input(placeholder="Search names...", id="entity-search")
+                yield ListView(id="entity-list-view")
             with VerticalScroll(id="entity-detail"):
                 yield Static(id="entity-detail-content")
 
@@ -173,14 +237,17 @@ class EntityBrowser(Widget):
             await self.refresh_entities()
 
     async def _rebuild_list(self) -> None:
-        """Rebuild the ListView from _all_entities, skipping merged entities."""
+        """Rebuild the ListView from _filtered_indices, skipping merged entities."""
         list_view = self.query_one("#entity-list-view", ListView)
         await list_view.clear()
 
+        self._compute_filtered_indices()
+
         appended = 0
-        for i, entity in enumerate(self._all_entities):
+        for filtered_pos, original_idx in enumerate(self._filtered_indices):
+            entity = self._all_entities[original_idx]
             status = entity.get("status", "draft")
-            if status == "merged":
+            if status in ("merged", "superseded"):
                 continue
             icon = STATUS_ICONS.get(status, "?")
             name = entity.get(
@@ -189,26 +256,38 @@ class EntityBrowser(Widget):
             )
             label = f"{icon} {name}"
             await list_view.append(
-                ListItem(Label(label, markup=False), id=f"entity-{i}")
+                ListItem(Label(label, markup=False), id=f"entity-{original_idx}")
             )
             appended += 1
             if appended <= 5:
                 self._debug_log(
-                    f"_rebuild_list: appended #{i} name={name} status={status}"
+                    f"_rebuild_list: appended #{original_idx} "
+                    f"name={name} status={status}"
                 )
 
         self._debug_log(f"_rebuild_list: total appended={appended}")
-        if not self._all_entities:
-            self._debug_log("_rebuild_list: no entities, showing empty message")
 
-        if self._all_entities:
+        if self._filtered_indices:
             list_view.index = 0
-            self._show_detail(0)
+            self._show_detail(self._filtered_indices[0])
         else:
             detail = self.query_one("#entity-detail-content", Static)
-            detail.update(
-                "[dim]No entities to display. " "Run the pipeline first.[/dim]"
-            )
+            msg = "[dim]No entities to display. Run the pipeline first.[/dim]"
+            if self._search_query:
+                msg = "[dim]No entities match the current search query.[/dim]"
+            detail.update(msg)
+
+    # ── Search input handler ────────────────────────────────────────
+
+    async def on_input_changed(self, event: Input.Changed) -> None:
+        """Real-time filter entity list as the user types."""
+        if event.input.id == "entity-search":
+            self._search_query = event.value
+            current_entity = self.current_entity()
+            current_id = current_entity.get("id") if current_entity else None
+            await self._rebuild_list()
+            if current_id is not None:
+                self._restore_selection(current_id)
 
     # ── Detail display ──────────────────────────────────────────────
 
@@ -473,8 +552,12 @@ class EntityBrowser(Widget):
         except Exception as exc:
             self._show_error(f"Merge failed: {exc}")
 
-    async def action_split(self, selected_theme_ids: list[int]) -> None:
-        """Split an interpretation by selected theme ids."""
+    async def action_split(self, selected_ids: list[int]) -> None:
+        """Split the current entity by regrouping its constituent items.
+
+        Dispatches to the type-specific split handler (code, theme, or
+        interpretation) for LLM re-inference, then refreshes the list.
+        """
         entity = self.current_entity()
         if entity is None:
             return
@@ -485,24 +568,44 @@ class EntityBrowser(Widget):
             action_split(
                 con,
                 entity,
-                selected_theme_ids,
+                selected_ids,
                 entity_type=self.entity_type,
                 db_path=self._db_path,
             )
             con.close()
             await self.refresh_entities()
         except Exception as exc:
-            self._show_error(f"Split failed: {exc}")
+            self._show_error(f"Split + re-inference failed: {exc}")
+
+    async def action_defer(self) -> None:
+        """Defer the currently selected entity."""
+        entity = self.current_entity()
+        if entity is None:
+            return
+        entity_id = entity.get("id")
+        try:
+            con = self._con()
+            from hitl.tui.actions.handlers import action_defer
+
+            action_defer(con, entity, self.entity_type, self._db_path)
+            con.close()
+            await self.refresh_entities()
+            if entity_id is not None:
+                self._restore_selection(entity_id)
+        except Exception as exc:
+            self._show_error(f"Defer failed: {exc}")
 
     # ── Selection restoration ────────────────────────────────────────
 
     def _restore_selection(self, entity_id: int) -> None:
-        """Restore list selection to the entity with the given ID."""
+        """Restore list selection to the entity with the given ID
+        (searching through _filtered_indices)."""
         list_view = self.query_one("#entity-list-view", ListView)
-        for i, entity in enumerate(self._all_entities):
+        for filtered_pos, original_idx in enumerate(self._filtered_indices):
+            entity = self._all_entities[original_idx]
             if entity.get("id") == entity_id:
-                list_view.index = i
-                self._show_detail(i)
+                list_view.index = filtered_pos
+                self._show_detail(original_idx)
                 return
 
     # ── Error display ───────────────────────────────────────────────
@@ -543,6 +646,28 @@ class EntityBrowser(Widget):
                 pct = score * 100
                 lines.append(f"  #{nid}  {name}  [green]{pct:.1f}%[/green]")
         return lines
+
+    # ── Focus management ─────────────────────────────────────────────
+
+    def on_mount(self) -> None:
+        """Focus the entity list by default on mount."""
+        try:
+            self.query_one("#entity-list-view", ListView).focus()
+        except Exception:
+            pass
+
+    async def action_clear_search(self) -> None:
+        """Clear the search input and refocus the list."""
+        search = self.query_one("#entity-search", Input)
+        if search.value:
+            search.value = ""
+            self._search_query = ""
+            await self._rebuild_list()
+        else:
+            try:
+                self.query_one("#entity-list-view", ListView).focus()
+            except Exception:
+                pass
 
 
 __all__ = ["EntityBrowser"]

@@ -78,6 +78,56 @@ def get_pending_codes(con) -> list[dict[str, Any]]:
     return results
 
 
+def get_code_exemplar_ids(
+    con,
+    code_id: int,
+) -> list[int]:
+    """Fetch exemplar IDs from a code's ``data_json``.
+
+    Returns list of integer exemplar IDs.  Empty list if none found.
+    """
+    row = con.execute(
+        "SELECT data_json FROM nodes WHERE id = ? AND type = 'code'",
+        [code_id],
+    ).fetchone()
+    if not row:
+        return []
+    dj = _parse_json(row[0])
+    return [int(eid) for eid in (dj.get("exemplar_ids") or [])]
+
+
+def get_code_exemplars_with_content(
+    con,
+    code_id: int,
+    truncate: int = 80,
+) -> list[dict[str, Any]]:
+    """Fetch exemplars linked by ``contains`` edges, with truncated content.
+
+    Returns list of dicts with keys: ``id``, ``content`` (truncated to
+    *truncate* chars).  Used by the SplitModal to display candidate items.
+    """
+    import polars as pl
+    from persistence.loaders import load_exemplars
+
+    eids = get_code_exemplar_ids(con, code_id)
+    if not eids:
+        return []
+
+    rows = (
+        load_exemplars()
+        .select(["id", "content"])
+        .filter(pl.col("id").is_in(eids))
+        .collect()
+    )
+    results = []
+    for r in rows.iter_rows(named=True):
+        content = r["content"] or ""
+        if len(content) > truncate:
+            content = content[:truncate] + "..."
+        results.append({"id": r["id"], "content": content})
+    return results
+
+
 def get_code_exemplars(
     con,
     code_id: int,
