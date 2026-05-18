@@ -1,7 +1,7 @@
 ---
 title: "Coding Standards"
 description: "Python and R coding standards for the project"
-updated_at: "2026-05-12"
+updated_at: "2026-05-17"
 ---
 
 # Coding Standards
@@ -58,3 +58,25 @@ R: validate mock signatures match the mocked function's formal arguments.
 Minimize external dependencies.
 Declare dependencies explicitly.
 Prefer standard library when available.
+
+## Documentation Voice
+
+Follow `@docs/methods/_overview.qmd` as the canonical reference.
+
+Declarative SVO sentences. Open with the subject being described.
+Simple past for implementation; simple present for system behavior;
+shall for requirements. No future tense or conditionals.
+
+One concept per paragraph. Topic sentence first.
+Bullet lists for enumerations. Never inline-enumerate in prose.
+
+No hedging, questions, exclamations, or second person.
+No editorializing adverbs ("importantly", "notably").
+No "in order to" — use bare infinitive.
+
+@path for files. ADR-NNN for decisions. [@citation] for references.
+
+NOTE: Agentic documentation (AGENTS.md, STANDARDS.md, PLANS.md,
+plan breakdowns) uses directive fragments, no subjects.
+The rules above apply to formal documentation:
+methods, results, overviews.

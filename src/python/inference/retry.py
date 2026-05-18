@@ -2,8 +2,8 @@
 
 Three-tier retry for the :func:`complete` function:
 
-1. Network errors (timeout, connection, rate-limit) --- exponential backoff
-   via ``make_retry``.
+1. Transient errors (timeout, connection, rate-limit, HTTP 400) ---
+   exponential backoff via ``make_retry``.
 2. HTTP 429 (rate limit) --- use ``retry-after`` response header for sleep
    duration, retry once.
 3. Token limit (context-length BadRequestError) --- raises :class:`TokenLimitError`
@@ -54,6 +54,7 @@ _NETWORK_ERRORS = (
     APITimeoutError,
     APIConnectionError,
     RateLimitError,
+    BadRequestError,
 )
 
 

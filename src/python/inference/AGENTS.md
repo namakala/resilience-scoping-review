@@ -34,7 +34,7 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 ## Infrastructure
 
-- **Retry:** Network errors → exponential backoff. 429 → 60s sleep. Token limit → split batch in half, retry recursively.
+- **Retry:** Network errors + HTTP 400 (JSON validation failures) → exponential backoff. 429 → 60s sleep. Token limit → split batch in half, retry recursively.
 - **Batching:** `group_by_tag(items, max_per_batch)` for fixed-size grouping.
   `group_by_similarity(tag, clusters, misc)` wraps similarity-clustered groups
   into batches with a final misc batch. Items need `.tag` + `.id`.

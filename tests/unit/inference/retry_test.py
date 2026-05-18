@@ -228,18 +228,18 @@ class TestCallCompleteWithRetry(unittest.TestCase):
 
     @patch("inference.retry.complete")
     @patch("time.sleep", return_value=None)
-    def test_non_context_bad_request_propagates(self, mock_sleep, mock_complete):
-        """AC: BadRequestError without context length propagates."""
+    def test_non_context_bad_request_retried(self, mock_sleep, mock_complete):
+        """AC: BadRequestError without context length is retried."""
         mock_complete.side_effect = BadRequestError(
             "invalid schema",
             response=MagicMock(status_code=400),
             body={},
         )
 
-        with self.assertRaises(BadRequestError):
+        with self.assertRaises(RetryExhaustedError):
             call_complete_with_retry(self.prompt, self.batch_id)
 
-        self.assertEqual(mock_complete.call_count, 1)
+        self.assertEqual(mock_complete.call_count, 3)
 
     @patch("inference.retry.complete")
     @patch("time.sleep", return_value=None)
