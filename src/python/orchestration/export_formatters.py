@@ -21,6 +21,15 @@ CSV_COLUMNS = [
 ]
 
 
+def _safe_int(v: Any) -> int:
+    """Convert *v* to int, stripping any non-digit prefix (e.g. ``\"C16\"`` → ``16``).
+
+    Returns ``0`` if no digits remain after stripping.
+    """
+    digits = "".join(c for c in str(v) if c.isdigit())
+    return int(digits) if digits else 0
+
+
 def _build_json(
     codes: list[dict],
     themes: list[dict],
@@ -52,7 +61,7 @@ def _build_json(
                 "narrative": t["definition"],
                 "tag": t["tag"],
                 "code_ids": sorted(
-                    int(e) for e in (t.get("data_json", {}).get("code_ids") or [])
+                    _safe_int(e) for e in (t.get("data_json", {}).get("code_ids") or [])
                 ),
             }
         )
@@ -65,7 +74,7 @@ def _build_json(
                 "id": i["id"],
                 "name": i["name"],
                 "narrative": i["definition"],
-                "theme_ids": sorted(int(e) for e in (dj.get("theme_ids") or [])),
+                "theme_ids": sorted(_safe_int(e) for e in (dj.get("theme_ids") or [])),
                 "tag_spans": sorted(dj.get("tag_spans") or []),
             }
         )
@@ -94,11 +103,11 @@ def _build_csv(
     rows: list[dict[str, str]] = []
     for interp in interpretations:
         for tid in interp.get("data_json", {}).get("theme_ids") or []:
-            theme = theme_by_id.get(int(tid))
+            theme = theme_by_id.get(_safe_int(tid))
             if theme is None:
                 continue
             for cid in theme.get("data_json", {}).get("code_ids") or []:
-                code = code_by_id.get(int(cid))
+                code = code_by_id.get(_safe_int(cid))
                 if code is None:
                     continue
                 eids = code.get("data_json", {}).get("exemplar_ids") or []
@@ -183,7 +192,7 @@ def _build_markdown(
         lines.append("")
 
         for tid in interp.get("data_json", {}).get("theme_ids") or []:
-            theme = theme_by_id.get(int(tid))
+            theme = theme_by_id.get(_safe_int(tid))
             if theme is None:
                 continue
             lines.append(f"#### {theme['name']}")
@@ -193,7 +202,7 @@ def _build_markdown(
                 lines.append("")
 
             for cid in theme.get("data_json", {}).get("code_ids") or []:
-                code = code_by_id.get(int(cid))
+                code = code_by_id.get(_safe_int(cid))
                 if code is None:
                     continue
                 lines.append(f"- **{code['name']}**: {code['definition']}")

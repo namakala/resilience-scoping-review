@@ -279,7 +279,7 @@ def _themes_to_interpretation_context(
             for cid in code_ids:
                 c_row = con.execute(
                     "SELECT name, definition FROM nodes WHERE id = ?",
-                    [int(cid)],
+                    [int("".join(c for c in str(cid) if c.isdigit()))],
                 ).fetchone()
                 if c_row:
                     buf.write(f"    - {c_row[0]}: {c_row[1]}\n")

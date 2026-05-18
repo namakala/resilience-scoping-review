@@ -28,8 +28,15 @@ tags and themes).
     {
       "interpretation_name": "Concise name",
       "narrative": "Narrative synthesis across tags",
-      "theme_ids": [1, 2],
+      "theme_ids": [820, 823, 822, 825],
       "key_insights": ["Insight one", "Insight two"]
     }
   ]
 }
+
+## Critical: Theme ID Format
+
+Each theme_id must be a SEPARATE integer in the JSON array.
+CORRECT: {"theme_ids": [820, 823, 822, 825]}
+WRONG:  {"theme_ids": [820823822825]}   ← concatenated
+WRONG:  {"theme_ids": "820,823,822,825"} ← string instead of array

@@ -43,20 +43,31 @@ def handle_approve_interpretation(
     con: duckdb.DuckDBPyConnection,
     interp: dict[str, Any],
     db_path: Optional[Path] = None,
-) -> None:
+) -> dict[str, Any]:
     """Approve an interpretation.
 
     Validates constraints, then delegates to ``approve_interpretation()``
     which finalises the interpretation, invalidates caches, and updates
     session counters.
+
+    Non-contiguous ``tag_spans`` are allowed — a warning is logged and
+    returned in the result dict instead of blocking.
+
+    Returns:
+        Dict with keys:
+            ``approved`` (bool) — whether approval succeeded.
+            ``warning`` (str | None) — warning message if tag_spans
+            were non-contiguous but approval proceeded.
     """
     node_id = interp["id"]
     dj = interp.get("data_json") or {}
     tag_spans = set(dj.get("tag_spans", []))
+    warning: Optional[str] = None
+
+    from ontology import ConstraintError, validate_constraint
+    from ontology.constraints import CONSTRAINT_NONCONTIGUOUS_SPAN
 
     try:
-        from ontology import ConstraintError, validate_constraint
-
         validate_constraint(
             {
                 "id": node_id,
@@ -66,12 +77,17 @@ def handle_approve_interpretation(
             "approve",
         )
     except ConstraintError as exc:
-        console.print(f"[red]Constraint violation: {exc}[/red]")
-        logger.warning(
-            "Interpretation approve rejected by constraint",
-            extra={"error": str(exc), "constraint_type": exc.code},
-        )
-        return
+        if exc.code == CONSTRAINT_NONCONTIGUOUS_SPAN:
+            warning = f"Interpretation approved with non-contiguous tag_spans: {exc}"
+            logger.warning(warning)
+            console.print(f"[yellow]Warning: {exc}[/yellow]")
+        else:
+            console.print(f"[red]Constraint violation: {exc}[/red]")
+            logger.warning(
+                "Interpretation approve rejected by constraint",
+                extra={"error": str(exc), "constraint_type": exc.code},
+            )
+            return {"approved": False, "warning": None}
 
     try:
         approve_interpretation(con, node_id, db_path=db_path)
@@ -81,6 +97,9 @@ def handle_approve_interpretation(
             "Interpretation approval failed",
             extra={"error": str(exc), "node_id": node_id},
         )
+        return {"approved": False, "warning": None}
+
+    return {"approved": True, "warning": warning}
 
 
 def handle_edit_interpretation(

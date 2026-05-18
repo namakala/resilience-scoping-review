@@ -1066,6 +1066,16 @@ class AnalystTUI(App):
             from hitl.queries_themes import get_other_draft_themes
 
             same_tag = get_other_draft_themes(con, current_id, tag)
+        elif entity_type == "interpretation":
+            from hitl.queries_interpretations import get_all_interpretations
+
+            all_interps = get_all_interpretations(con)
+            same_tag = [
+                i
+                for i in all_interps
+                if i.get("id") != current_id
+                and i.get("status") in {"draft", "approved", "pending"}
+            ]
         else:
             return []
 

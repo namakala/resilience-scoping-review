@@ -496,8 +496,18 @@ class EntityBrowser(Widget):
             con = self._con()
             from hitl.tui.actions.handlers import action_approve
 
-            action_approve(con, entity, self.entity_type, self._db_path)
+            result = action_approve(con, entity, self.entity_type, self._db_path)
             con.close()
+            if result and isinstance(result, dict):
+                if result.get("warning"):
+                    self.app.notify(result["warning"], severity="warning", timeout=5)
+                elif result.get("approved"):
+                    self.app.notify(
+                        "Interpretation approved", severity="information", timeout=3
+                    )
+                elif result.get("approved") is False:
+                    self._show_error("Approval blocked by constraint")
+                    return
             await self.refresh_entities()
             if entity_id is not None:
                 self._restore_selection(entity_id)

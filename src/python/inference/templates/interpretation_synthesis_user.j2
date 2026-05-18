@@ -20,12 +20,6 @@
   {% for code in theme.codes_detail %}
   - Code: {{ code.name }}
     Definition: {{ code.definition }}
-    {% if code.exemplar_contents %}
-    Supporting exemplars:
-    {% for content in code.exemplar_contents %}
-    > {{ content }}
-    {% endfor %}
-    {% endif %}
   {% endfor %}
   {% endif %}
 {% endfor %}

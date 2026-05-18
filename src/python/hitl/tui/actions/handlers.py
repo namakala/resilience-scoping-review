@@ -18,20 +18,29 @@ def action_approve(
     entity: dict[str, Any],
     entity_type: str,
     db_path: Optional[Path] = None,
-) -> None:
-    """Approve the current entity."""
+) -> Optional[dict[str, Any]]:
+    """Approve the current entity.
+
+    Returns:
+        For interpretations: a dict ``{"approved": bool, "warning": str | None}``
+        with a warning if tag_spans were non-contiguous.
+        For codes and themes: ``None``.
+    """
     if entity_type == "code":
         from hitl.code_review_actions import handle_approve
 
         handle_approve(con, entity, db_path=db_path)
+        return None
     elif entity_type == "theme":
         from hitl.theme_review_actions import handle_approve_theme
 
         handle_approve_theme(con, entity, db_path=db_path)
+        return None
     elif entity_type == "interpretation":
         from hitl.interpretation_review_actions import handle_approve_interpretation
 
-        handle_approve_interpretation(con, entity, db_path=db_path)
+        return handle_approve_interpretation(con, entity, db_path=db_path)
+    raise ValueError(f"Unknown entity type: {entity_type}")
 
 
 def action_reject(
@@ -112,6 +121,10 @@ def action_merge(
         from hitl.theme_review_merge import handle_merge_themes
 
         handle_merge_themes(con, source_entity, target_id, db_path=db_path)
+    elif entity_type == "interpretation":
+        from hitl.interpretation_review_merge import handle_merge_interpretations
+
+        handle_merge_interpretations(con, source_entity, target_id, db_path=db_path)
 
 
 def action_defer(

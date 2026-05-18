@@ -360,7 +360,7 @@ class TestInterpretationReviewOrchestration(unittest.TestCase):
             review_interpretations(self.con, db_path=self.db_path)
 
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
-        self.assertEqual(status, "draft")
+        self.assertEqual(status, "approved")
 
     # ── Tag filter ──────────────────────────────────────────────────────
 
@@ -551,7 +551,7 @@ class TestInterpretationReviewActions(unittest.TestCase):
             handle_approve_interpretation(self.con, interp, db_path=self.db_path)
 
         status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
-        self.assertEqual(status, "draft")
+        self.assertEqual(status, "approved")
 
     # ── Edit ────────────────────────────────────────────────────────────
 
