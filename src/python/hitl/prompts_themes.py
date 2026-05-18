@@ -80,7 +80,8 @@ def handle_merge_interactive_theme(
         # Fallback: get all draft themes across all tags
         rows = con.execute(
             "SELECT id, name, data_json FROM nodes "
-            "WHERE type = 'theme' AND status = 'draft' AND id != ? "
+            "WHERE type = 'theme' AND status IN ('draft', 'approved', 'pending') "
+            "AND id != ? "
             "ORDER BY tag, name",
             [source_id],
         ).fetchall()

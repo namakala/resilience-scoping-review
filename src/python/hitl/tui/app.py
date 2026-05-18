@@ -19,6 +19,7 @@ import duckdb
 from config.config import Config
 from hitl.tui.widgets.entity_browser import EntityBrowser
 from hitl.tui.widgets.modals import EditModal, MergeModal, SplitModal
+from hitl.tui.widgets.status_filter_modal import StatusFilterModal
 from orchestration.state import WorkflowState
 from orchestration.state_rules import MAX_STAGE, STAGE_NAMES
 from persistence.duckdb_connection import DEFAULT_DB_PATH
@@ -121,6 +122,7 @@ class AnalystTUI(App):
         Binding("m", "merge_entity", "Merge", show=True),
         Binding("s", "split_entity", "Split", show=True),
         Binding("d", "defer_entity", "Defer", show=True),
+        Binding("f", "filter_status", "Filter", show=True),
     ]
 
     def __init__(
@@ -832,6 +834,20 @@ class AnalystTUI(App):
         if browser:
             await browser.action_defer()
 
+    async def action_filter_status(self) -> None:
+        """Open status filter modal for the active review tab."""
+        browser = self._get_active_browser()
+        if browser is None:
+            return
+        current = set(browser._status_filter)
+
+        def on_filter(result: Optional[set[str]]) -> None:
+            if result is not None:
+                browser._status_filter = result
+                asyncio.create_task(browser.refresh_entities())
+
+        self.push_screen(StatusFilterModal(current), on_filter)
+
     def action_merge_entity(self) -> None:
         """Open merge modal for the currently active entity."""
         active = self._get_active_review_tab()
@@ -1043,7 +1059,8 @@ class AnalystTUI(App):
             same_tag = [
                 c
                 for c in all_codes
-                if c.get("id") != current_id and c.get("status") != "merged"
+                if c.get("id") != current_id
+                and c.get("status") in {"draft", "approved", "pending"}
             ]
         elif entity_type == "theme":
             from hitl.queries_themes import get_other_draft_themes
@@ -1067,7 +1084,7 @@ class AnalystTUI(App):
                         "SELECT id, name, tag, status FROM nodes WHERE id = ?",
                         [nid],
                     ).fetchone()
-                    if row and row[3] != "merged":
+                    if row and row[3] in {"draft", "approved", "pending"}:
                         candidates.append(
                             {
                                 "id": row[0],
@@ -1082,7 +1099,8 @@ class AnalystTUI(App):
         if not candidates and entity_type == "theme":
             rows = con.execute(
                 "SELECT id, name, tag, status FROM nodes "
-                "WHERE type = 'theme' AND status = 'draft' AND id != ? "
+                "WHERE type = 'theme' AND status IN ('draft', 'approved', 'pending') "
+                "AND id != ? "
                 "ORDER BY tag, name",
                 [current_id],
             ).fetchall()

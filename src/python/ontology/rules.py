@@ -17,6 +17,7 @@ import networkx as nx
 from .constraints import (
     CONSTRAINT_CODE_MULTI_THEME,
     CONSTRAINT_CYCLE_AFTER_MERGE,
+    CONSTRAINT_INVALID_MERGE_TARGET,
     CONSTRAINT_MIN_CODES,
     CONSTRAINT_NONCONTIGUOUS_SPAN,
     CONSTRAINT_THEME_MULTI_INTERP,
@@ -27,6 +28,7 @@ from .contiguity import _missing_intermediates, is_contiguous_subtree
 
 __all__ = [
     "validate_code_approval",
+    "validate_merge_target_status",
     "validate_theme_approval",
     "validate_theme_interpretation",
     "validate_interpretation_contiguity",
@@ -124,6 +126,20 @@ def validate_tag_exists(tag: str, tag_dag: nx.DiGraph) -> None:
             CONSTRAINT_UNKNOWN_TAG,
             f"Tag '{tag}' does not exist in the ontology. "
             f"Assign a valid tag from the ontology before proceeding.",
+        )
+
+
+VALID_MERGE_TARGET_STATUSES = frozenset({"draft", "approved", "pending"})
+
+
+def validate_merge_target_status(target_status: str) -> None:
+    """Rule 7: merge target must be in draft, approved, or pending state."""
+    if target_status not in VALID_MERGE_TARGET_STATUSES:
+        raise ConstraintError(
+            CONSTRAINT_INVALID_MERGE_TARGET,
+            f"Cannot merge into an entity with status '{target_status}'. "
+            f"Target must be one of: "
+            f"{', '.join(sorted(VALID_MERGE_TARGET_STATUSES))}.",
         )
 
 

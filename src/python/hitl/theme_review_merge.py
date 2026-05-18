@@ -138,6 +138,7 @@ def handle_merge_themes(
                 "id": source_id,
                 "type": source_type,
                 "tag": source_theme.get("tag", ""),
+                "target_status": target_theme.get("status"),
             },
             "merge",
         )

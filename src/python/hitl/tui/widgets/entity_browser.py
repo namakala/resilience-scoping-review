@@ -8,6 +8,7 @@ parent app.
 
 from __future__ import annotations
 
+import asyncio
 import difflib
 import os
 from pathlib import Path
@@ -17,6 +18,11 @@ import duckdb
 from hitl.queries_codes import get_all_codes
 from hitl.queries_interpretations import get_all_interpretations
 from hitl.queries_themes import get_all_themes
+from hitl.tui.widgets.status_filter_modal import (
+    DEFAULT_FILTER,
+    STATUS_LABELS,
+    StatusFilterModal,
+)
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -51,6 +57,7 @@ class EntityBrowser(Widget):
         Binding("m", "merge_entity", "Merge", show=True),
         Binding("s", "split_entity", "Split", show=True),
         Binding("d", "defer_entity", "Defer", show=True),
+        Binding("f", "filter_status", "Filter", show=True),
         Binding("escape", "clear_search", "Clear search", show=False),
     ]
 
@@ -70,6 +77,11 @@ class EntityBrowser(Widget):
 
     #entity-search {
         margin: 0 0 1 0;
+    }
+
+    #entity-filter-label {
+        margin: 0 0 1 0;
+        text-style: dim;
     }
 
     #entity-list-view {
@@ -105,6 +117,7 @@ class EntityBrowser(Widget):
         self._needs_refresh: bool = False
         self._search_query: str = ""
         self._filtered_indices: list[int] = []
+        self._status_filter: set[str] = DEFAULT_FILTER.copy()
 
     # ── Diagnostics ────────────────────────────────────────────────
 
@@ -146,17 +159,18 @@ class EntityBrowser(Widget):
 
     def _compute_filtered_indices(self) -> None:
         """Populate _filtered_indices sorted by fuzzy match score."""
-        _hidden = {"merged", "superseded"}
         if not self._search_query:
             self._filtered_indices = [
                 i
                 for i, e in enumerate(self._all_entities)
-                if e.get("status") not in _hidden
+                if e.get("status") in self._status_filter
             ]
             return
 
         scored: list[tuple[float, int]] = []
         for i, entity in enumerate(self._all_entities):
+            if entity.get("status") not in self._status_filter:
+                continue
             name = entity.get("name", entity.get("narrative", "unnamed"))
             score = self._fuzzy_match(name, self._search_query)
             if score >= 0.25:
@@ -169,6 +183,7 @@ class EntityBrowser(Widget):
         with Horizontal(id="entity-browser-horizontal"):
             with Vertical(id="entity-list-container"):
                 yield Input(placeholder="Search names...", id="entity-search")
+                yield Static(id="entity-filter-label")
                 yield ListView(id="entity-list-view")
             with VerticalScroll(id="entity-detail"):
                 yield Static(id="entity-detail-content")
@@ -243,12 +258,12 @@ class EntityBrowser(Widget):
 
         self._compute_filtered_indices()
 
+        self._update_filter_label()
+
         appended = 0
         for filtered_pos, original_idx in enumerate(self._filtered_indices):
             entity = self._all_entities[original_idx]
             status = entity.get("status", "draft")
-            if status in ("merged", "superseded"):
-                continue
             icon = STATUS_ICONS.get(status, "?")
             name = entity.get(
                 "name",
@@ -409,6 +424,30 @@ class EntityBrowser(Widget):
             detail_scroll.scroll_home(animate=False)
         except Exception:
             pass
+
+    # ── Status filter ───────────────────────────────────────────────
+
+    def _update_filter_label(self) -> None:
+        """Update the filter indicator label below the search input."""
+        try:
+            label = self.query_one("#entity-filter-label", Static)
+            names = [STATUS_LABELS[s] for s in sorted(self._status_filter)]
+            label.update(f"[dim]Filter: {', '.join(names)}[/dim]")
+        except Exception:
+            pass
+
+    async def action_filter_status(self) -> None:
+        """Open the StatusFilterModal to change the active filter."""
+        current = self._status_filter
+
+        def on_filter(result: Optional[set[str]]) -> None:
+            if result is not None:
+                self._status_filter = result
+                self.app.call_from_thread(
+                    lambda: asyncio.create_task(self.refresh_entities())
+                )
+
+        self.app.push_screen(StatusFilterModal(current), on_filter)
 
     # ── List selection ──────────────────────────────────────────────
 

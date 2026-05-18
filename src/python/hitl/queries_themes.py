@@ -144,13 +144,14 @@ def get_other_draft_themes(
     theme_id: int,
     tag: str,
 ) -> list[dict[str, Any]]:
-    """Fetch other draft theme nodes in the same tag for merge selection.
+    """Fetch other draft/approved/pending theme nodes in the same tag for merge.
 
     Returns list of dicts with keys: ``id``, ``name``, ``code_ids``.
     """
     rows = con.execute(
         "SELECT id, name, data_json FROM nodes "
-        "WHERE type = 'theme' AND status = 'draft' AND tag = ? AND id != ? "
+        "WHERE type = 'theme' AND status IN ('draft', 'approved', 'pending') "
+        "AND tag = ? AND id != ? "
         "ORDER BY name",
         [tag, theme_id],
     ).fetchall()

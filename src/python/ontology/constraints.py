@@ -26,6 +26,7 @@ CONSTRAINT_THEME_MULTI_INTERP = "CONSTRAINT_THEME_MULTI_INTERP"
 CONSTRAINT_NONCONTIGUOUS_SPAN = "CONSTRAINT_NONCONTIGUOUS_SPAN"
 CONSTRAINT_UNKNOWN_TAG = "CONSTRAINT_UNKNOWN_TAG"
 CONSTRAINT_CYCLE_AFTER_MERGE = "CONSTRAINT_CYCLE_AFTER_MERGE"
+CONSTRAINT_INVALID_MERGE_TARGET = "CONSTRAINT_INVALID_MERGE_TARGET"
 
 
 class ConstraintError(ValueError):
@@ -51,6 +52,7 @@ from .contiguity import (  # noqa: E402, F401
 from .rules import (  # noqa: E402
     validate_code_approval,
     validate_interpretation_contiguity,
+    validate_merge_target_status,
     validate_no_cycle,
     validate_tag_exists,
     validate_theme_approval,
@@ -158,6 +160,9 @@ def validate_constraint(
             validate_tag_exists(tag, resolved_tag_dag)
         if tag_spans:
             validate_interpretation_contiguity(tag_spans, resolved_tag_dag)
+        target_status = entity.get("target_status")
+        if target_status:
+            validate_merge_target_status(target_status)
         validate_no_cycle(resolved_graph)
 
     elif action == "assign_tag":

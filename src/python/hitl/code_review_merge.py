@@ -138,7 +138,12 @@ def handle_merge(
     G = get_graph(db_path)
     try:
         validate_constraint(
-            {"id": source_id, "type": source_type, "tag": source_code.get("tag", "")},
+            {
+                "id": source_id,
+                "type": source_type,
+                "tag": source_code.get("tag", ""),
+                "target_status": target_code.get("status"),
+            },
             "merge",
         )
     except ConstraintError:
