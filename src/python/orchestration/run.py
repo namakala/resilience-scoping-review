@@ -56,7 +56,7 @@ logger = get_logger(__name__)
     "--force",
     is_flag=True,
     default=False,
-    help="Delete existing artifacts before re-inferring. Requires --type.",
+    help="Hard-delete existing artifacts before re-inferring. Requires --type.",
 )
 @click.option(
     "--tui/--no-tui",
@@ -221,10 +221,9 @@ def _resolve_interactive(tui_mode: Optional[bool], types: tuple[str, ...]) -> bo
 def _force_reset_for_types(con, types: tuple[str, ...]) -> None:
     """Delete all entities at and below the specified types.
 
-    For each type in *types*, deletes every entity of that type and all
-    downstream dependent types.  Operates as a soft-delete: sets
-    ``status = 'rejected'``, removes edges, clears inference status, and
-    invalidates embedding cache entries.
+    For each type in *types*, hard-deletes (removes rows from the nodes table)
+    every entity of that type and all downstream dependent types. Removes edges,
+    clears inference status, and invalidates embedding cache entries.
 
     After deletion, resets ``current_stage`` to the lowest inference stage
     needed and marks all ontology tags as dirty.
@@ -250,11 +249,7 @@ def _force_reset_for_types(con, types: tuple[str, ...]) -> None:
             ).fetchall()
             for (iid,) in interp_ids:
                 _delete_edges_for(con, iid, "interpretation")
-                con.execute(
-                    "UPDATE nodes SET status = 'rejected', "
-                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    [iid],
-                )
+                con.execute("DELETE FROM nodes WHERE id = ?", [iid])
                 con.execute(
                     "DELETE FROM inference_status WHERE entity_id = ?", [str(iid)]
                 )
@@ -267,11 +262,7 @@ def _force_reset_for_types(con, types: tuple[str, ...]) -> None:
             ).fetchall()
             for (tid,) in theme_ids:
                 _delete_edges_for(con, tid, "theme")
-                con.execute(
-                    "UPDATE nodes SET status = 'rejected', "
-                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    [tid],
-                )
+                con.execute("DELETE FROM nodes WHERE id = ?", [tid])
                 con.execute(
                     "DELETE FROM inference_status WHERE entity_id = ?", [str(tid)]
                 )
@@ -284,11 +275,7 @@ def _force_reset_for_types(con, types: tuple[str, ...]) -> None:
             ).fetchall()
             for (cid,) in code_ids:
                 _delete_edges_for(con, cid, "code")
-                con.execute(
-                    "UPDATE nodes SET status = 'rejected', "
-                    "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    [cid],
-                )
+                con.execute("DELETE FROM nodes WHERE id = ?", [cid])
                 con.execute(
                     "DELETE FROM inference_status WHERE entity_id = ?", [str(cid)]
                 )

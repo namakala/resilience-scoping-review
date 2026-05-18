@@ -13,7 +13,7 @@ from typing import Optional
 
 import duckdb
 from graph import clear_traversal_cache, create_edge, rebuild_graph
-from graph.queries import get_node
+from graph.queries import get_node, is_exemplar_in_any_code
 from graph.singleton import get_graph
 from graph.transactions import _active_tx_conn, _active_tx_db_path
 from ontology import ConstraintError, validate_constraint
@@ -58,18 +58,55 @@ def _redirect_contains_edges(con, source_id: int, target_id: int) -> None:
 
 
 def _merge_data_json(
-    con, source_id: int, target_id: int, src_dj: dict, tgt_dj: dict
+    con,
+    source_id: int,
+    target_id: int,
+    src_dj: dict,
+    tgt_dj: dict,
+    db_path: Optional[Path] = None,
 ) -> None:
     """Merge exemplar_ids and supporting_quotes into target; clear source.
 
     Sets ``merged_into`` on source's data_json and marks it ``merged``.
+
+    Enforces: one exemplar belongs to at most one code. Exemplars from
+    *source_id* that already belong to a third (non-target) code are
+    skipped with a warning.
     """
     src_eids = src_dj.get("exemplar_ids", [])
     src_quotes = src_dj.get("supporting_quotes", {})
     tgt_eids = tgt_dj.get("exemplar_ids", [])
     tgt_quotes = tgt_dj.get("supporting_quotes", {})
 
-    merged_eids = list(dict.fromkeys(tgt_eids + src_eids))
+    # Filter source exemplars: skip those that belong to a third code
+    filtered_src = []
+    filtered_quotes = {}
+    for eid_str in src_eids:
+        try:
+            eid_int = int(eid_str)
+        except (ValueError, TypeError):
+            filtered_src.append(eid_str)
+            if eid_str in src_quotes:
+                filtered_quotes[eid_str] = src_quotes[eid_str]
+            continue
+        already_in, existing_cid, existing_cname = is_exemplar_in_any_code(
+            eid_int, db_path=db_path
+        )
+        if already_in and existing_cid not in (source_id, target_id):
+            logger.warning(
+                "Exemplar %s already belongs to code '%s' (id=%s) — "
+                "cannot merge into target code (id=%s). Skipping.",
+                eid_str,
+                existing_cname,
+                existing_cid,
+                target_id,
+            )
+        else:
+            filtered_src.append(eid_str)
+            if eid_str in src_quotes:
+                filtered_quotes[eid_str] = src_quotes[eid_str]
+
+    merged_eids = list(dict.fromkeys(tgt_eids + filtered_src))
     merged_quotes = {**tgt_quotes, **src_quotes}
 
     tgt_dj["exemplar_ids"] = merged_eids
@@ -161,7 +198,7 @@ def handle_merge(
 
     try:
         _redirect_contains_edges(con, source_id, target_id)
-        _merge_data_json(con, source_id, target_id, src_dj, tgt_dj)
+        _merge_data_json(con, source_id, target_id, src_dj, tgt_dj, db_path=db_path)
         create_edge(
             source_id=source_id,
             target_id=target_id,

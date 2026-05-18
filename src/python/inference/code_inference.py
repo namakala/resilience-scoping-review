@@ -40,6 +40,7 @@ from config import (
     similarity_score_threshold,
 )
 from graph import get_nodes_by_type_and_tag, graph_transaction
+from graph.queries import is_exemplar_in_any_code
 from inference.status_updates import mark_success
 from persistence.duckdb_connection import DEFAULT_DB_PATH
 from persistence.embedding_cache import get_embedding
@@ -340,6 +341,22 @@ def _auto_assign_exemplars(
                 logger.debug(
                     "Exemplar %s already linked to code %s — skipping",
                     eid_str,
+                    cid,
+                )
+                continue
+
+            # Enforce: one exemplar belongs to at most one code
+            already_in, existing_code_id, existing_code_name = is_exemplar_in_any_code(
+                ex.id, db_path=db_path
+            )
+            if already_in and existing_code_id != cid:
+                logger.warning(
+                    "Exemplar %s already belongs to code '%s' (id=%s) — "
+                    "cannot auto-assign to code '%s' (id=%s). Skipping.",
+                    eid_str,
+                    existing_code_name,
+                    existing_code_id,
+                    existing.get("name", str(cid)),
                     cid,
                 )
                 continue

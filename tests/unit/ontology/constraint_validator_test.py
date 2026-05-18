@@ -463,7 +463,8 @@ class TestRule3ThemeOneInterpretation(unittest.TestCase):
             tag_dag=self.tag_dag,
         )
 
-    def test_theme_spanned_by_draft_interpretation_approves(self):
+    def test_theme_spanned_by_draft_interpretation_rejected(self):
+        """Now rejects draft interpretations too (stricter enforcement)."""
         G = _make_graph_with_nodes(
             [
                 {
@@ -491,12 +492,14 @@ class TestRule3ThemeOneInterpretation(unittest.TestCase):
             ],
             [(1, 10, "composed-of"), (1, 11, "composed-of"), (20, 1, "spans")],
         )
-        validate_constraint(
-            {"id": 1, "type": "theme", "tag": "Problem"},
-            "approve",
-            graph=G,
-            tag_dag=self.tag_dag,
-        )
+        with self.assertRaises(ConstraintError) as ctx:
+            validate_constraint(
+                {"id": 1, "type": "theme", "tag": "Problem"},
+                "approve",
+                graph=G,
+                tag_dag=self.tag_dag,
+            )
+        self.assertIn("already spanned", str(ctx.exception))
 
     def test_theme_spanned_by_approved_interpretation_rejected(self):
         G = _make_graph_with_nodes(

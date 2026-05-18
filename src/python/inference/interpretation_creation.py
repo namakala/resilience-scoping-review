@@ -36,6 +36,7 @@ from graph import (
     get_nodes_by_type_and_tag,
     graph_transaction,
 )
+from graph.queries import is_theme_in_any_interpretation
 from ontology import (
     invalidate_cache_for_tags,
     is_contiguous_subtree,
@@ -311,6 +312,24 @@ def _create_interpretation_batch(
                         interp.interpretation_name,
                     )
                     continue
+
+                # Enforce: one theme belongs to at most one interpretation
+                already_in, existing_interp_id, existing_interp_name = (
+                    is_theme_in_any_interpretation(theme_id, db_path=db_path)
+                )
+                if already_in and existing_interp_id != node_id:
+                    logger.warning(
+                        "Theme '%s' (id=%s) already spanned by interpretation "
+                        "'%s' (id=%s) — cannot add to '%s' (id=%s). Skipping.",
+                        theme_id_str,
+                        theme_id,
+                        existing_interp_name,
+                        existing_interp_id,
+                        interp.interpretation_name,
+                        node_id,
+                    )
+                    continue
+
                 create_edge(
                     source_id=node_id,
                     target_id=theme_id,

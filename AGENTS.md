@@ -1,7 +1,7 @@
 ---
 title: "Project Agentic Documentation Index"
 description: "Entry point for agentic documentation across all system layers and modules"
-updated_at: "2026-05-15"
+updated_at: "2026-05-18"
 ---
 
 # Local-First Qualitative Thematic Analysis
@@ -54,7 +54,7 @@ Exemplars CSV: `id,document,tag,content`. Tag ontology CSV: `tag,description,n_c
 
 ## Constraints
 
-One code → one theme. One theme → one interpretation. Themes aggregate codes within same tag only. Interpretations may span multiple tags. Tag ontology is a DAG.
+One exemplar → one code. One code → one theme. One theme → one interpretation. Themes aggregate codes within same tag only. Interpretations may span multiple tags. Tag ontology is a DAG. All constraints are enforced at write time — violations produce logged warnings and skip the offending entity.
 
 See `@src/python/ontology/AGENTS.md` for validation rules.
 

@@ -14,7 +14,7 @@ from typing import Optional
 
 import duckdb
 from graph import clear_traversal_cache, create_edge, rebuild_graph
-from graph.queries import get_node
+from graph.queries import get_node, is_theme_in_any_interpretation
 from graph.singleton import get_graph
 from graph.transactions import _active_tx_conn, _active_tx_db_path
 from ontology import ConstraintError, validate_constraint
@@ -29,16 +29,44 @@ logger = get_logger(__name__)
 __all__ = ["handle_merge_interpretations"]
 
 
-def _redirect_spans_edges(con, source_id: int, target_id: int) -> None:
+def _redirect_spans_edges(
+    con,
+    source_id: int,
+    target_id: int,
+    db_path: Optional[Path] = None,
+) -> None:
     """Redirect all ``spans`` edges from *source_id* to *target_id*.
 
     Deletes edges where the target already has a connection to avoid
     duplicate primary keys.  Updates edge source_id otherwise.
+
+    Skips themes that already belong to a third (non-merged)
+    interpretation (enforces one-theme-per-interpretation).
     """
     for (theme_id,) in con.execute(
         "SELECT target_id FROM edges " "WHERE source_id = ? AND edge_type = 'spans'",
         [source_id],
     ).fetchall():
+        # Enforce: one theme belongs to at most one interpretation
+        already_in, existing_iid, existing_iname = is_theme_in_any_interpretation(
+            theme_id, db_path=db_path
+        )
+        if already_in and existing_iid not in (source_id, target_id):
+            logger.warning(
+                "Theme %s already spanned by interpretation '%s' (id=%s) — "
+                "cannot redirect to interpretation (id=%s). Deleting edge instead.",
+                theme_id,
+                existing_iname,
+                existing_iid,
+                target_id,
+            )
+            con.execute(
+                "DELETE FROM edges "
+                "WHERE source_id = ? AND target_id = ? AND edge_type = 'spans'",
+                [source_id, theme_id],
+            )
+            continue
+
         if con.execute(
             "SELECT 1 FROM edges "
             "WHERE source_id = ? AND target_id = ? AND edge_type = 'spans'",
@@ -154,7 +182,7 @@ def handle_merge_interpretations(
     committed = False
 
     try:
-        _redirect_spans_edges(con, source_id, target_id)
+        _redirect_spans_edges(con, source_id, target_id, db_path=db_path)
         _merge_interpretation_data_json(con, source_id, target_id, src_dj, tgt_dj)
         create_edge(
             source_id=source_id,

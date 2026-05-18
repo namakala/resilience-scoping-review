@@ -18,6 +18,7 @@ import click
 import duckdb
 from orchestration.config import load_configuration
 from orchestration.default import handle_default
+from orchestration.export import export_cmd
 from orchestration.ingest import ingest_cmd
 from orchestration.run import run_cmd
 from persistence.duckdb_connection import get_connection
@@ -100,6 +101,7 @@ def cli(
 
 # ── Register standalone subcommands ─────────────────────────────────────────
 
+cli.add_command(export_cmd)
 cli.add_command(ingest_cmd)
 cli.add_command(run_cmd)
 

@@ -35,6 +35,7 @@ from graph import (
     get_nodes_by_type_and_tag,
     graph_transaction,
 )
+from graph.queries import is_exemplar_in_any_code
 from utils.logging import get_logger
 
 from .batching import group_items_by_tag
@@ -211,7 +212,26 @@ def _create_code_nodes_for_tag(
                 old_quotes = old_dj.get("supporting_quotes", {})
                 old_related = old_dj.get("related_existing_codes", [])
 
-                merged_eids = list(set(old_eids + all_eids))
+                # Enforce: one exemplar belongs to at most one code
+                filtered_eids = []
+                for eid in all_eids:
+                    already_in, existing_cid, existing_cname = is_exemplar_in_any_code(
+                        int(eid), db_path=db_path
+                    )
+                    if already_in and existing_cid != draft_id:
+                        logger.warning(
+                            "Exemplar %s already belongs to code '%s' (id=%s) — "
+                            "cannot merge into code '%s' (id=%s). Skipping.",
+                            eid,
+                            existing_cname,
+                            existing_cid,
+                            code_name,
+                            draft_id,
+                        )
+                    else:
+                        filtered_eids.append(eid)
+
+                merged_eids = list(set(old_eids + filtered_eids))
                 merged_quotes = {**old_quotes, **all_quotes}
                 merged_related = list(set(old_related + all_related))
                 merged_dj = _build_data_json(merged_eids, merged_quotes, merged_related)
@@ -260,7 +280,31 @@ def _create_code_nodes_for_tag(
                     )
                     unique_name = _make_unique_name(qualified, all_code_names.keys())
 
-                data_json = _build_data_json(all_eids, all_quotes, all_related)
+                # Enforce: one exemplar belongs to at most one code (defensive)
+                unclaimed_eids = []
+                for eid in all_eids:
+                    already_in, existing_cid, existing_cname = is_exemplar_in_any_code(
+                        int(eid), db_path=db_path
+                    )
+                    if already_in:
+                        logger.warning(
+                            "Exemplar %s already belongs to code '%s' (id=%s) — "
+                            "cannot create new code '%s'. Skipping exemplar.",
+                            eid,
+                            existing_cname,
+                            existing_cid,
+                            unique_name,
+                        )
+                    else:
+                        unclaimed_eids.append(eid)
+                unclaimed_quotes = {
+                    eid: q for eid, q in all_quotes.items() if eid in unclaimed_eids
+                }
+                unclaimed_related = [r for r in all_related if r in unclaimed_eids]
+
+                data_json = _build_data_json(
+                    unclaimed_eids, unclaimed_quotes, unclaimed_related
+                )
                 node_id = create_node(
                     node_type="code",
                     name=unique_name,
@@ -274,6 +318,8 @@ def _create_code_nodes_for_tag(
 
                 # Create contains edges for all exemplars
                 for c in group:
+                    if c.exemplar_id not in unclaimed_eids:
+                        continue
                     target_nid = exemplar_node_map[c.exemplar_id]
                     create_edge(
                         source_id=node_id,

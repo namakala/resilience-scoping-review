@@ -21,6 +21,7 @@ from typing import Any, Optional
 import duckdb
 from config import interpretation_model, interpretation_temperature
 from graph import clear_traversal_cache, create_edge, create_node, rebuild_graph
+from graph.queries import is_theme_in_any_interpretation
 from graph.singleton import get_graph
 from graph.transactions import _active_tx_conn, _active_tx_db_path
 from inference.parsing import InterpretationInference, parse_interpretation_response
@@ -170,8 +171,21 @@ def handle_split_interpretation(
             [source_id],
         )
 
-        # Create new spans edges
+        # Create new spans edges (enforce: one theme → at most one interpretation)
         for tid in first_theme_ids:
+            already_in, existing_iid, existing_iname = is_theme_in_any_interpretation(
+                tid, db_path=db_path
+            )
+            if already_in and existing_iid not in (first_id, source_id):
+                logger.warning(
+                    "Theme %s already spanned by interpretation '%s' (id=%s) — "
+                    "skipping for split interpretation %s",
+                    tid,
+                    existing_iname,
+                    existing_iid,
+                    first_id,
+                )
+                continue
             create_edge(
                 source_id=first_id,
                 target_id=tid,
@@ -179,6 +193,19 @@ def handle_split_interpretation(
                 db_path=db_path,
             )
         for tid in second_theme_ids:
+            already_in, existing_iid, existing_iname = is_theme_in_any_interpretation(
+                tid, db_path=db_path
+            )
+            if already_in and existing_iid not in (second_id, source_id):
+                logger.warning(
+                    "Theme %s already spanned by interpretation '%s' (id=%s) — "
+                    "skipping for split interpretation %s",
+                    tid,
+                    existing_iname,
+                    existing_iid,
+                    second_id,
+                )
+                continue
             create_edge(
                 source_id=second_id,
                 target_id=tid,
@@ -477,6 +504,19 @@ def handle_split_interpretation_regroup(
             node_ids.append(nid)
 
             for tid in gd["theme_ids"]:
+                already_in, existing_iid, existing_iname = (
+                    is_theme_in_any_interpretation(tid, db_path=db_path)
+                )
+                if already_in and existing_iid not in (nid, source_id):
+                    logger.warning(
+                        "Theme %s already spanned by interpretation '%s' "
+                        "(id=%s) — skipping for regroup interpretation %s",
+                        tid,
+                        existing_iname,
+                        existing_iid,
+                        nid,
+                    )
+                    continue
                 create_edge(
                     source_id=nid,
                     target_id=tid,

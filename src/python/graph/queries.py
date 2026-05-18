@@ -226,3 +226,76 @@ def load_occupied_names(
     finally:
         if con:
             con.close()
+
+
+def is_exemplar_in_any_code(
+    exemplar_id: int,
+    db_path: Optional[Path] = None,
+) -> tuple[bool, Optional[int], Optional[str]]:
+    """Check if an exemplar ID already belongs to any non-merged code node.
+
+    Queries all ``code`` nodes with non-merged status and inspects their
+    ``data_json['exemplar_ids']`` for *exemplar_id*.
+
+    Returns:
+        ``(found, code_id, code_name)`` where ``found`` is True if the
+        exemplar is already linked to a code, along with that code's ID
+        and name.  ``(False, None, None)`` if unclaimed.
+    """
+    con = None
+    try:
+        con = _get_conn(db_path)
+        rows = con.execute(
+            f"SELECT {NODE_COLUMNS} FROM nodes "
+            "WHERE type = 'code' AND status != 'merged' ORDER BY id",
+        ).fetchall()
+        for row in rows:
+            node = row_to_dict(row)
+            dj = node.get("data_json") or {}
+            eids = dj.get("exemplar_ids") or []
+            if str(exemplar_id) in [str(e) for e in eids]:
+                return True, int(node["id"]), str(node.get("name", ""))
+        return False, None, None
+    except duckdb.Error:
+        logger.exception("is_exemplar_in_any_code failed")
+        raise
+    finally:
+        if con:
+            con.close()
+
+
+def is_theme_in_any_interpretation(
+    theme_id: int,
+    db_path: Optional[Path] = None,
+) -> tuple[bool, Optional[int], Optional[str]]:
+    """Check if a theme already has a ``spans`` edge from a non-merged interpretation.
+
+    Queries the ``edges`` table for ``spans`` edges targeting *theme_id*,
+    excluding edges from interpretations with ``status = 'merged'``.
+
+    Returns:
+        ``(found, interp_id, interp_name)`` where ``found`` is True if the
+        theme is already spanned by an interpretation.  ``(False, None, None)``
+        if unclaimed.
+    """
+    con = None
+    try:
+        con = _get_conn(db_path)
+        edges = con.execute(
+            "SELECT e.source_id, n.name "
+            "FROM edges e "
+            "JOIN nodes n ON n.id = e.source_id "
+            "WHERE e.target_id = ? AND e.edge_type = 'spans' "
+            "AND n.status != 'merged'",
+            [theme_id],
+        ).fetchall()
+        if edges:
+            src_id, src_name = edges[0]
+            return True, int(src_id), str(src_name)
+        return False, None, None
+    except duckdb.Error:
+        logger.exception("is_theme_in_any_interpretation failed")
+        raise
+    finally:
+        if con:
+            con.close()

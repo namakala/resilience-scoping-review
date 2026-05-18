@@ -42,7 +42,7 @@ def atomic_write(data: str | bytes, path: Path, mode: str = "w") -> None:
 
 
 def write_json(
-    data: dict[str, Any],
+    data: Any,
     path: Path,
     *,
     indent: int = 2,

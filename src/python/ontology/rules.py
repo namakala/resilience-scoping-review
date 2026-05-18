@@ -83,20 +83,20 @@ def validate_theme_interpretation(
     theme_id: int,
     graph: nx.DiGraph,
 ) -> None:
-    """Rule 3: theme belongs to at most one approved interpretation."""
+    """Rule 3: theme belongs to at most one non-merged interpretation."""
     for src, tgt, data in graph.edges(data=True):
         if data.get("type") != "spans":
             continue
         if tgt != theme_id:
             continue
         interp_status = graph.nodes[src].get("status", "")
-        if interp_status == "approved":
+        if interp_status not in ("merged", "rejected"):
             interp_name = graph.nodes[src].get("name", str(src))
             raise ConstraintError(
                 CONSTRAINT_THEME_MULTI_INTERP,
-                f"Theme '{theme_id}' is already spanned by approved "
-                f"interpretation '{interp_name}'. A theme can belong to "
-                f"at most one interpretation.",
+                f"Theme '{theme_id}' is already spanned by "
+                f"interpretation '{interp_name}' (status={interp_status}). "
+                f"A theme can belong to at most one interpretation.",
             )
 
 

@@ -58,24 +58,44 @@ def dedup_interpretation_names(
 def flag_overlapping_themes(
     interpretations: list[InterpretationInference],
 ) -> list[InterpretationInference]:
-    """Log a warning if two interpretations reference the same theme ID.
+    """Enforce: each theme may appear in at most one interpretation.
 
-    Each theme should ideally belong to exactly one interpretation.
-    This is a non-blocking advisory for the HITL review stage.
+    When a theme ID is used by multiple interpretations, the theme is
+    removed from all but the first interpretation that claimed it.  If
+    an interpretation loses all its themes, it is removed entirely.
+
+    Logs a warning for each removal to aid HITL audit.
     """
-    theme_to_interp: dict[str, str] = {}
+    claimed: set[str] = set()
+    result: list[InterpretationInference] = []
+
     for interp in interpretations:
-        for tid in interp.theme_ids:
-            if tid in theme_to_interp:
-                logger.warning(
-                    "Theme '%s' appears in both '%s' and '%s'",
-                    tid,
-                    theme_to_interp[tid],
-                    interp.interpretation_name,
-                )
-            else:
-                theme_to_interp[tid] = interp.interpretation_name
-    return interpretations
+        kept = [tid for tid in interp.theme_ids if tid not in claimed]
+        removed = [tid for tid in interp.theme_ids if tid in claimed]
+
+        for tid in removed:
+            logger.warning(
+                "Theme '%s' already claimed by another interpretation — "
+                "removing from '%s' (theme uniqueness enforcement).",
+                tid,
+                interp.interpretation_name,
+            )
+
+        if not kept:
+            logger.warning(
+                "Interpretation '%s' has no remaining themes after "
+                "deduplication — removing it entirely.",
+                interp.interpretation_name,
+            )
+            continue
+
+        if len(removed) > 0:
+            interp.theme_ids = kept
+
+        claimed.update(kept)
+        result.append(interp)
+
+    return result
 
 
 def validate_theme_ids_exist(

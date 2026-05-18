@@ -27,6 +27,7 @@ Global options:
 Commands:
   ingest              Ingest CSV data into DuckDB session
   run [--all|--type]  Run pipeline stages with HITL validation
+  export              Export approved codes, themes, interpretations
   review              Enter HITL review TUI
   (no command)        Default: review with empty-check prompt
 ```
@@ -49,6 +50,12 @@ Commands:
 - `--limit N` restricts analysis stages (code, theme, interpretation) to N tags with the most exemplars (n_contents > 0). Default 0 = all tags.
 - Drives stages via ``runner.run_pipeline()`` with checkpoint after each stage
 - Runs HITL review automatically after inference stages (5, 7, 9)
+
+**export:**
+- Exports approved codes, themes, and interpretations to JSON, CSV, and Markdown
+- Pre-checks: DuckDB connection + pipeline completion (stage >= 10 or approved interpretations exist)
+- Writes to ``EXPORT_OUTPUT_PATH`` (default ``data/output``) as ``results.json``, ``results.csv``, ``results.md``
+- Standalone command: ``python analyze.py export``; also invoked as pipeline stage 10
 
 **review:**
 - Enters HITL review TUI using rich panels and questionary prompts
@@ -80,8 +87,8 @@ does re-ingest proceed.
 - `cli.py` — Click group, subcommand definitions, dispatch, progress display
 - `run.py` — ``run`` subcommand: ``run_cmd()`` CLI handler, ``run_sequence()`` programmatic entry
 - `runner.py` — Sequential stage-transition driver: ``run_pipeline()`` dispatches service modules per stage, ``resolve_target_stage()``
-- `export.py` — Orchestrate final export: query approved graph nodes, delegate to formatters + atomic I/O
-- `export_formatters.py` — Pure JSON/CSV/Markdown format builders (no I/O, no DB)
+- `export.py` — Orchestrate final export: query approved graph nodes, delegate to formatters + atomic I/O; also provides ``export_cmd`` Click subcommand with connection and completion pre-checks
+- `export_formatters.py` — Pure JSON/CSV/Markdown format builders (no I/O, no DB); builds array-based JSON, per-exemplar CSV, and labelled-heading Markdown
 - `hash_utils.py` — File hashing: `compute_file_hash()`, `check_ingest_allowed()`, `record_ingest_hashes()`
 - `state.py` — `WorkflowState` dataclass: stage transitions, serialization, dirty flags, config hash
 - `state_rules.py` — Stage constants (`MIN_STAGE`, `MAX_STAGE`, `STAGE_PREREQS`) + field validation
@@ -92,7 +99,7 @@ does re-ingest proceed.
 - Calls `persistence.converter.convert_csvs()` and `persistence.duckdb_init.init_or_migrate()`
 - Calls `hitl.code_review.review_codes()`, `hitl.theme_review.review_themes()`, etc.
 - Calls service modules directly via ``runner.run_pipeline()`` sequential dispatch
-- Calls `orchestration.export.export_all()` after stage 10 to write results
+- Calls `orchestration.export.export_all()` after stage 10 to write results; ``orchestration.export.export_cmd`` registered as standalone Click subcommand
 - Reads config from `config.settings`
 - Stores state via `persistence.state_repository` (checkpoint after each stage)
 

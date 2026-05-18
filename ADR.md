@@ -614,6 +614,7 @@ Thematic relationships must remain semantically consistent.
 
 The ontology shall enforce:
 
+* one exemplar belongs to one code,
 * one code belongs to one theme,
 * one theme contains multiple codes within the same tag,
 * one theme belongs to one interpretation,
