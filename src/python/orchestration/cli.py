@@ -16,6 +16,7 @@ from typing import Optional
 
 import click
 import duckdb
+from benchmark.benchmark import benchmark_cmd
 from orchestration.config import load_configuration
 from orchestration.default import handle_default
 from orchestration.export import export_cmd
@@ -101,6 +102,7 @@ def cli(
 
 # ── Register standalone subcommands ─────────────────────────────────────────
 
+cli.add_command(benchmark_cmd)
 cli.add_command(export_cmd)
 cli.add_command(ingest_cmd)
 cli.add_command(run_cmd)
