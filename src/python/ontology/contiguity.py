@@ -4,11 +4,14 @@ Standalone module — no imports from sibling ontology modules. Shared
 with Feature 50 (multi-tag-span-validation).
 """
 
-from typing import Optional, Set
+from typing import List, Optional, Set
 
 import networkx as nx
 
-__all__ = ["is_contiguous_subtree"]
+__all__ = [
+    "is_contiguous_subtree",
+    "partition_into_contiguous_components",
+]
 
 
 def _resolve_tag_dag(tag_dag: Optional[nx.DiGraph] = None) -> nx.DiGraph:
@@ -101,3 +104,35 @@ def _missing_intermediates(
             if node not in tags:
                 missing.add(node)
     return missing
+
+
+def partition_into_contiguous_components(
+    tags: Set[str],
+    tag_dag: Optional[nx.DiGraph] = None,
+) -> List[Set[str]]:
+    """Split *tags* into WCC components of the induced subgraph.
+
+    Returns components sorted by size descending (largest first).
+    Single tags form their own component.  This is the dual of
+    :func:`is_contiguous_subtree`: a set is contiguous when this
+    function returns a single component.
+
+    Args:
+        tags: Set of ontology tag strings.
+        tag_dag: Ontology DAG.  Defaults to the singleton.
+
+    Returns:
+        List of tag sets, each a weakly connected component of the
+        induced subgraph, ordered from largest to smallest.
+    """
+    dag = _resolve_tag_dag(tag_dag)
+    if len(tags) <= 1:
+        return [set(tags)]
+
+    induced = dag.subgraph(tags)
+    components = sorted(
+        nx.weakly_connected_components(induced),
+        key=len,
+        reverse=True,
+    )
+    return [c for c in components if c]

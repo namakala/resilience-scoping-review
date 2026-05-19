@@ -21,6 +21,7 @@ from .invalidation import invalidate_interpretation_embedding
 from .shared import (
     _log_and_finish,
     _update_node_definition,
+    _update_node_name,
     _update_node_status,
     console,
 )
@@ -42,20 +43,31 @@ def handle_approve_interpretation(
     con: duckdb.DuckDBPyConnection,
     interp: dict[str, Any],
     db_path: Optional[Path] = None,
-) -> None:
+) -> dict[str, Any]:
     """Approve an interpretation.
 
     Validates constraints, then delegates to ``approve_interpretation()``
     which finalises the interpretation, invalidates caches, and updates
     session counters.
+
+    Non-contiguous ``tag_spans`` are allowed — a warning is logged and
+    returned in the result dict instead of blocking.
+
+    Returns:
+        Dict with keys:
+            ``approved`` (bool) — whether approval succeeded.
+            ``warning`` (str | None) — warning message if tag_spans
+            were non-contiguous but approval proceeded.
     """
     node_id = interp["id"]
     dj = interp.get("data_json") or {}
     tag_spans = set(dj.get("tag_spans", []))
+    warning: Optional[str] = None
+
+    from ontology import ConstraintError, validate_constraint
+    from ontology.constraints import CONSTRAINT_NONCONTIGUOUS_SPAN
 
     try:
-        from ontology import ConstraintError, validate_constraint
-
         validate_constraint(
             {
                 "id": node_id,
@@ -65,12 +77,17 @@ def handle_approve_interpretation(
             "approve",
         )
     except ConstraintError as exc:
-        console.print(f"[red]Constraint violation: {exc}[/red]")
-        logger.warning(
-            "Interpretation approve rejected by constraint",
-            extra={"error": str(exc), "constraint_type": exc.code},
-        )
-        return
+        if exc.code == CONSTRAINT_NONCONTIGUOUS_SPAN:
+            warning = f"Interpretation approved with non-contiguous tag_spans: {exc}"
+            logger.warning(warning)
+            console.print(f"[yellow]Warning: {exc}[/yellow]")
+        else:
+            console.print(f"[red]Constraint violation: {exc}[/red]")
+            logger.warning(
+                "Interpretation approve rejected by constraint",
+                extra={"error": str(exc), "constraint_type": exc.code},
+            )
+            return {"approved": False, "warning": None}
 
     try:
         approve_interpretation(con, node_id, db_path=db_path)
@@ -80,6 +97,9 @@ def handle_approve_interpretation(
             "Interpretation approval failed",
             extra={"error": str(exc), "node_id": node_id},
         )
+        return {"approved": False, "warning": None}
+
+    return {"approved": True, "warning": warning}
 
 
 def handle_edit_interpretation(
@@ -87,8 +107,10 @@ def handle_edit_interpretation(
     interp: dict[str, Any],
     db_path: Optional[Path] = None,
     new_narrative: str = "",
+    new_name: str = "",
 ) -> None:
-    """Edit an interpretation: update narrative, reset to draft, invalidate cache.
+    """Edit an interpretation: update narrative and/or name,
+    reset to draft, invalidate cache.
 
     Preserves ``tag`` and ``tag_spans`` — scope cannot be changed via edit.
     Refuses to edit an already-approved interpretation.
@@ -107,33 +129,40 @@ def handle_edit_interpretation(
         return
 
     old_narrative = interp.get("narrative", "")
+    old_name = interp.get("name", "")
 
-    if not new_narrative.strip():
-        logger.warning("Edit aborted: empty narrative")
+    if not new_narrative.strip() and not new_name.strip():
+        logger.warning("Edit aborted: both narrative and name are empty")
         return
 
-    if new_narrative == old_narrative:
-        logger.info("Edit aborted: narrative unchanged")
+    if new_narrative == old_narrative and (
+        not new_name.strip() or new_name == old_name
+    ):
+        logger.info("Edit aborted: narrative and name unchanged")
         return
 
-    _update_node_definition(con, node_id, new_narrative, db_path=db_path)
-    set_status_draft(
-        con,
-        entity_id=str(node_id),
-        entity_type=ENTITY_INTERPRETATION,
-        stage=STAGE_INTERPRETATION,
-    )
+    old_value: dict[str, Any] = {}
+    new_value: dict[str, Any] = {}
 
-    tag_spans = (interp.get("data_json") or {}).get("tag_spans", [])
-    invalidate_interpretation_embedding(con, node_id, tag_spans)
+    if new_narrative.strip() and new_narrative != old_narrative:
+        _update_node_definition(con, node_id, new_narrative, db_path=db_path)
+        set_status_draft(
+            con,
+            entity_id=str(node_id),
+            entity_type=ENTITY_INTERPRETATION,
+            stage=STAGE_INTERPRETATION,
+        )
+        tag_spans = (interp.get("data_json") or {}).get("tag_spans", [])
+        invalidate_interpretation_embedding(con, node_id, tag_spans)
+        old_value["narrative"] = old_narrative
+        new_value["narrative"] = new_narrative
 
-    _log_and_finish(
-        con,
-        "edit",
-        node_id,
-        old_value={"narrative": old_narrative},
-        new_value={"narrative": new_narrative},
-    )
+    if new_name.strip() and new_name != old_name:
+        _update_node_name(con, node_id, new_name, db_path=db_path)
+        old_value["name"] = old_name
+        new_value["name"] = new_name
+
+    _log_and_finish(con, "edit", node_id, old_value, new_value)
 
 
 def handle_reject_interpretation(

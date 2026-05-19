@@ -45,6 +45,8 @@ dependencies:
   - tenacity
   - keybert
   - python-dotenv
+  - click
+  - textual
   - pip:
     - apache-hamilton
     - circuitbreaker

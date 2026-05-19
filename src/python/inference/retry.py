@@ -2,8 +2,10 @@
 
 Three-tier retry for the :func:`complete` function:
 
-1. Network errors (timeout, connection) --- exponential backoff via ``make_retry``.
-2. HTTP 429 (rate limit) --- sleep 60s --- retry once.
+1. Transient errors (timeout, connection, rate-limit, HTTP 400) ---
+   exponential backoff via ``make_retry``.
+2. HTTP 429 (rate limit) --- use ``retry-after`` response header for sleep
+   duration, retry once.
 3. Token limit (context-length BadRequestError) --- raises :class:`TokenLimitError`
    so the caller can split the batch and retry each half.
 
@@ -34,7 +36,7 @@ from utils.logging import get_logger
 from utils.retry import make_retry
 
 from .batching import Batch, split_batch_in_half
-from .groq_client import complete
+from .groq_client import complete, get_rate_limit_state
 from .prompts import PromptBundle
 
 __all__ = [
@@ -51,6 +53,8 @@ _NETWORK_ERRORS = (
     GroqAPIError,
     APITimeoutError,
     APIConnectionError,
+    RateLimitError,
+    BadRequestError,
 )
 
 
@@ -71,9 +75,47 @@ class TokenLimitError(Exception):
         self.batch_id = batch_id
 
 
+def _proactive_rate_limit_check() -> None:
+    """Sleep proactively if rate limit state suggests the next call would fail.
+
+    Checks ``x-ratelimit-remaining-tokens`` (TPM) and
+    ``x-ratelimit-remaining-requests`` (RPD) from the last response.  If
+    remaining tokens < 5000 (conservative minimum for one batch) or pending
+    requests < 1, sleeps until the corresponding reset time.
+    """
+    state = get_rate_limit_state()
+    if state.remaining_tokens < 0:
+        return  # No rate limit data yet
+
+    PROACTIVE_TOKEN_THRESHOLD = 5000
+
+    if (
+        state.remaining_tokens < PROACTIVE_TOKEN_THRESHOLD
+        and state.reset_tokens_seconds > 0
+    ):
+        sleep = int(state.reset_tokens_seconds) + 1
+        logger.warning(
+            "Proactive rate limit: remaining tokens %d < %d, sleeping %ds (TPM reset)",
+            state.remaining_tokens,
+            PROACTIVE_TOKEN_THRESHOLD,
+            sleep,
+        )
+        time.sleep(sleep)
+
+    if state.remaining_requests < 1 and state.reset_requests_seconds > 0:
+        sleep = int(state.reset_requests_seconds) + 1
+        logger.warning(
+            "Proactive rate limit: remaining requests %d < 1, sleeping %ds (RPD reset)",
+            state.remaining_requests,
+            sleep,
+        )
+        time.sleep(sleep)
+
+
 def call_complete_with_retry(
     prompt: PromptBundle,
     batch_id: str,
+    tag: str = "",
     model: str | None = None,
     temperature: float = 0.0,
     response_format: dict | None = None,
@@ -87,8 +129,9 @@ def call_complete_with_retry(
 
     1. Network errors --- exponential backoff (2s, 4s, 8s default, up to
        ``max_network_retries`` attempts) via :func:`utils.retry.make_retry`.
-    2. HTTP 429 --- sleep ``rate_limit_sleep_seconds`` (default 60) then
-       retry once.
+    2. HTTP 429 --- use the ``retry-after`` response header for sleep duration,
+       retry once. Falls back to ``rate_limit_sleep_seconds`` (default 60) if
+       the header is missing.
     3. Token limit --- raises :class:`TokenLimitError`.
 
     Returns
@@ -113,26 +156,34 @@ def call_complete_with_retry(
         label=f"batch {batch_id}",
     )
     def _execute(p, bid):
+        _proactive_rate_limit_check()
         try:
             return complete(
                 p,
                 model=model,
                 temperature=temperature,
                 response_format=response_format,
+                batch_id=bid,
+                tag=tag,
             )
-        except RateLimitError:
+        except RateLimitError as e:
+            sleep_seconds = int(
+                e.response.headers.get("retry-after", str(rate_limit_sleep_seconds))
+            )
             _logger.warning(
                 "Rate limit 429 for batch %s, sleeping %ds",
                 bid,
-                rate_limit_sleep_seconds,
+                sleep_seconds,
             )
-            time.sleep(rate_limit_sleep_seconds)
+            time.sleep(sleep_seconds)
             _logger.warning("Retrying batch %s after rate-limit sleep", bid)
             return complete(
                 p,
                 model=model,
                 temperature=temperature,
                 response_format=response_format,
+                batch_id=bid,
+                tag=tag,
             )
         except BadRequestError as e:
             if "context length" in str(e).lower():
@@ -172,7 +223,9 @@ def infer_batch_with_retry(
     """
     prompt = render_fn(batch)
     try:
-        return [call_complete_with_retry(prompt, batch.batch_id, **kwargs)]
+        return [
+            call_complete_with_retry(prompt, batch.batch_id, tag=batch.tag, **kwargs)
+        ]
     except TokenLimitError:
         logger.warning("Splitting batch %s due to token limit", batch.batch_id)
         results: list = []

@@ -7,6 +7,7 @@ keyword_embedding.py.
 """
 
 import time
+from collections.abc import Callable
 
 import duckdb
 import polars as pl
@@ -75,6 +76,7 @@ def _encode_and_store_generic(
     batch_size: int,
     desc: str,
     unit: str,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> int:
     """Batch-encode items and store in cache.
 
@@ -86,6 +88,8 @@ def _encode_and_store_generic(
         batch_size: Encode batch size.
         desc: tqdm progress bar description.
         unit: tqdm progress bar unit label.
+        progress_callback: Optional callback ``(total, completed, desc)``
+            for TUI progress reporting.
 
     Returns:
         Number of items encoded.
@@ -110,6 +114,9 @@ def _encode_and_store_generic(
 
             pbar.update(len(batch_items))
 
+            if progress_callback:
+                progress_callback(count, pbar.n, desc)
+
     return count
 
 
@@ -119,6 +126,7 @@ def _encode_and_store_generic(
 def generate_exemplar_embeddings(
     con: duckdb.DuckDBPyConnection,
     batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> dict:
     """Batch-generate embeddings for all uncached exemplars.
 
@@ -156,7 +164,11 @@ def generate_exemplar_embeddings(
     cached_count = total - len(to_encode)
 
     generated_count = _encode_and_store_exemplars(
-        con, to_encode, model_hash, batch_size
+        con,
+        to_encode,
+        model_hash,
+        batch_size,
+        progress_callback=progress_callback,
     )
 
     elapsed = time.perf_counter() - start
@@ -203,6 +215,7 @@ def _encode_and_store_exemplars(
     to_encode: list[tuple[str, str, str]],
     model_hash: str,
     batch_size: int,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> int:
     """Batch-encode exemplars and store in cache.
 
@@ -216,4 +229,298 @@ def _encode_and_store_exemplars(
         batch_size,
         desc="Embedding exemplars",
         unit="ex",
+        progress_callback=progress_callback,
     )
+
+
+# ── Code embedding generation ──────────────────────────────────────────────────
+
+
+def _build_code_text(node: dict) -> tuple[str, str]:
+    """Build embedding text for a code node.
+
+    Returns (text, content_hash) tuple.
+    """
+    name = node.get("name", "")
+    definition = node.get("definition", "")
+    tag = node.get("tag", "")
+    text = f"{name}: {definition} [Tag: {tag}]"
+    import hashlib
+
+    ch = hashlib.sha256(text.encode()).hexdigest()[:16]
+    return text, ch
+
+
+def _collect_codes() -> list[dict]:
+    """Load all draft/approved code nodes from graph."""
+    from graph import get_nodes_by_type_and_tag
+
+    nodes = get_nodes_by_type_and_tag("code", None)
+    return [n for n in nodes if n.get("status") in ("draft", "approved")]
+
+
+def _identify_uncached_codes(
+    con: duckdb.DuckDBPyConnection,
+    codes: list[dict],
+    model_hash: str,
+) -> list[tuple[str, str, str]]:
+    """Return list of (entity_id, text, content_hash) needing encoding."""
+    items = []
+    for node in codes:
+        text, ch = _build_code_text(node)
+        items.append((str(node["id"]), text, ch))
+    ids = [item[0] for item in items]
+    stored = _get_existing_cache_map_generic(con, ids, "code", model_hash)
+    return _identify_uncached(items, stored)
+
+
+def generate_code_embeddings(
+    con: duckdb.DuckDBPyConnection,
+    batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
+) -> dict:
+    """Batch-generate embeddings for all uncached code nodes.
+
+    Loads code nodes from graph, queries embedding_cache to find
+    which already have valid cached embeddings, and encodes only missing or
+    stale (content_hash mismatch) codes.
+
+    Args:
+        con: Active DuckDB connection for cache queries.
+        batch_size: Number of codes to encode per model-level batch.
+
+    Returns:
+        Dict with keys:
+            - total: total codes found
+            - cached: codes already in cache with valid content_hash
+            - generated: codes newly encoded
+            - duration_seconds: total wall-clock time
+    """
+    start = time.perf_counter()
+
+    codes = _collect_codes()
+    total = len(codes)
+    if total == 0:
+        logger.info("No codes to embed")
+        return {
+            "total": 0,
+            "cached": 0,
+            "generated": 0,
+            "duration_seconds": 0.0,
+        }
+
+    model_hash = get_model_hash()
+
+    to_encode = _identify_uncached_codes(con, codes, model_hash)
+    cached_count = total - len(to_encode)
+
+    generated_count = _encode_and_store_generic(
+        con,
+        to_encode,
+        "code",
+        model_hash,
+        batch_size,
+        desc="Embedding codes",
+        unit="codes",
+        progress_callback=progress_callback,
+    )
+
+    elapsed = time.perf_counter() - start
+    logger.info(
+        "Code embedding complete",
+        extra={
+            "total": total,
+            "cached": cached_count,
+            "generated": generated_count,
+            "duration_seconds": round(elapsed, 2),
+        },
+    )
+    return {
+        "total": total,
+        "cached": cached_count,
+        "generated": generated_count,
+        "duration_seconds": round(elapsed, 2),
+    }
+
+
+# ── Theme embedding generation ───────────────────────────────────────────────
+
+
+def _build_theme_text(node: dict) -> tuple[str, str]:
+    """Build embedding text for a theme node."""
+    name = node.get("name", "")
+    definition = node.get("definition", "")
+    tag = node.get("tag", "")
+    text = f"{name}: {definition} [Tag: {tag}]"
+    import hashlib
+
+    ch = hashlib.sha256(text.encode()).hexdigest()[:16]
+    return text, ch
+
+
+def _collect_themes() -> list[dict]:
+    """Load all draft/approved theme nodes from graph."""
+    from graph import get_nodes_by_type_and_tag
+
+    nodes = get_nodes_by_type_and_tag("theme", None)
+    return [n for n in nodes if n.get("status") in ("draft", "approved")]
+
+
+def _identify_uncached_themes(
+    con: duckdb.DuckDBPyConnection,
+    themes: list[dict],
+    model_hash: str,
+) -> list[tuple[str, str, str]]:
+    """Return list of (entity_id, text, content_hash) needing encoding."""
+    items = []
+    for node in themes:
+        text, ch = _build_theme_text(node)
+        items.append((str(node["id"]), text, ch))
+    ids = [item[0] for item in items]
+    stored = _get_existing_cache_map_generic(con, ids, "theme", model_hash)
+    return _identify_uncached(items, stored)
+
+
+def generate_theme_embeddings(
+    con: duckdb.DuckDBPyConnection,
+    batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
+) -> dict:
+    """Batch-generate embeddings for all uncached theme nodes."""
+    start = time.perf_counter()
+
+    themes = _collect_themes()
+    total = len(themes)
+    if total == 0:
+        logger.info("No themes to embed")
+        return {
+            "total": 0,
+            "cached": 0,
+            "generated": 0,
+            "duration_seconds": 0.0,
+        }
+
+    model_hash = get_model_hash()
+
+    to_encode = _identify_uncached_themes(con, themes, model_hash)
+    cached_count = total - len(to_encode)
+
+    generated_count = _encode_and_store_generic(
+        con,
+        to_encode,
+        "theme",
+        model_hash,
+        batch_size,
+        desc="Embedding themes",
+        unit="themes",
+        progress_callback=progress_callback,
+    )
+
+    elapsed = time.perf_counter() - start
+    logger.info(
+        "Theme embedding complete",
+        extra={
+            "total": total,
+            "cached": cached_count,
+            "generated": generated_count,
+            "duration_seconds": round(elapsed, 2),
+        },
+    )
+    return {
+        "total": total,
+        "cached": cached_count,
+        "generated": generated_count,
+        "duration_seconds": round(elapsed, 2),
+    }
+
+
+# ── Interpretation embedding generation ──────────────────────────────────────
+
+
+def _build_interpretation_text(node: dict) -> tuple[str, str]:
+    """Build embedding text for an interpretation node."""
+    name = node.get("name", "")
+    narrative = node.get("data_json", {}).get("narrative", "")
+    tags = node.get("data_json", {}).get("tags", [])
+    tag_str = ",".join(tags) if isinstance(tags, list) else str(tags)
+    text = f"{name}: {narrative} [Tags: {tag_str}]"
+    import hashlib
+
+    ch = hashlib.sha256(text.encode()).hexdigest()[:16]
+    return text, ch
+
+
+def _collect_interpretations() -> list[dict]:
+    """Load all draft/approved interpretation nodes from graph."""
+    from graph import get_nodes_by_type_and_tag
+
+    nodes = get_nodes_by_type_and_tag("interpretation", None)
+    return [n for n in nodes if n.get("status") in ("draft", "approved")]
+
+
+def _identify_uncached_interpretations(
+    con: duckdb.DuckDBPyConnection,
+    interpretations: list[dict],
+    model_hash: str,
+) -> list[tuple[str, str, str]]:
+    """Return list of (entity_id, text, content_hash) needing encoding."""
+    items = []
+    for node in interpretations:
+        text, ch = _build_interpretation_text(node)
+        items.append((str(node["id"]), text, ch))
+    ids = [item[0] for item in items]
+    stored = _get_existing_cache_map_generic(con, ids, "interpretation", model_hash)
+    return _identify_uncached(items, stored)
+
+
+def generate_interpretation_embeddings(
+    con: duckdb.DuckDBPyConnection,
+    batch_size: int = 32,
+    progress_callback: Callable[[int, int, str], None] | None = None,
+) -> dict:
+    """Batch-generate embeddings for all uncached interpretation nodes."""
+    start = time.perf_counter()
+
+    interpretations = _collect_interpretations()
+    total = len(interpretations)
+    if total == 0:
+        logger.info("No interpretations to embed")
+        return {
+            "total": 0,
+            "cached": 0,
+            "generated": 0,
+            "duration_seconds": 0.0,
+        }
+
+    model_hash = get_model_hash()
+
+    to_encode = _identify_uncached_interpretations(con, interpretations, model_hash)
+    cached_count = total - len(to_encode)
+
+    generated_count = _encode_and_store_generic(
+        con,
+        to_encode,
+        "interpretation",
+        model_hash,
+        batch_size,
+        desc="Embedding interpretations",
+        unit="interps",
+        progress_callback=progress_callback,
+    )
+
+    elapsed = time.perf_counter() - start
+    logger.info(
+        "Interpretation embedding complete",
+        extra={
+            "total": total,
+            "cached": cached_count,
+            "generated": generated_count,
+            "duration_seconds": round(elapsed, 2),
+        },
+    )
+    return {
+        "total": total,
+        "cached": cached_count,
+        "generated": generated_count,
+        "duration_seconds": round(elapsed, 2),
+    }

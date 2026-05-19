@@ -101,7 +101,7 @@ def render_theme_prompt(
         - tag_description : str
         - ontology_path : list[str]
         - codes : list[dict] with keys id, name, definition,
-          exemplar_count
+          exemplar_count, exemplar_contents (list of content strings)
 
     Returns
     -------
@@ -133,7 +133,9 @@ def render_interpretation_prompt(
         - tag_hierarchy : list[list[str]]
         - ontology_subtree : str
         - themes_by_tag : dict[str, list[dict]] with keys
-          theme_name, narrative, code_ids
+          theme_name, narrative, code_ids, codes_detail
+          where codes_detail is a list of dicts with keys
+          name, definition, exemplar_ids, exemplar_contents
 
     Returns
     -------

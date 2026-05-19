@@ -9,6 +9,53 @@ def get_neighbors_theme(con, theme_id: int, k: int = 3) -> list[tuple[int, float
     return _get_neighbors(con, theme_id, "theme", k=k)
 
 
+def get_all_themes(
+    con,
+    tag: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """Fetch ALL theme nodes regardless of status, ordered by id.
+
+    If *tag* is provided, only themes for that tag are returned.
+    Returns list of dicts with keys: id, name, narrative, tag,
+    data_json, status.
+    """
+    if tag:
+        rows = con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE type = 'theme' AND tag = ? "
+            "ORDER BY id",
+            [tag],
+        ).fetchall()
+    else:
+        rows = con.execute(
+            "SELECT id, name, definition, tag, data_json, status "
+            "FROM nodes WHERE type = 'theme' ORDER BY id"
+        ).fetchall()
+
+    results = []
+    for row in rows:
+        dj = _parse_json(row[4])
+        results.append(
+            {
+                "id": row[0],
+                "name": row[1],
+                "narrative": row[2],
+                "tag": row[3],
+                "data_json": dj,
+                "status": row[5],
+            }
+        )
+    return results
+
+
+def get_all_themes_for_tag(con, tag: str) -> list[dict[str, Any]]:
+    """Convenience wrapper — all themes in *tag* regardless of status.
+
+    Uses ``get_all_themes`` with the tag filter applied.
+    """
+    return get_all_themes(con, tag=tag)
+
+
 def get_pending_themes(
     con,
     tag: Optional[str] = None,
@@ -97,13 +144,14 @@ def get_other_draft_themes(
     theme_id: int,
     tag: str,
 ) -> list[dict[str, Any]]:
-    """Fetch other draft theme nodes in the same tag for merge selection.
+    """Fetch other draft/approved/pending theme nodes in the same tag for merge.
 
     Returns list of dicts with keys: ``id``, ``name``, ``code_ids``.
     """
     rows = con.execute(
         "SELECT id, name, data_json FROM nodes "
-        "WHERE type = 'theme' AND status = 'draft' AND tag = ? AND id != ? "
+        "WHERE type = 'theme' AND status IN ('draft', 'approved', 'pending') "
+        "AND tag = ? AND id != ? "
         "ORDER BY name",
         [tag, theme_id],
     ).fetchall()
@@ -119,6 +167,21 @@ def get_other_draft_themes(
             }
         )
     return results
+
+
+def get_theme_code_ids(con, theme_id: int) -> list[int]:
+    """Fetch code IDs from a theme's ``data_json``.
+
+    Returns list of integer code IDs.  Empty list if none found.
+    """
+    row = con.execute(
+        "SELECT data_json FROM nodes WHERE id = ? AND type = 'theme'",
+        [theme_id],
+    ).fetchone()
+    if not row:
+        return []
+    dj = _parse_json(row[0])
+    return [int(cid) for cid in (dj.get("code_ids") or [])]
 
 
 def get_theme_codes(con, theme_id: int) -> list[dict[str, Any]]:

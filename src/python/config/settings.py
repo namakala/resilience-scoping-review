@@ -69,11 +69,36 @@ def groq_api_key() -> str:
 
 
 def groq_model() -> str:
-    """LLM model name. Checks GROQ_MODEL first, falls back to MODEL_NAME."""
-    val = os.getenv("GROQ_MODEL")
-    if val:
-        return val
-    return os.getenv("MODEL_NAME", "openai/gpt-oss-120b")
+    """Model for LLM inference. Checks GROQ_MODEL, then MODEL_NAME, then fallback.
+
+    The legacy ``MODEL_NAME`` env var is checked before the hard-coded default
+    for backward compatibility.
+    """
+    return os.getenv("GROQ_MODEL") or os.getenv("MODEL_NAME") or "openai/gpt-oss-120b"
+
+
+def default_model() -> str:
+    """Default LLM model for all inference stages (fallback for per-stage models)."""
+    val = os.getenv("DEFAULT_MODEL")
+    if not val:
+        val = os.getenv("MODEL_NAME")
+    return val or "openai/gpt-oss-120b"
+
+
+def code_model() -> str:
+    """Override model for code inference stage. Falls back to default_model()."""
+    return os.getenv("CODE_MODEL") or default_model()
+
+
+def theme_model() -> str:
+    """Override model for theme inference stage. Falls back to default_model()."""
+    return os.getenv("THEME_MODEL") or default_model()
+
+
+def interpretation_model() -> str:
+    """Override model for interpretation synthesis stage.
+    Falls back to default_model()."""
+    return os.getenv("INTERPRETATION_MODEL") or default_model()
 
 
 def groq_timeout() -> int:
@@ -104,6 +129,20 @@ def interpretation_temperature() -> float:
     return _optional_float("INTERPRETATION_TEMPERATURE", 0.5)
 
 
+# ── HuggingFace Hub ─────────────────────────────────────────────────────────
+
+
+def hf_hub_offline() -> bool:
+    """Skip all HTTP requests to HuggingFace Hub (load models from cache only).
+
+    When set to ``True`` (e.g. ``HF_HUB_OFFLINE=1``), the ``huggingface_hub``
+    library will not make any network requests.  Used by ``sentence-transformers``
+    to avoid the update-version check on every model load.
+    """
+    raw = os.getenv("HF_HUB_OFFLINE", "false")
+    return raw.lower() in ("true", "1", "yes")
+
+
 # ── Embedding Model ────────────────────────────────────────────────────────
 
 
@@ -132,6 +171,26 @@ def log_level() -> str:
     return _optional_str("LOG_LEVEL", "INFO")
 
 
+def similarity_score_threshold() -> float:
+    """Auto-assignment threshold for exemplar-to-code similarity (default: 0.8).
+
+    Exemplars with combined score (0.6 cosine + 0.2 direct BM25 + 0.2
+    indirect exemplar-agreement) above this threshold are automatically
+    assigned to the best-matching existing code without LLM inference.
+    """
+    return _optional_float("SIMILARITY_SCORE_THRESHOLD", 0.8, lo=0.0, hi=1.0)
+
+
+def exemplar_similarity_threshold() -> float:
+    """Threshold for similarity-based exemplar clustering (default: 0.6).
+
+    Exemplar pairs with cosine similarity above this threshold are grouped
+    into the same cluster. Each cluster receives one abstract code via LLM.
+    Remaining unclustered exemplars form a single misc batch.
+    """
+    return _optional_float("EXEMPLAR_SIMILARITY_THRESHOLD", 0.6, lo=0.0, hi=1.0)
+
+
 # ── Paths ──────────────────────────────────────────────────────────────────
 
 
@@ -148,6 +207,11 @@ def tags_path() -> Path:
 def processed_data_path() -> Path:
     """Base directory for processed Parquet artifacts."""
     return Path(_optional_str("PROCESSED_DATA_PATH", "data/processed"))
+
+
+def export_output_path() -> Path:
+    """Directory for exported results (JSON, CSV, Markdown)."""
+    return Path(_optional_str("EXPORT_OUTPUT_PATH", "data/output"))
 
 
 # ── BM25 ───────────────────────────────────────────────────────────────────

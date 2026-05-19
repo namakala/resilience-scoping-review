@@ -9,7 +9,7 @@ from typing import Dict, Optional
 
 import networkx as nx
 import polars as pl
-from graph.exceptions import CycleError, ForeignKeyError
+from graph.exceptions import CycleError
 from persistence.loaders import load_tags
 from utils.logging import get_logger
 
@@ -24,7 +24,9 @@ def build_tag_dag() -> nx.DiGraph:
     Reads tag, parent, description, n_contents from load_tags().
     Builds a directed graph with edges parent -> child.
     Computes depth as shortest path length from root (root=0).
-    Validates all parent references exist and graph is acyclic.
+    Missing parent tags are auto-inferred as empty placeholder nodes
+    (description="", n_contents=0) with a warning logged. Validates
+    graph is acyclic.
 
     Returns:
         nx.DiGraph: Tag DAG. Each node has attributes:
@@ -32,8 +34,6 @@ def build_tag_dag() -> nx.DiGraph:
             n_contents (int).
 
     Raises:
-        ForeignKeyError: If a parent reference does not exist
-            in the graph.
         CycleError: If a cycle is detected.
     """
     tags_lf = load_tags()
@@ -48,6 +48,8 @@ def build_tag_dag() -> nx.DiGraph:
     # Collect sets for validation
     all_tags: set = set()
     parent_refs: set = set()
+    # Track which source tags reference each parent for better diagnostics
+    parent_referrers: dict[str, list[str]] = {}
 
     for row in tags_df.iter_rows(named=True):
         tag = row["tag"]
@@ -65,16 +67,41 @@ def build_tag_dag() -> nx.DiGraph:
         all_tags.add(tag)
         if parent:
             parent_refs.add(parent)
+            parent_referrers.setdefault(parent, []).append(tag)
 
-    # Validate all parent references exist
+    # Infer missing parent tags as empty placeholder nodes
     missing_parents = parent_refs - all_tags
     if missing_parents:
-        msg = (
-            "Parent reference(s) missing from tag ontology: "
-            f"{sorted(missing_parents)}"
+        # Phase 1: Create placeholder nodes for all missing parents
+        for missing_tag in sorted(missing_parents):
+            G.add_node(
+                missing_tag,
+                tag_str=missing_tag,
+                description="",
+                depth=0,
+                n_contents=0,
+            )
+            all_tags.add(missing_tag)
+
+        # Phase 2: Wire each placeholder to its own parent (derived from dotted name)
+        for missing_tag in sorted(missing_parents):
+            parts = missing_tag.split(".")
+            if len(parts) > 1:
+                parent_tag = ".".join(parts[:-1])
+                if parent_tag in all_tags:
+                    G.add_edge(parent_tag, missing_tag)
+
+        logger.warning(
+            "Parent tag(s) not found in ontology, auto-inferred as empty nodes: %s",
+            sorted(missing_parents),
         )
-        logger.error(msg, extra={"missing_parents": sorted(missing_parents)})
-        raise ForeignKeyError(msg)
+        for missing_tag in sorted(missing_parents):
+            referrers = parent_referrers.get(missing_tag, [])
+            logger.warning(
+                "  Missing parent %r is referenced by tags: %s",
+                missing_tag,
+                referrers,
+            )
 
     # Add edges parent -> child
     for row in tags_df.iter_rows(named=True):

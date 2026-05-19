@@ -2,12 +2,18 @@
 
 Entry point ``review_themes`` iterates pending themes and dispatches
 to display, prompt, and action handler modules.
+
+.. deprecated::
+    Use :class:`hitl.tui.AnalystTUI` instead. This module is kept for
+    backward compatibility with the questionary-based review flow.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 
 import duckdb
+from ontology import ConstraintError
 
 from .prompts import prompt_edit_text as prompt_edit_narrative
 from .prompts_themes import handle_merge_interactive_theme as handle_merge_interactive
@@ -21,6 +27,12 @@ from .theme_review_actions import (
     handle_defer_theme,
     handle_edit_theme,
     handle_reject_theme,
+)
+
+warnings.warn(
+    "theme_review.py is deprecated. Use hitl.tui.AnalystTUI instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
 __all__ = ["review_themes"]
@@ -86,8 +98,11 @@ def _review_single_theme(
     action = prompt_theme_action(theme["name"])
 
     if action == "approve":
-        handle_approve_theme(con, theme, db_path=db_path)
-        console.print(f"[green]Theme '{theme['name']}' approved.[/green]")
+        try:
+            handle_approve_theme(con, theme, db_path=db_path)
+            console.print(f"[green]Theme '{theme['name']}' approved.[/green]")
+        except ConstraintError as exc:
+            console.print(f"[red]Constraint violation: {exc}[/red]")
     elif action == "edit":
         new_narrative = prompt_edit_narrative(theme.get("narrative", ""))
         if new_narrative is not None:

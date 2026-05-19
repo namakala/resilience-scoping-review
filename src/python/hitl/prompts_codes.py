@@ -35,7 +35,8 @@ def handle_merge_interactive_code(con, source_code, db_path=None):
     source_id = source_code["id"]
     candidates = con.execute(
         "SELECT id, name, definition FROM nodes "
-        "WHERE type = 'code' AND status = 'draft' AND id != ? "
+        "WHERE type = 'code' AND status IN ('draft', 'approved', 'pending') "
+        "AND id != ? "
         "ORDER BY name",
         [source_id],
     ).fetchall()

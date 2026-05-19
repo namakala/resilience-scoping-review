@@ -253,8 +253,8 @@ class TestCreateInterpretationNodes(unittest.TestCase):
 
     # ── Non-contiguous tag_spans ──────────────────────────────────────────
 
-    def test_non_contiguous_tag_spans_raises(self):
-        """Tags forming disconnected branches (missing LCA path) fail."""
+    def test_non_contiguous_tag_spans_pooled(self):
+        """Non-contiguous tag_spans are handled via WCC pool (no ValueError)."""
         theme_map = self._precreate_theme_nodes({"ThA": "T1", "ThC": "T2.A"})
         # T1 and T2.A: path from LCA Root is Root→T2→T2.A, missing T2
         interps = [
@@ -262,9 +262,13 @@ class TestCreateInterpretationNodes(unittest.TestCase):
                 "Bad", [str(theme_map["ThA"]), str(theme_map["ThC"])]
             )
         ]
-        with self.assertRaises(ValueError) as ctx:
-            create_interpretation_nodes(self.con, interps, db_path=self.db_path)
-        self.assertIn("non-contiguous", str(ctx.exception))
+        # Should NOT raise ValueError — pool processing handles it
+        node_ids = create_interpretation_nodes(self.con, interps, db_path=self.db_path)
+        self.assertGreater(len(node_ids), 0)
+        # Verify nodes were created with correct type
+        for nid in node_ids:
+            node = get_node(nid, db_path=self.db_path)
+            self.assertEqual(node["type"], "interpretation")
 
     def test_single_tag_span_is_valid(self):
         """A single theme tag is trivially contiguous."""

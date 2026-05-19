@@ -31,6 +31,7 @@ def run_batches(
     process_fn: Callable[[Any, Batch, TokenTracker], list],
     stage: str,
     failure_fn: Callable[[Any, Any, str], None],
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> tuple[list, TokenTracker]:
     """Run *process_fn* for each batch with error handling and timing.
 
@@ -46,6 +47,8 @@ def run_batches(
         stage: Pipeline stage constant for token tracking.
         failure_fn: Called per item on unhandled batch exceptions.
                      Signature: ``(con, item, error_message)``.
+        progress_callback: Optional callback ``(total, completed, desc)``
+            for TUI progress reporting.
 
     Returns:
         ``(all_results, tracker)`` where *tracker* is the singleton
@@ -53,7 +56,8 @@ def run_batches(
     """
     tracker = get_tracker()
     all_results: list = []
-    for batch in batches:
+    total_batches = len(batches)
+    for batch_idx, batch in enumerate(batches, start=1):
         batch_start = time.time()
         logger.info("Processing batch %s (%d items)", batch.batch_id, batch.item_count)
         try:
@@ -71,6 +75,12 @@ def run_batches(
             )
             for item in batch.items:
                 failure_fn(con, item, "Batch processing error")
+        if progress_callback:
+            progress_callback(
+                total_batches,
+                batch_idx,
+                f"{stage}: batch {batch.batch_id}",
+            )
     return all_results, tracker
 
 

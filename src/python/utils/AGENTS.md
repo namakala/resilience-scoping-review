@@ -11,6 +11,7 @@ Provides core utility services used across all layers of the thematic analysis p
 ## Modules
 
 - **Logging** (`@src/python/utils/logging.py`): Centralized structured logging with JSON formatting and sensitive data redaction.
+- **Atomic I/O** (`@src/python/utils/atomic_io.py`): Crash-safe file writes via temp-file-then-rename. Provides generic ``write_json``, ``write_csv``, ``write_markdown``.
 - **Error Handling** (`@src/python/utils/`): Robust resilience patterns.
   - **Exceptions** (`@src/python/utils/exceptions.py`): Domain-specific exception classes.
   - **Retry** (`@src/python/utils/retry.py`): Exponential backoff decorator.

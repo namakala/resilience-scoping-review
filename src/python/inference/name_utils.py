@@ -16,6 +16,7 @@ Usage:
 
 from __future__ import annotations
 
+from collections.abc import Set as AbstractSet
 from typing import Any, Callable
 
 from utils.logging import get_logger
@@ -33,7 +34,7 @@ __all__ = [
 
 def make_unique_name(
     name: str,
-    used_names: set[str],
+    used_names: AbstractSet[str],
     entity_type: str = "item",
 ) -> str:
     """Resolve name collision by appending ``_1``, ``_2``, etc.

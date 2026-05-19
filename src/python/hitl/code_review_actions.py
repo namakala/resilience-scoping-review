@@ -17,6 +17,7 @@ from .invalidation import invalidate_code_embedding
 from .shared import (
     _log_and_finish,
     _update_node_definition,
+    _update_node_name,
     _update_node_status,
     console,
 )
@@ -73,34 +74,42 @@ def handle_edit(
     code: dict[str, Any],
     db_path: Optional[Path] = None,
     new_definition: str = "",
+    new_name: str = "",
 ) -> None:
-    """Edit a code definition: update text, reset to draft, invalidate cache."""
+    """Edit a code: update definition and/or name, reset to draft, invalidate cache."""
     node_id = code["id"]
     old_def = code.get("definition", "")
+    old_name = code.get("name", "")
 
-    if not new_definition.strip():
-        logger.warning("Edit aborted: empty definition")
+    if not new_definition.strip() and not new_name.strip():
+        logger.warning("Edit aborted: both definition and name are empty")
         return
 
-    if new_definition == old_def:
-        logger.info("Edit aborted: definition unchanged")
+    if new_definition == old_def and (not new_name.strip() or new_name == old_name):
+        logger.info("Edit aborted: definition and name unchanged")
         return
 
-    _update_node_definition(con, node_id, new_definition, db_path=db_path)
-    set_status_draft(
-        con,
-        entity_id=str(node_id),
-        entity_type=ENTITY_CODE,
-        stage=STAGE_CODE,
-    )
-    invalidate_code_embedding(con, node_id, code.get("tag", ""))
-    _log_and_finish(
-        con,
-        "edit",
-        node_id,
-        old_value={"definition": old_def},
-        new_value={"definition": new_definition},
-    )
+    old_value: dict[str, Any] = {}
+    new_value: dict[str, Any] = {}
+
+    if new_definition.strip() and new_definition != old_def:
+        _update_node_definition(con, node_id, new_definition, db_path=db_path)
+        set_status_draft(
+            con,
+            entity_id=str(node_id),
+            entity_type=ENTITY_CODE,
+            stage=STAGE_CODE,
+        )
+        invalidate_code_embedding(con, node_id, code.get("tag", ""))
+        old_value["definition"] = old_def
+        new_value["definition"] = new_definition
+
+    if new_name.strip() and new_name != old_name:
+        _update_node_name(con, node_id, new_name, db_path=db_path)
+        old_value["name"] = old_name
+        new_value["name"] = new_name
+
+    _log_and_finish(con, "edit", node_id, old_value, new_value)
 
 
 def handle_reject(

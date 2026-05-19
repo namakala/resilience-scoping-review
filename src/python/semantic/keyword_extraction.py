@@ -6,6 +6,7 @@ by existence check). Phase 2 LLM refinement was evaluated but not needed:
 KeyBERT alone provides sufficient quality for downstream inference.
 """
 
+from collections.abc import Callable
 from pathlib import Path
 
 import polars as pl
@@ -16,16 +17,18 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-_KEYBERT_MODEL = "all-MiniLM-L6-v2"
-
 
 def _get_keybert_model() -> KeyBERT:
-    """Return a lazily-initialized KeyBERT singleton.
+    """Return a KeyBERT instance sharing the embedding layer's model.
 
-    Uses the same sentence-transformer model as the embedding layer
-    (all-MiniLM-L6-v2) so no additional model download is needed.
+    Uses the thread-safe lazy singleton from ``semantic.embeddings`` so
+    the sentence-transformer model is loaded into memory only once per
+    process.  KeyBERT accepts a pre-loaded ``SentenceTransformer``
+    instance via its ``model`` parameter.
     """
-    return KeyBERT(model=_KEYBERT_MODEL)
+    from semantic.embeddings import _get_model
+
+    return KeyBERT(model=_get_model())
 
 
 def extract_keywords(
@@ -33,6 +36,7 @@ def extract_keywords(
     top_n: int = 5,
     diversity: float = 0.5,
     ngram_range: tuple[int, int] = (1, 2),
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> pl.LazyFrame:
     """Extract keywords from exemplars using KeyBERT with MMR.
 
@@ -112,6 +116,8 @@ def extract_keywords(
                 )
 
             pbar.update(1)
+            if progress_callback:
+                progress_callback(total, pbar.n, "Extracting keywords")
 
     kw_df = pl.DataFrame(
         rows,

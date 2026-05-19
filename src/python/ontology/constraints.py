@@ -26,6 +26,7 @@ CONSTRAINT_THEME_MULTI_INTERP = "CONSTRAINT_THEME_MULTI_INTERP"
 CONSTRAINT_NONCONTIGUOUS_SPAN = "CONSTRAINT_NONCONTIGUOUS_SPAN"
 CONSTRAINT_UNKNOWN_TAG = "CONSTRAINT_UNKNOWN_TAG"
 CONSTRAINT_CYCLE_AFTER_MERGE = "CONSTRAINT_CYCLE_AFTER_MERGE"
+CONSTRAINT_INVALID_MERGE_TARGET = "CONSTRAINT_INVALID_MERGE_TARGET"
 
 
 class ConstraintError(ValueError):
@@ -44,10 +45,14 @@ class ConstraintError(ValueError):
 # ---------------------------------------------------------------------------
 # Import rule implementations (ConstraintError must be defined first)
 # ---------------------------------------------------------------------------
-from .contiguity import is_contiguous_subtree  # noqa: E402, F401
+from .contiguity import (  # noqa: E402, F401
+    is_contiguous_subtree,
+    partition_into_contiguous_components,
+)
 from .rules import (  # noqa: E402
     validate_code_approval,
     validate_interpretation_contiguity,
+    validate_merge_target_status,
     validate_no_cycle,
     validate_tag_exists,
     validate_theme_approval,
@@ -75,6 +80,18 @@ def _resolve_tag_dag(tag_dag: Optional[nx.DiGraph] = None) -> nx.DiGraph:
     from .dag import get_tag_dag
 
     return get_tag_dag()
+
+
+def _get_theme_code_ids(graph: nx.DiGraph, theme_id: int) -> list[int]:
+    """Return all code node IDs linked by ``composed-of`` edges from *theme_id*."""
+    code_ids: list[int] = []
+    for src, tgt, data in graph.edges(data=True):
+        if data.get("type") != "composed-of":
+            continue
+        if src != theme_id:
+            continue
+        code_ids.append(tgt)
+    return code_ids
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +143,9 @@ def validate_constraint(
         elif entity_type == "theme" and entity_id is not None:
             validate_theme_approval(entity_id, resolved_graph)
             validate_theme_interpretation(entity_id, resolved_graph)
+            # Each code in the theme must not already belong to an approved theme
+            for code_id in _get_theme_code_ids(resolved_graph, entity_id):
+                validate_code_approval(code_id, resolved_graph)
         elif entity_type == "interpretation" and tag_spans is not None:
             validate_interpretation_contiguity(tag_spans, resolved_tag_dag)
 
@@ -140,6 +160,9 @@ def validate_constraint(
             validate_tag_exists(tag, resolved_tag_dag)
         if tag_spans:
             validate_interpretation_contiguity(tag_spans, resolved_tag_dag)
+        target_status = entity.get("target_status")
+        if target_status:
+            validate_merge_target_status(target_status)
         validate_no_cycle(resolved_graph)
 
     elif action == "assign_tag":

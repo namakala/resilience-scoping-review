@@ -105,26 +105,26 @@ class TestCreateCodeNodes(unittest.TestCase):
         count = self.con.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
         self.assertEqual(count, 0)
 
-    # ── Derived-from chaining ─────────────────────────────────────────────
+    # ── Merge behavior (re-inference with same abstract code) ──────────────
 
-    def test_derived_from_chain_on_re_inference(self):
-        """Re-inference creates derived-from edge old→new."""
-        codes1 = [self._make_code("1", "V1", "first")]
+    def test_re_inference_merges_into_existing_draft(self):
+        """Re-inference with same code_name merges into existing draft node."""
+        codes1 = [self._make_code("1", "AbstractConcept", "first")]
         ids1 = create_code_nodes(self.con, codes1, db_path=self.db_path)
+        self.assertEqual(len(ids1), 1)
 
-        codes2 = [self._make_code("1", "V2", "second")]
+        codes2 = [self._make_code("2", "AbstractConcept", "second")]
         ids2 = create_code_nodes(self.con, codes2, db_path=self.db_path)
+        # Merge returns the original node ID, not a new one
+        self.assertEqual(ids2, [ids1[0]])
 
-        edges = self.con.execute(
-            "SELECT source_id, target_id, edge_type FROM edges "
-            "WHERE edge_type = 'derived-from'"
-        ).fetchall()
-        self.assertEqual(len(edges), 1)
-        self.assertEqual(edges[0][0], ids1[0])  # old → new
-        self.assertEqual(edges[0][1], ids2[0])
+        node = get_node(ids1[0], db_path=self.db_path)
+        self.assertCountEqual(node["data_json"]["exemplar_ids"], ["1", "2"])
+        self.assertIn("1", node["data_json"]["supporting_quotes"])
+        self.assertIn("2", node["data_json"]["supporting_quotes"])
 
-    def test_derived_from_chain_multiple_re_inferences(self):
-        """Three inference runs: v1→v2 and v2→v3."""
+    def test_re_inference_different_name_creates_new_node(self):
+        """Re-inference with different code_name creates a separate node."""
         ids = []
         for version in ("V1", "V2", "V3"):
             ids.append(
@@ -134,50 +134,48 @@ class TestCreateCodeNodes(unittest.TestCase):
                     db_path=self.db_path,
                 )[0]
             )
+        # Each unique name creates its own node (no merge)
+        self.assertEqual(len(set(ids)), 3)
 
         edges = self.con.execute(
             "SELECT source_id, target_id, edge_type FROM edges "
             "WHERE edge_type = 'derived-from' ORDER BY source_id"
         ).fetchall()
-        self.assertEqual(len(edges), 2)
-        self.assertEqual(edges[0][0], ids[0])
-        self.assertEqual(edges[0][1], ids[1])
-        self.assertEqual(edges[1][0], ids[1])
-        self.assertEqual(edges[1][1], ids[2])
+        # No derived-from edges since each run creates a new abstract concept
+        self.assertEqual(len(edges), 0)
 
-    # ── Duplicate name handling ───────────────────────────────────────────
+    # ── Shared abstract codes (same name, multiple exemplars) ─────────────
 
-    def test_duplicate_code_names_allowed(self):
-        """Two codes with same name both created (one suffixed)."""
+    def test_shared_code_name_creates_single_node(self):
+        """Two exemplars with same code_name share one code node."""
         codes = [
-            self._make_code("1", "SameName", "def"),
-            self._make_code("2", "SameName", "def"),
+            self._make_code("1", "SharedConcept", "abstract def"),
+            self._make_code("2", "SharedConcept", "abstract def"),
         ]
         node_ids = create_code_nodes(self.con, codes, db_path=self.db_path)
-        self.assertEqual(len(node_ids), 2)
+        self.assertEqual(len(node_ids), 1)
 
         nodes = get_nodes_by_type_and_tag("code", "T1", db_path=self.db_path)
-        names = {n["name"] for n in nodes}
-        self.assertIn("SameName", names)
-        self.assertIn("SameName_1", names)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["name"], "SharedConcept")
+        self.assertCountEqual(nodes[0]["data_json"]["exemplar_ids"], ["1", "2"])
 
-    def test_duplicate_across_calls_handled(self):
-        """Same name across separate calls creates suffixed second node."""
+    def test_shared_code_across_calls_merges(self):
+        """Same code name across separate inference calls merges into one node."""
         create_code_nodes(
             self.con,
-            [self._make_code("1", "Alpha", "first")],
+            [self._make_code("1", "MergedCode", "first")],
             db_path=self.db_path,
         )
         create_code_nodes(
             self.con,
-            [self._make_code("2", "Alpha", "second")],
+            [self._make_code("2", "MergedCode", "second")],
             db_path=self.db_path,
         )
         nodes = get_nodes_by_type_and_tag("code", "T1", db_path=self.db_path)
-        self.assertEqual(len(nodes), 2)
-        names = {n["name"] for n in nodes}
-        self.assertIn("Alpha", names)
-        self.assertIn("Alpha_1", names)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["name"], "MergedCode")
+        self.assertCountEqual(nodes[0]["data_json"]["exemplar_ids"], ["1", "2"])
 
     # ── Transactional rollback ────────────────────────────────────────────
 

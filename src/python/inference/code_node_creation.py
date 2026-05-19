@@ -1,11 +1,13 @@
 """Convert CodeInference results into graph code nodes with edges.
 
-For each :class:`CodeInference` item creates:
+Groups :class:`CodeInference` items by ``code_name`` to create shared
+abstract code nodes. Multiple exemplars mapping to the same abstract
+code share a single graph node.
 
-- A ``code`` graph node (type='code', status='draft')
-- A ``contains`` edge from the code node to the exemplar node
-- A ``derived-from`` edge from any pre-existing code for the same
-  exemplar (versioning chain)
+For each unique ``code_name`` in a tag:
+
+- Creates (or merges into) a ``code`` graph node (type='code', status='draft')
+- Creates ``contains`` edges from the code node to each exemplar node
 
 All graph writes within a single
 :class:`~graph.transactions.graph_transaction` for atomicity.
@@ -20,11 +22,20 @@ Usage:
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Container
 from pathlib import Path
 from typing import Any, Optional
 
 import duckdb
-from graph import create_edge, create_node, get_nodes_by_type_and_tag, graph_transaction
+from graph import (
+    create_edge,
+    create_node,
+    get_graph,
+    get_node,
+    get_nodes_by_type_and_tag,
+    graph_transaction,
+)
+from graph.queries import is_exemplar_in_any_code
 from utils.logging import get_logger
 
 from .batching import group_items_by_tag
@@ -43,32 +54,16 @@ def _collect_exemplar_ids(codes: list[CodeInference]) -> set[str]:
     return {c.exemplar_id for c in codes}
 
 
-def _build_existing_code_map(
-    tag: str,
-    db_path: Optional[Path] = None,
-) -> dict[str, list[int]]:
-    """Build ``{exemplar_id: [existing_code_node_id, ...]}`` for *tag*.
-
-    Reads ``data_json['exemplar_id']`` from each existing code node to
-    determine which exemplar it is linked to.
-    """
-    nodes = get_nodes_by_type_and_tag("code", tag, db_path=db_path)
-    code_map: dict[str, list[int]] = defaultdict(list)
-    for n in nodes:
-        dj = n.get("data_json") or {}
-        if isinstance(dj, dict):
-            eids = dj.get("exemplar_ids", [])
-            if eids:
-                code_map[str(eids[0])].append(n["id"])
-    return dict(code_map)
-
-
-def _build_data_json(code: CodeInference) -> dict[str, Any]:
+def _build_data_json(
+    exemplar_ids: list[str],
+    supporting_quotes: dict[str, str],
+    related_existing_codes: list[str],
+) -> dict[str, Any]:
     """Build the ``data_json`` payload for a code node."""
     return {
-        "exemplar_ids": [code.exemplar_id],
-        "supporting_quotes": {code.exemplar_id: code.supporting_quote},
-        "related_existing_codes": code.related_existing_codes,
+        "exemplar_ids": exemplar_ids,
+        "supporting_quotes": supporting_quotes,
+        "related_existing_codes": related_existing_codes,
     }
 
 
@@ -129,7 +124,7 @@ def create_code_nodes(
 
 def _make_unique_name(
     name: str,
-    used_names: set[str],
+    used_names: Container[str],
 ) -> str:
     """Resolve name collision by appending ``_1``, ``_2``, etc."""
     if name not in used_names:
@@ -146,13 +141,21 @@ def _make_unique_name(
     return f"{name}_{counter}"
 
 
-def _load_existing_code_names(
+def _find_draft_code_by_name(
     tag: str,
+    name: str,
     db_path: Optional[Path] = None,
-) -> set[str]:
-    """Fetch all existing code node names for *tag*."""
+) -> int | None:
+    """Find an existing draft code node by tag and exact name.
+
+    Returns the node ID if found, None otherwise.  Only matches draft
+    status codes to allow merging during current inference run.
+    """
     nodes = get_nodes_by_type_and_tag("code", tag, db_path=db_path)
-    return {n["name"] for n in nodes}
+    for n in nodes:
+        if n.get("name") == name and n.get("status") == "draft":
+            return int(n["id"])
+    return None
 
 
 def _create_code_nodes_for_tag(
@@ -161,66 +164,171 @@ def _create_code_nodes_for_tag(
     tag: str,
     db_path: Optional[Path] = None,
 ) -> list[int]:
-    """Create code nodes for a single tag.
+    """Create code nodes for a single tag with shared abstract codes.
 
     1. Ensure exemplar nodes exist (prerequisite)
-    2. Find existing code names and existing code->exemplar map
-    3. Inside a ``graph_transaction``: create code nodes + edges
-    4. Update inference_status for each new code entity
+    2. Find existing code->exemplar map for derived-from chaining
+    3. Group CodeInference items by code_name for shared abstract codes
+    4. Inside a ``graph_transaction``: create/update code nodes + edges
+    5. Update inference_status for each new code entity
     """
     exemplar_ids = _collect_exemplar_ids(codes)
 
     # Step 1: ensure exemplar graph nodes exist
     exemplar_node_map = ensure_exemplar_nodes(con, exemplar_ids, tag, db_path=db_path)
 
-    # Step 2a: find existing code nodes for derived-from chaining
-    existing_code_map = _build_existing_code_map(tag, db_path=db_path)
+    # Step 2: load existing names to detect external collisions
+    from graph.queries import load_occupied_names
 
-    # Step 2b: load existing names to avoid (type, name) collisions
-    existing_names = _load_existing_code_names(tag, db_path=db_path)
-    used_names: set[str] = set(existing_names)
+    existing_names = load_occupied_names("code", tag=tag, db_path=db_path)
+    # Also load ALL code names globally for cross-tag collision safety net
+    all_code_names = load_occupied_names("code", db_path=db_path)
 
-    # Step 3: create code nodes + edges inside a transaction
+    # Step 4: group codes by code_name for shared abstract codes
+    by_name: dict[str, list[CodeInference]] = defaultdict(list)
+    for c in codes:
+        by_name[c.code_name].append(c)
+
+    # Step 5: create code nodes + edges inside a transaction
     node_ids: list[int] = []
     with graph_transaction(db_path=db_path):
-        for c in codes:
-            unique_name = _make_unique_name(c.code_name, used_names)
-            used_names.add(unique_name)
+        for code_name, group in by_name.items():
+            # Check if a draft code with this name already exists (merge case)
+            draft_id = _find_draft_code_by_name(tag, code_name, db_path=db_path)
 
-            data_json = _build_data_json(c)
-            node_id = create_node(
-                node_type="code",
-                name=unique_name,
-                definition=c.definition,
-                tag=tag,
-                status="draft",
-                data_json=data_json,
-                db_path=db_path,
-            )
-            node_ids.append(node_id)
+            # Collect all exemplar data from the group
+            all_eids = [c.exemplar_id for c in group]
+            all_quotes = {c.exemplar_id: c.supporting_quote for c in group}
+            all_related = []
+            for c in group:
+                all_related.extend(c.related_existing_codes)
+            definition = group[0].definition
 
-            # contains edge: code node → exemplar node
-            target_nid = exemplar_node_map[c.exemplar_id]
-            create_edge(
-                source_id=node_id,
-                target_id=target_nid,
-                edge_type="contains",
-                db_path=db_path,
-            )
+            if draft_id is not None:
+                # Merge: append exemplar data into existing draft code node
+                existing = get_node(draft_id, db_path=db_path)
+                old_dj = existing.get("data_json") or {}
+                old_eids = old_dj.get("exemplar_ids", [])
+                old_quotes = old_dj.get("supporting_quotes", {})
+                old_related = old_dj.get("related_existing_codes", [])
 
-            # derived-from edge: latest existing code → new code
-            # (linear version chain, not fan-out from all prior)
-            prev_ids = existing_code_map.get(c.exemplar_id, [])
-            if prev_ids:
-                latest_prev = max(prev_ids)
-                create_edge(
-                    source_id=latest_prev,
-                    target_id=node_id,
-                    edge_type="derived-from",
-                    db_path=db_path,
+                # Enforce: one exemplar belongs to at most one code
+                filtered_eids = []
+                for eid in all_eids:
+                    already_in, existing_cid, existing_cname = is_exemplar_in_any_code(
+                        int(eid), db_path=db_path
+                    )
+                    if already_in and existing_cid != draft_id:
+                        logger.warning(
+                            "Exemplar %s already belongs to code '%s' (id=%s) — "
+                            "cannot merge into code '%s' (id=%s). Skipping.",
+                            eid,
+                            existing_cname,
+                            existing_cid,
+                            code_name,
+                            draft_id,
+                        )
+                    else:
+                        filtered_eids.append(eid)
+
+                merged_eids = list(set(old_eids + filtered_eids))
+                merged_quotes = {**old_quotes, **all_quotes}
+                merged_related = list(set(old_related + all_related))
+                merged_dj = _build_data_json(merged_eids, merged_quotes, merged_related)
+
+                # Update DuckDB inside the active transaction
+                import json as _json
+
+                from graph.transactions import get_active_connection
+
+                tx_con = get_active_connection()
+                if tx_con is None:
+                    raise RuntimeError("Merge requires an active graph_transaction")
+                tx_con.execute(
+                    "UPDATE nodes SET data_json = ? WHERE id = ?",
+                    [_json.dumps(merged_dj, ensure_ascii=False), draft_id],
                 )
 
-    # Step 4: update inference_status for code entities
+                # Update in-memory graph
+                G = get_graph(db_path)
+                attrs = dict(G.nodes[draft_id])
+                attrs["data_json"] = merged_dj
+                G.add_node(draft_id, **attrs)
+
+                node_ids.append(draft_id)
+
+                # Create contains edges for new exemplars
+                for eid in all_eids:
+                    if eid not in old_eids:
+                        create_edge(
+                            source_id=draft_id,
+                            target_id=exemplar_node_map[eid],
+                            edge_type="contains",
+                            db_path=db_path,
+                        )
+            else:
+                # Create unique name if collision with existing (non-draft) codes
+                unique_name = _make_unique_name(code_name, existing_names.keys())
+
+                # Cross-tag collision safety net: check against ALL code names
+                if unique_name in all_code_names:
+                    qualified = f"{unique_name} [{tag}]"
+                    logger.warning(
+                        "Cross-tag code name collision '%s' resolved to '%s'",
+                        unique_name,
+                        qualified,
+                    )
+                    unique_name = _make_unique_name(qualified, all_code_names.keys())
+
+                # Enforce: one exemplar belongs to at most one code (defensive)
+                unclaimed_eids = []
+                for eid in all_eids:
+                    already_in, existing_cid, existing_cname = is_exemplar_in_any_code(
+                        int(eid), db_path=db_path
+                    )
+                    if already_in:
+                        logger.warning(
+                            "Exemplar %s already belongs to code '%s' (id=%s) — "
+                            "cannot create new code '%s'. Skipping exemplar.",
+                            eid,
+                            existing_cname,
+                            existing_cid,
+                            unique_name,
+                        )
+                    else:
+                        unclaimed_eids.append(eid)
+                unclaimed_quotes = {
+                    eid: q for eid, q in all_quotes.items() if eid in unclaimed_eids
+                }
+                unclaimed_related = [r for r in all_related if r in unclaimed_eids]
+
+                data_json = _build_data_json(
+                    unclaimed_eids, unclaimed_quotes, unclaimed_related
+                )
+                node_id = create_node(
+                    node_type="code",
+                    name=unique_name,
+                    definition=definition,
+                    tag=tag,
+                    status="draft",
+                    data_json=data_json,
+                    db_path=db_path,
+                )
+                node_ids.append(node_id)
+
+                # Create contains edges for all exemplars
+                for c in group:
+                    if c.exemplar_id not in unclaimed_eids:
+                        continue
+                    target_nid = exemplar_node_map[c.exemplar_id]
+                    create_edge(
+                        source_id=node_id,
+                        target_id=target_nid,
+                        edge_type="contains",
+                        db_path=db_path,
+                    )
+
+    # Step 6: update inference_status for code entities
     for node_id in node_ids:
         set_status(
             con,
@@ -231,7 +339,7 @@ def _create_code_nodes_for_tag(
         )
 
     logger.info(
-        "Created %d code nodes for tag '%s'",
+        "Created %d code nodes (shared abstract codes) for tag '%s'",
         len(node_ids),
         tag,
     )

@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from graph import get_nodes_by_type_and_tag
 from utils.logging import get_logger
 
+from .theme_code_loading import _load_exemplar_content_map
+
 logger = get_logger(__name__)
 
 __all__ = ["_ThemeRow", "load_approved_themes", "load_approved_themes_grouped"]
@@ -39,6 +41,9 @@ class _ThemeRow:
         Theme narrative / definition.
     code_ids : list[str]
         Code IDs referenced by this theme (from data_json).
+    codes_detail : tuple[dict, ...]
+        Per-code detail: each dict has keys ``name``, ``definition``,
+        ``exemplar_ids``, ``exemplar_contents`` (list of content strings).
     """
 
     id: int
@@ -46,6 +51,7 @@ class _ThemeRow:
     theme_name: str
     narrative: str
     code_ids: list[str]
+    codes_detail: tuple[dict, ...] = ()
 
 
 def _parse_code_ids(node: dict) -> list[str]:
@@ -66,22 +72,97 @@ def load_approved_themes(tag: str) -> list[_ThemeRow]:
     Queries the ``nodes`` table for ``type='theme'`` with
     ``status='approved'``. Returns an empty list when no approved
     themes exist for the tag.
+
+    Each returned ``_ThemeRow`` includes ``codes_detail`` with code
+    names, definitions, and exemplar content loaded from the Parquet
+    store.
     """
     nodes = get_nodes_by_type_and_tag("theme", tag)
-    approved: list[_ThemeRow] = []
+    if not nodes:
+        return []
+
+    approved_themes: list[dict] = []
+    all_code_ids: set[int] = set()
     for n in sorted(nodes, key=lambda x: x["id"]):
         if n.get("status") != "approved":
             continue
+        code_ids = _parse_code_ids(n)
+        approved_themes.append(
+            {
+                "id": n["id"],
+                "tag": tag,
+                "theme_name": n.get("name") or "",
+                "narrative": n.get("definition") or "",
+                "code_ids": code_ids,
+            }
+        )
+        all_code_ids.update(int(cid) for cid in code_ids if cid and cid.isdigit())
+
+    # Load code nodes for all referenced codes within this tag
+    code_nodes = get_nodes_by_type_and_tag("code", tag)
+    code_map: dict[int, dict] = {n["id"]: n for n in code_nodes}
+
+    # Collect all exemplar IDs across all referenced codes
+    all_exemplar_ids: set[str] = set()
+    for nid in all_code_ids:
+        cn = code_map.get(nid)
+        if cn is None:
+            continue
+        dj = cn.get("data_json") or {}
+        if isinstance(dj, dict):
+            all_exemplar_ids.update(str(eid) for eid in dj.get("exemplar_ids", []))
+
+    # Bulk-load exemplar content from Parquet
+    content_map = _load_exemplar_content_map(all_exemplar_ids)
+
+    # Build results with codes_detail
+    approved: list[_ThemeRow] = []
+    for th in approved_themes:
+        codes_detail: list[dict] = []
+        for cid_str in th["code_ids"]:
+            if not cid_str or not cid_str.isdigit():
+                continue
+            cid = int(cid_str)
+            cn = code_map.get(cid)
+            if cn is None:
+                logger.warning(
+                    "Code node %d referenced by theme '%s' not found for tag '%s'",
+                    cid,
+                    th["theme_name"],
+                    tag,
+                )
+                continue
+            dj = cn.get("data_json") or {}
+            if isinstance(dj, dict):
+                eids = dj.get("exemplar_ids", [])
+            else:
+                eids = []
+            exemplar_id_strs = [str(eid) for eid in eids]
+            contents = [content_map.get(eid, "") for eid in exemplar_id_strs]
+            codes_detail.append(
+                {
+                    "name": cn.get("name", ""),
+                    "definition": cn.get("definition", ""),
+                    "exemplar_ids": exemplar_id_strs,
+                    "exemplar_contents": contents,
+                }
+            )
         approved.append(
             _ThemeRow(
-                id=n["id"],
+                id=th["id"],
                 tag=tag,
-                theme_name=n.get("name") or "",
-                narrative=n.get("definition") or "",
-                code_ids=_parse_code_ids(n),
+                theme_name=th["theme_name"],
+                narrative=th["narrative"],
+                code_ids=th["code_ids"],
+                codes_detail=tuple(codes_detail),
             )
         )
-    logger.debug("Loaded %d approved themes for tag '%s'", len(approved), tag)
+
+    logger.debug(
+        "Loaded %d approved themes for tag '%s' with code details",
+        len(approved),
+        tag,
+    )
     return approved
 
 

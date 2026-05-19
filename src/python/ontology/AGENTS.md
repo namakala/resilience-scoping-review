@@ -85,7 +85,7 @@ Provides graph and validation services to:
 - `@src/python/semantic/AGENTS.md` (subtree scoping for retrieval)
 - `@src/python/inference/AGENTS.md` (ontology context for prompt templates)
 - `@src/python/hitl/AGENTS.md` (constraint checking before mutation)
-- `@src/python/pipeline/AGENTS.md` (traversal inputs to DAG nodes)
+- `@src/python/orchestration/AGENTS.md` (traversal inputs for runner dispatch)
 
 ## Data Storage
 

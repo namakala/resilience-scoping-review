@@ -302,12 +302,11 @@ class TestThemeReviewOrchestration(unittest.TestCase):
 
         mock_neighbors.assert_called_once_with(mock.ANY, 1, k=3)
 
-    # ── Approve logs constraint_type for audit ──────────────────────────
+    # ── Approve constraint error displayed to user ───────────────────────
 
     @mock.patch("questionary.select")
-    @mock.patch("hitl.theme_review_actions.logger")
-    def test_approve_logs_constraint_type(self, mock_logger, mock_select):
-        """Constraint approval failure logs constraint_type code in structured extra."""
+    def test_approve_constraint_error_displayed(self, mock_select):
+        """Constraint approval failure shows error to user and keeps theme as draft."""
         from hitl.theme_review import review_themes
         from ontology import ConstraintError
 
@@ -320,7 +319,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         mock_select.return_value.ask.return_value = "Approve"
 
         with (
-            mock.patch("hitl.shared.console.print"),
+            mock.patch("hitl.shared.console.print") as mock_print,
             mock.patch("hitl.theme_review.get_theme_neighbors", return_value=[]),
             mock.patch("hitl.theme_review.get_constituent_codes", return_value=[]),
             mock.patch(
@@ -333,20 +332,25 @@ class TestThemeReviewOrchestration(unittest.TestCase):
         ):
             review_themes(self.con, db_path=self.db_path)
 
-        mock_logger.warning.assert_called_once()
-        _call_args = mock_logger.warning.call_args
-        self.assertIn("constraint_type", _call_args[1]["extra"])
-        self.assertEqual(
-            _call_args[1]["extra"]["constraint_type"], "CONSTRAINT_MIN_CODES"
-        )
+        status = self.con.execute("SELECT status FROM nodes WHERE id = 1").fetchone()[0]
+        self.assertEqual(status, "draft")
+        printed = [str(c[0][0]) for c in mock_print.call_args_list]
+        self.assertTrue(any("Constraint violation" in p for p in printed))
 
     # ── Merge themes with different tags rejected ───────────────────────
 
     @mock.patch("hitl.theme_review_merge.get_node")
-    def test_merge_themes_different_tags_rejected(self, mock_get_node):
-        """Merging two themes with different tags raises CONSTRAINT_TAG_MISMATCH."""
+    @mock.patch("inference.readiness.check_tag_ready")
+    @mock.patch("hitl.theme_review_merge.validate_constraint")
+    def test_merge_themes_cross_tag_allowed(
+        self, mock_validate, mock_ready, mock_get_node
+    ):
+        """Merging two themes with different tags succeeds (themes may span tags)."""
+        from graph import rebuild_graph
+        from graph.queries import get_node
         from hitl.theme_review_merge import handle_merge_themes
-        from ontology.constraints import CONSTRAINT_TAG_MISMATCH, ConstraintError
+
+        rebuild_graph(self.db_path)
 
         source = {
             "id": 1,
@@ -354,7 +358,7 @@ class TestThemeReviewOrchestration(unittest.TestCase):
             "tag": "T1",
             "type": "theme",
             "status": "draft",
-            "data_json": {},
+            "data_json": {"code_ids": [10]},
         }
         target = {
             "id": 2,
@@ -362,13 +366,22 @@ class TestThemeReviewOrchestration(unittest.TestCase):
             "tag": "T2",
             "type": "theme",
             "status": "draft",
+            "data_json": {"code_ids": [20]},
         }
         mock_get_node.return_value = target
 
-        with self.assertRaises(ConstraintError) as ctx:
-            handle_merge_themes(self.con, source, target_id=2, db_path=self.db_path)
+        self._insert_draft_theme(1, name="ThemeA", tag="T1", code_ids=[10])
+        self._insert_mock_code(10, "CodeA", tag="T1")
+        self._insert_draft_theme(2, name="ThemeB", tag="T2", code_ids=[20])
+        self._insert_mock_code(20, "CodeB", tag="T2")
 
-        self.assertEqual(ctx.exception.code, CONSTRAINT_TAG_MISMATCH)
+        handle_merge_themes(self.con, source, target_id=2, db_path=self.db_path)
+
+        merged = get_node(1, db_path=self.db_path)
+        self.assertEqual(merged.get("status"), "merged")
+        target_theme = get_node(2, db_path=self.db_path)
+        tgt_dj = target_theme.get("data_json") or {}
+        self.assertEqual(sorted(tgt_dj.get("code_ids", [])), [10, 20])
 
     # ── Merge abort when no candidates ──────────────────────────────────
 

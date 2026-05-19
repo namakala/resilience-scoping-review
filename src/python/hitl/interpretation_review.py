@@ -2,8 +2,13 @@
 
 Entry point ``review_interpretations`` iterates pending interpretations
 and dispatches to display, prompt, and action handler modules.
+
+.. deprecated::
+    Use :class:`hitl.tui.AnalystTUI` instead. This module is kept for
+    backward compatibility with the questionary-based review flow.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -28,6 +33,12 @@ from .queries_interpretations import (
 from .queries_interpretations import get_pending_interpretations
 from .queries_themes import get_theme_codes
 from .shared import console
+
+warnings.warn(
+    "interpretation_review.py is deprecated. Use hitl.tui.AnalystTUI instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["review_interpretations"]
 

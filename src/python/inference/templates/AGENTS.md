@@ -1,7 +1,7 @@
 ---
 title: "Prompt Template Layer"
 description: "Jinja2 templates for LLM prompts with system/user role separation"
-updated_at: "2026-05-14"
+updated_at: "2026-05-16"
 ---
 
 # Prompt Template Layer
@@ -57,14 +57,15 @@ schema. Show expected shape inline. Temperature 0 for all extraction.
 codes, exemplars with keywords.
 
 **theme_inference_system.j2** — Role, grouping rules, output schema.
-**theme_inference_user.j2** — Tag context, code list with definitions
-and exemplar counts.
+**theme_inference_user.j2** — Tag context, code list with definitions,
+exemplar counts, and full supporting exemplar content.
 
 **interpretation_synthesis_system.j2** — Role, synthesis rules,
 stopping rule (synthesize from provided themes, do not re-derive),
 output schema.
 **interpretation_synthesis_user.j2** — Hierarchical context, ontology
-subtree, themes grouped by tag.
+subtree, themes grouped by tag with constituent code details and
+supporting exemplar content.
 
 ## Style and Conventions
 

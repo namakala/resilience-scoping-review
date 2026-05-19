@@ -1,5 +1,6 @@
 """Theme review prompts for HITL CLI."""
 
+import json
 from pathlib import Path
 from typing import Any, Optional
 
@@ -76,10 +77,29 @@ def handle_merge_interactive_theme(
 
     candidates = get_other_draft_themes(con, source_id, tag)
     if not candidates:
-        console.print(
-            "[yellow]No other draft themes available for merge in this tag.[/yellow]"
-        )
-        return
+        # Fallback: get all draft themes across all tags
+        rows = con.execute(
+            "SELECT id, name, data_json FROM nodes "
+            "WHERE type = 'theme' AND status IN ('draft', 'approved', 'pending') "
+            "AND id != ? "
+            "ORDER BY tag, name",
+            [source_id],
+        ).fetchall()
+        for row in rows:
+            dj = json.loads(row[2]) if row[2] else {}
+            candidates.append(
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "code_ids": dj.get("code_ids", []),
+                }
+            )
+        if not candidates:
+            console.print(
+                "[yellow]No other draft themes available "
+                "for merge in this tag.[/yellow]"
+            )
+            return
 
     choices = [f"{c['name']} (#{c['id']})" for c in candidates]
     selected = questionary.select(

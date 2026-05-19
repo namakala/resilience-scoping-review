@@ -123,11 +123,12 @@ def handle_merge_themes(
     source_tag = source_theme.get("tag", "")
     target_tag = target_theme.get("tag", "")
     if source_tag and target_tag and source_tag != target_tag:
-        raise ConstraintError(
-            "CONSTRAINT_TAG_MISMATCH",
-            f"Cannot merge theme '{source_theme.get('name', source_id)}' "
-            f"(tag: {source_tag}) into theme '{target_theme.get('name', target_id)}' "
-            f"(tag: {target_tag}). Both themes must have the same tag.",
+        logger.info(
+            "Cross-tag theme merge: '%s' (tag: %s) → '%s' (tag: %s)",
+            source_theme.get("name", source_id),
+            source_tag,
+            target_theme.get("name", target_id),
+            target_tag,
         )
 
     G = get_graph(db_path)
@@ -137,6 +138,7 @@ def handle_merge_themes(
                 "id": source_id,
                 "type": source_type,
                 "tag": source_theme.get("tag", ""),
+                "target_status": target_theme.get("status"),
             },
             "merge",
         )
@@ -170,6 +172,9 @@ def handle_merge_themes(
         invalidate_entity(con, str(source_id), "theme")
         invalidate_entity(con, str(target_id), "theme")
 
+        con.execute("COMMIT")
+
+        # State management (outside transaction — save_state calls con.commit())
         log_user_action(
             con,
             "merge",
@@ -178,15 +183,15 @@ def handle_merge_themes(
             new_value={"status": "merged", "merged_into": target_id},
         )
         increment_user_action_count(con)
-        committed = True
 
-        # Set dirty flag for the tag branch (after transaction is committed)
-        tag = source_theme.get("tag", "")
-        if tag:
-            update_dirty_flag(con, tag)
+        # Set dirty flag + check tag readiness for the target's tag branch
+        if target_tag:
+            update_dirty_flag(con, target_tag)
             from inference.readiness import check_tag_ready
 
-            check_tag_ready(con, tag, db_path=db_path)
+            check_tag_ready(con, target_tag, db_path=db_path)
+
+        committed = True
     except Exception:
         if not committed:
             try:

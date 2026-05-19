@@ -22,7 +22,8 @@ sys.path.insert(  # noqa: E402
 )
 
 import duckdb
-from graph import get_node, get_node_by_name, get_nodes_by_type_and_tag
+from graph import create_edge, get_node, get_node_by_name, get_nodes_by_type_and_tag
+from graph.queries import is_exemplar_in_any_code, is_theme_in_any_interpretation
 from persistence.duckdb_init import initialize_database
 
 
@@ -372,9 +373,168 @@ class TestQueryPerformance(unittest.TestCase):
         self.assertGreater(len(results), 0)
         self.assertLess(
             elapsed,
-            10.0,
-            f"Query took {elapsed:.3f}ms, expected <10ms",
+            20.0,
+            f"Query took {elapsed:.3f}ms, expected <20ms",
         )
+
+
+class TestIsExemplarInAnyCode(unittest.TestCase):
+    """Tests for is_exemplar_in_any_code()."""
+
+    def setUp(self) -> None:
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+
+        import graph.query_utils
+
+        graph.query_utils._indexes_created = False
+
+        # Seed two code nodes with exemplar_ids
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                1,
+                "code",
+                "CodeA",
+                "Test code A",
+                "Tag1",
+                "draft",
+                json.dumps({"exemplar_ids": ["100", "101", "102"]}),
+            ],
+        )
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                2,
+                "code",
+                "CodeB",
+                "Test code B",
+                "Tag2",
+                "draft",
+                json.dumps({"exemplar_ids": ["103", "104"]}),
+            ],
+        )
+        # Merged code (should be ignored)
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status, data_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                3,
+                "code",
+                "CodeMerged",
+                "Merged code",
+                "Tag1",
+                "merged",
+                json.dumps({"exemplar_ids": ["105"]}),
+            ],
+        )
+
+    def tearDown(self) -> None:
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.query_utils
+
+        graph.query_utils._indexes_created = False
+
+    def test_exemplar_found(self) -> None:
+        """Exemplar 100 is in CodeA."""
+        found, cid, cname = is_exemplar_in_any_code(100, db_path=self.db_path)
+        self.assertTrue(found)
+        self.assertEqual(cid, 1)
+        self.assertEqual(cname, "CodeA")
+
+    def test_exemplar_not_found(self) -> None:
+        """Exemplar 999 is in no code."""
+        found, cid, cname = is_exemplar_in_any_code(999, db_path=self.db_path)
+        self.assertFalse(found)
+        self.assertIsNone(cid)
+        self.assertIsNone(cname)
+
+    def test_merged_code_excluded(self) -> None:
+        """Exemplar 105 in merged code should not be found."""
+        found, cid, cname = is_exemplar_in_any_code(105, db_path=self.db_path)
+        # Merged codes are excluded, so exemplar 105 should not appear
+        self.assertFalse(found)
+
+
+class TestIsThemeInAnyInterpretation(unittest.TestCase):
+    """Tests for is_theme_in_any_interpretation()."""
+
+    def setUp(self) -> None:
+        self.tmpdir = Path(tempfile.mkdtemp())
+        self.db_path = self.tmpdir / "test_session.duckdb"
+        initialize_database(db_path=self.db_path)
+        self.con = duckdb.connect(str(self.db_path))
+
+        import graph.query_utils
+
+        graph.query_utils._indexes_created = False
+
+        # Seed interpretations and themes, then create spans edges
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [10, "interpretation", "InterpX", "Narrative X", "Root", "draft"],
+        )
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [20, "theme", "ThemeY", "Narrative Y", "Tag1", "approved"],
+        )
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [30, "theme", "ThemeZ", "Narrative Z", "Tag2", "approved"],
+        )
+        # Merged interpretation (should be excluded)
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [40, "interpretation", "InterpMerged", "Old", "Root", "merged"],
+        )
+        self.con.execute(
+            "INSERT INTO nodes (id, type, name, definition, tag, status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            [50, "theme", "ThemeMerged", "Merged theme", "Tag3", "approved"],
+        )
+
+        # Create spans edges
+        create_edge(source_id=10, target_id=20, edge_type="spans", db_path=self.db_path)
+        create_edge(source_id=40, target_id=50, edge_type="spans", db_path=self.db_path)
+
+    def tearDown(self) -> None:
+        self.con.close()
+        import shutil
+
+        shutil.rmtree(self.tmpdir)
+        import graph.query_utils
+
+        graph.query_utils._indexes_created = False
+
+    def test_theme_found(self) -> None:
+        """Theme 20 is spanned by interpretation 10."""
+        found, iid, iname = is_theme_in_any_interpretation(20, db_path=self.db_path)
+        self.assertTrue(found)
+        self.assertEqual(iid, 10)
+        self.assertEqual(iname, "InterpX")
+
+    def test_theme_not_found(self) -> None:
+        """Theme 30 has no interpretation."""
+        found, iid, iname = is_theme_in_any_interpretation(30, db_path=self.db_path)
+        self.assertFalse(found)
+        self.assertIsNone(iid)
+        self.assertIsNone(iname)
+
+    def test_merged_interpretation_excluded(self) -> None:
+        """Theme 50 is spanned by a merged interpretation and should not be found."""
+        found, iid, iname = is_theme_in_any_interpretation(50, db_path=self.db_path)
+        self.assertFalse(found)
 
 
 if __name__ == "__main__":

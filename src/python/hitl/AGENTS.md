@@ -1,7 +1,7 @@
 ---
 title: "Human-in-the-Loop Validation Layer"
 description: "CLI-based review and mutation workflows for qualitative validation"
-updated_at: "2026-05-14"
+updated_at: "2026-05-17"
 ---
 
 # Human-in-the-Loop Validation Layer
@@ -34,11 +34,12 @@ Three review modes operate independently:
 
 ## User Actions
 
-Five atomic actions:
+Six atomic actions:
 
 - **Approve** — Mark entity as approved, persist to graph
 - **Edit** — Modify definition or narrative; resets status to draft; invalidates affected embeddings
 - **Merge** — Combine two entities; redirect evidence; mark source as merged; invalidate caches
+- **Split** — Divide entity into N groups by iteratively regrouping constituent items (exemplars for codes, codes for themes, themes for interpretations); each round shows a SplitModal with remaining items; triggers LLM re-inference for all groups; original marked superseded
 - **Reject** — Mark as rejected; do not propagate downstream
 - **Defer** — Skip for later; keep in draft state
 
@@ -46,7 +47,7 @@ All actions written to user action log table. Timestamped for audit trail.
 
 ## Rich Terminal UI
 
-Uses `rich` library for formatted panels, tables, and syntax highlighting. Uses `questionary` for interactive prompts with arrow-key selection. Displays hierarchical context clearly using indented text panels.
+Uses `textual` library for the interactive TUI (tabbed interface, dual-pane browser, modal dialogs). The old `questionary`-based interactive prompts are deprecated. Backend action handlers (approve, edit, merge, reject, etc.) are shared between both UIs.
 
 ## Undo/Redo
 
@@ -74,20 +75,25 @@ Check rejected if constraints violated. Error message includes remediation sugge
 
 ## Module Map
 
-- **`code_review.py`** — Interactive CLI orchestration for code review
-- **`theme_review.py`** — Interactive CLI orchestration for theme review
-- **`interpretation_review.py`** — Interactive CLI orchestration for interpretation review
+### Deprecated (questionary-based, use TUI instead):
+- **`code_review.py`** — Interactive CLI orchestration for code review (deprecated)
+- **`theme_review.py`** — Interactive CLI orchestration for theme review (deprecated)
+- **`interpretation_review.py`** — Interactive CLI orchestration for interpretation review (deprecated)
+
+### Shared backend (used by both old CLI and new TUI):
 - **`code_review_actions.py`** — Action handlers (approve, edit, reject, defer) for codes
 - **`theme_review_actions.py`** — Action handlers for themes
 - **`interpretation_review_actions.py`** — Action handlers for interpretations
 - **`code_review_merge.py`** — Merge orchestration for codes with transaction management
+- **`code_review_split.py`** — Split orchestration for codes with LLM re-inference
 - **`theme_review_merge.py`** — Merge orchestration for themes
-- **`interpretation_review_split.py`** — Split orchestration for interpretations
+- **`theme_review_split.py`** — Split orchestration for themes with LLM re-inference
+- **`interpretation_review_split.py`** — Split orchestration for interpretations (both direct copy and LLM re-inference)
 - **`shared.py`** — Shared utilities (console, node update helpers, common action patterns)
 - **`queries.py`** — Shared database utilities (`_parse_json`, `_get_neighbors`)
-- **`queries_codes.py`** — Code-specific database queries (pending, exemplars, neighbors)
-- **`queries_themes.py`** — Theme-specific database queries (pending, constituent codes, merge candidates)
-- **`queries_interpretations.py`** — Interpretation-specific database queries (pending, themes, neighbors)
+- **`queries_codes.py`** — Code-specific database queries (pending, exemplars, neighbors, all)
+- **`queries_themes.py`** — Theme-specific database queries (pending, constituent codes, merge candidates, all)
+- **`queries_interpretations.py`** — Interpretation-specific database queries (pending, themes, neighbors, all)
 - **`display.py**` — `rich` panels, tables, and trees for all entity types (consolidated)
 - **`prompts.py`** — Shared prompt helper (`prompt_edit_text`)
 - **`prompts_codes.py`** — Code review prompts (action, merge, context)
@@ -97,11 +103,18 @@ Check rejected if constraints violated. Error message includes remediation sugge
 - **`user_action_log.py`** — Audit table CRUD
 - **`approvals.py`** — Interpretation approval: finalize, invalidate caches, increment counters
 
+### TUI (Textual-based, preferred):
+- **`tui/`** — Textual application package
+  - **`app.py`** — `AnalystTUI` app with tabbed interface (Logs, Codes, Themes, Interpretations)
+  - **`widgets/entity_browser.py`** — Dual-pane browser with list and detail views
+  - **`widgets/modals.py`** — Edit, merge, and split modal dialogs
+  - **`actions/handlers.py`** — Dispatch wrappers from TUI keybindings to backend handlers
+
 ## Integration
 
 - Calls `@src/python/graph/AGENTS.md` to persist mutations
 - Calls `@src/python/ontology/AGENTS.md` for constraint checks
-- Notifies `@src/python/pipeline/AGENTS.md` of dirty flags for recomputation
+- Notifies orchestration layer via `orchestration.dirty.propagate_dirty()` for dirty-flag cascade
 - Retrieves neighbors from `@src/python/semantic/AGENTS.md` for context
 - Loads artifacts from `@src/python/persistence/AGENTS.md`
 

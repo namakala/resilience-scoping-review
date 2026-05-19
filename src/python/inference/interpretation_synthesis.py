@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 import duckdb
 from utils.logging import get_logger
@@ -60,6 +61,8 @@ def _log_summary(
 def synthesize_interpretations(
     con: duckdb.DuckDBPyConnection,
     tag: str | None = None,
+    tags: list[str] | None = None,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> list[InterpretationInference]:
     """Synthesize cross-cutting interpretations from approved themes.
 
@@ -71,18 +74,31 @@ def synthesize_interpretations(
         con: Active DuckDB connection.
         tag: Optional tag override. If provided, only this tag is checked
             for readiness (instead of auto-discovering all ready tags).
+        tags: Optional list of tags. If provided, ready tags are filtered
+            to only those in this list.  Mutually exclusive with *tag*.
 
     Returns:
         Flat list of ``InterpretationInference`` items across all spans.
     """
+    if tag is not None and tags is not None:
+        raise ValueError("Provide either 'tag' or 'tags', not both")
+
     start_time = time.time()
     logger.info(
-        "Starting interpretation synthesis%s", f" for tag '{tag}'" if tag else ""
+        "Starting interpretation synthesis%s",
+        f" for tag '{tag}'" if tag else f" for {len(tags)} tag(s)" if tags else "",
     )
 
     ready_tags = get_ready_tags(con)
     if tag:
         ready_tags = [t for t in ready_tags if t == tag]
+    if tags:
+        from ontology import get_ancestors
+
+        _expanded = set(tags)
+        for t in tags:
+            _expanded.update(get_ancestors(t))
+        ready_tags = [t for t in ready_tags if t in _expanded]
     if not ready_tags:
         logger.info("No ready tags found for interpretation synthesis")
         return []
@@ -103,6 +119,7 @@ def synthesize_interpretations(
         _process_interpretation_span,
         STAGE_INTERPRETATION,
         _mark_span_failure,
+        progress_callback=progress_callback,
     )
 
     _log_summary(start_time, all_results, tracker)

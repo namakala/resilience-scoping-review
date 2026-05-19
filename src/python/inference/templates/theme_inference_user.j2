@@ -1,0 +1,31 @@
+## Tag Context
+
+Tag: {{ tag_name }}
+Tag description: {{ tag_description }}
+Ontology path: {{ ontology_path | join(" → ") }}
+
+## Existing Themes in Other Tags
+{% if other_tag_themes %}
+{% for tag_name, themes in other_tag_themes.items() %}
+### Tag: {{ tag_name }}
+{% for theme in themes %}
+- {{ theme.name }}: {{ theme.narrative }}
+{% endfor %}
+{% endfor %}
+{% else %}
+No themes in other tags.
+{% endif %}
+
+## Codes to Group into Themes
+{% for code in codes %}
+### Code {{ code.id }}
+Name: {{ code.name }}
+Definition: {{ code.definition }}
+Exemplar count: {{ code.exemplar_count }}
+{% if code.exemplar_contents %}
+Supporting exemplars:
+{% for content in code.exemplar_contents %}
+> {{ content }}
+{% endfor %}
+{% endif %}
+{% endfor %}

@@ -12,6 +12,7 @@ import json
 from typing import Dict, Optional, cast
 
 import duckdb
+from persistence.state_constants import WORKFLOW_KEY
 from persistence.state_repository import load_state, save_state
 from utils.exceptions import StateError
 from utils.logging import get_logger
@@ -22,28 +23,49 @@ logger = get_logger(__name__)
 def update_dirty_flag(
     con: duckdb.DuckDBPyConnection, tag: str, dirty: bool = True
 ) -> None:
-    """Set the dirty flag for a given tag.
+    """Set the dirty flag for a given tag using targeted update.
 
-    Loads the current state, updates the dirty flag for the specified tag,
-    and saves it back. Tags with dots (e.g., "Problem.Cause") are handled
-    as single keys in the dirty_flags dict.
+    Reads raw JSON, modifies only ``dirty_flags.*tag*``, and writes back.
+    Unlike the old ``load_state``/``save_state`` pattern, this avoids
+    filling defaults for missing keys and thus cannot accidentally
+    overwrite ``current_stage`` with a stale value.
 
     Args:
         con: Active DuckDB connection.
-        tag: Tag name (e.g., "Problem.Cause").
+        tag: Tag name (e.g., ``"Problem.Cause"``).
         dirty: True to mark dirty, False to clear.
 
     Raises:
-        StateError: If state load/save fails or tag is not a string.
+        StateError: If tag is not a string or database operation fails.
     """
     if not isinstance(tag, str):
         raise StateError(f"Tag must be a string, got {type(tag).__name__}")
 
-    state = load_state(con)
-    dirty_flags = state.get("dirty_flags", {})
-    dirty_flags[tag] = dirty
-    state["dirty_flags"] = dirty_flags
-    save_state(con, state)
+    import copy as _copy
+    import json as _json
+
+    try:
+        row = con.execute(
+            "SELECT value FROM session_state WHERE key = ?", [WORKFLOW_KEY]
+        ).fetchone()
+        if row:
+            state = _json.loads(row[0])
+        else:
+            from persistence.state_constants import DEFAULT_STATE
+
+            state = _copy.deepcopy(DEFAULT_STATE)
+        state.setdefault("dirty_flags", {})
+        state["dirty_flags"][tag] = dirty
+        con.execute(
+            "INSERT OR REPLACE INTO session_state "
+            "(key, value, type) VALUES (?, ?, 'dict')",
+            [WORKFLOW_KEY, _json.dumps(state)],
+        )
+        con.commit()
+    except duckdb.Error as exc:
+        logger.error("Failed to update dirty flag", extra={"error": str(exc)})
+        raise StateError(f"Database error updating dirty flag: {exc}") from exc
+
     logger.debug("Dirty flag updated", extra={"tag": tag, "dirty": dirty})
 
 
@@ -102,21 +124,52 @@ def set_current_stage(con: duckdb.DuckDBPyConnection, stage: int) -> None:
 
 
 def increment_user_action_count(con: duckdb.DuckDBPyConnection, delta: int = 1) -> None:
-    """Increment the user_action_count by delta.
+    """Increment the user_action_count by delta using targeted update.
+
+    Reads raw JSON, modifies only ``user_action_count``, and writes back.
+    Unlike the old ``load_state``/``save_state`` pattern, this avoids
+    filling defaults for missing keys and thus cannot accidentally
+    overwrite ``current_stage`` with a stale value.
 
     Args:
         con: Active DuckDB connection.
         delta: Amount to increment (must be positive).
 
     Raises:
-        StateError: If delta is not positive or state operation fails.
+        StateError: If delta is not positive or database operation fails.
     """
     if not isinstance(delta, int) or isinstance(delta, bool) or delta <= 0:
         raise StateError(f"delta must be a positive integer, got {delta!r}")
 
-    state = load_state(con)
-    state["user_action_count"] = state.get("user_action_count", 0) + delta
-    save_state(con, state)
+    import copy as _copy
+    import json as _json
+
+    try:
+        row = con.execute(
+            "SELECT value FROM session_state WHERE key = ?", [WORKFLOW_KEY]
+        ).fetchone()
+        if row:
+            state = _json.loads(row[0])
+        else:
+            from persistence.state_constants import DEFAULT_STATE
+
+            state = _copy.deepcopy(DEFAULT_STATE)
+        state["user_action_count"] = state.get("user_action_count", 0) + delta
+        con.execute(
+            "INSERT OR REPLACE INTO session_state "
+            "(key, value, type) VALUES (?, ?, 'dict')",
+            [WORKFLOW_KEY, _json.dumps(state)],
+        )
+        con.commit()
+    except duckdb.Error as exc:
+        logger.error(
+            "Failed to increment user_action_count",
+            extra={"error": str(exc)},
+        )
+        raise StateError(
+            f"Database error incrementing user_action_count: {exc}"
+        ) from exc
+
     logger.debug("User action count incremented", extra={"delta": delta})
 
 

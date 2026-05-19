@@ -3,7 +3,7 @@
 Usage:
     from inference.parsing import parse_code_response
 
-    raw = '{"codes": [{"exemplar_id": "E001", "code_name": "...", ...}]}'
+    raw = '{"codes": [{"exemplar_ids": ["E001"], "code_name": "...", ...}]}'
     codes = parse_code_response(raw)
     for c in codes:
         print(c.code_name)
@@ -13,7 +13,7 @@ import json
 import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from utils.exceptions import ParseError
 from utils.logging import get_logger
 
@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 
 __all__ = [
     "CodeInference",
+    "CodeClusterResponse",
     "ThemeInference",
     "InterpretationInference",
     "parse_code_response",
@@ -42,12 +43,26 @@ class CodeInference(BaseModel):
     tag: str = ""
 
 
+class CodeClusterResponse(BaseModel):
+    """A cluster code returned by LLM with array of exemplar IDs.
+
+    This intermediate type is parsed from the LLM response before expanding
+    into individual CodeInference objects.
+    """
+
+    exemplar_ids: list[str]
+    code_name: str
+    definition: str
+    related_existing_codes: list[str] = Field(default_factory=list)
+
+
 class ThemeInference(BaseModel):
     """A theme grouping multiple related codes."""
 
     theme_name: str
     narrative: str
     code_ids: list[str]
+    tag: str = ""
 
 
 class InterpretationInference(BaseModel):
@@ -57,6 +72,12 @@ class InterpretationInference(BaseModel):
     narrative: str
     theme_ids: list[str]
     key_insights: list[str]
+    tag: str = ""
+
+    @field_validator("theme_ids", mode="before")
+    @classmethod
+    def coerce_ids_to_strs(cls, v):
+        return [str(x) for x in v]
 
 
 # ── Wrapper keys (must match template Output Schema keys) ─────────────────
@@ -176,13 +197,48 @@ def _parse_response(
 # ── Public API ────────────────────────────────────────────────────────────
 
 
+def _normalize_exemplar_id(eid: str) -> str:
+    """Strip leading alphabetic prefix from an exemplar ID.
+
+    The LLM may prefix exemplar IDs (e.g. "E7633323") following the pattern
+    shown in system prompt examples. This normalizer strips any leading
+    alphabetic characters so the ID matches the system's bare numeric format.
+    """
+    import re
+
+    return re.sub(r"^[A-Za-z]+", "", eid)
+
+
 def parse_code_response(text: str) -> list[CodeInference]:
     """Parse and validate a code inference LLM response.
 
-    Expects ``{"codes": [{exemplar_id, code_name, definition,
-    supporting_quote, related_existing_codes}, ...]}``.
+    Expects ``{"codes": [{exemplar_ids: [...], code_name, definition,
+    related_existing_codes}, ...]}``.
+
+    The ``exemplar_ids`` array is expanded into individual ``CodeInference``
+    objects, each with ``supporting_quote`` set to empty string (filled
+    later by post-processing in the inference pipeline).
+    The ``_normalize_exemplar_id`` transformation is applied after expansion.
     """
-    return _parse_response(text, _CODE_WRAPPER, CodeInference)
+    clusters = _parse_response(text, _CODE_WRAPPER, CodeClusterResponse)
+    expanded: list[CodeInference] = []
+    for cluster in clusters:
+        for raw in cluster.exemplar_ids:
+            eid = _normalize_exemplar_id(raw)
+            expanded.append(
+                CodeInference(
+                    exemplar_id=eid,
+                    code_name=cluster.code_name,
+                    definition=cluster.definition,
+                    supporting_quote="",  # filled by post-processing
+                    related_existing_codes=cluster.related_existing_codes,
+                    tag="",
+                )
+            )
+    return expanded
+
+
+# ── Theme/Interpretation parsing (unchanged) ────────────────────────────────────
 
 
 def parse_theme_response(text: str) -> list[ThemeInference]:

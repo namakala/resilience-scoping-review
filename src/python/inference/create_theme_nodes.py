@@ -23,14 +23,15 @@ from pathlib import Path
 from typing import Optional
 
 import duckdb
-from graph import create_edge, create_node, graph_transaction
+from graph import create_edge, create_node, get_nodes_by_type_and_tag, graph_transaction
+from graph.transactions import get_active_connection
 from utils.logging import get_logger
 
 from .inference_status_crud import set_status
 from .inference_status_types import ENTITY_THEME, GENERATED, STAGE_THEME
 from .name_utils import check_duplicate_theme_names, make_unique_name
 from .parsing import ThemeInference
-from .theme_node_reinfer import load_existing_draft_themes, rename_node_raw
+from .theme_node_reinfer import rename_node_raw
 
 logger = get_logger(__name__)
 
@@ -40,6 +41,45 @@ __all__ = ["create_theme_nodes"]
 def _build_data_json(theme: ThemeInference) -> dict:
     """Build the ``data_json`` payload for a theme node."""
     return {"code_ids": theme.code_ids}
+
+
+def _code_has_existing_theme(
+    code_id: int,
+    db_path: Optional[Path] = None,
+) -> bool:
+    """Check if *code_id* already has a ``composed-of`` edge from a non-merged theme.
+
+    Must be called inside a :class:`graph_transaction` context.
+    Returns ``True`` if the code already belongs to a draft or approved theme.
+    """
+    con = get_active_connection()
+    if con is None:
+        logger.warning(
+            "_code_has_existing_theme called outside graph_transaction; "
+            "skipping check for code %d",
+            code_id,
+        )
+        return False
+    row = con.execute(
+        "SELECT 1 FROM edges e "
+        "JOIN nodes n ON n.id = e.source_id "
+        "WHERE e.target_id = ? AND e.edge_type = 'composed-of' "
+        "AND n.status != 'merged' "
+        "LIMIT 1",
+        [code_id],
+    ).fetchone()
+    return row is not None
+
+
+def _load_all_theme_names(
+    db_path: Optional[Path] = None,
+) -> set[str]:
+    """Fetch ALL existing theme node names across all tags.
+
+    Used for cross-tag collision detection.
+    """
+    nodes = get_nodes_by_type_and_tag("theme", None, db_path=db_path)
+    return {n["name"] for n in nodes}
 
 
 def create_theme_nodes(
@@ -101,15 +141,18 @@ def create_theme_nodes(
     check_duplicate_theme_names(themes)
 
     # ── Pre-transaction: detect re-inference candidates ────────────────
-    existing_draft_themes = load_existing_draft_themes(tag, db_path=db_path)
+    from graph.queries import load_occupied_names
+    from persistence.state_constants import NON_APPROVED_STATUSES
+
+    occupied = load_occupied_names(
+        "theme", tag=tag, statuses=NON_APPROVED_STATUSES, db_path=db_path
+    )
 
     superseded_names: set[str] = {
-        th.theme_name for th in themes if th.theme_name in existing_draft_themes
+        th.theme_name for th in themes if th.theme_name in occupied
     }
 
-    used_names: set[str] = {
-        n for n in existing_draft_themes if n not in superseded_names
-    }
+    used_names: set[str] = {n for n in occupied if n not in superseded_names}
 
     data_tags = f" for tag '{tag}'" if tag else ""
     logger.info(
@@ -124,7 +167,7 @@ def create_theme_nodes(
     with graph_transaction(db_path=db_path):
         for theme in themes:
             if theme.theme_name in superseded_names:
-                old_id = existing_draft_themes[theme.theme_name]
+                old_id = occupied[theme.theme_name]
                 old_name = f"{theme.theme_name}_deprecated_{old_id}"
                 rename_node_raw(old_id, old_name, db_path=db_path)
                 logger.info(
@@ -134,10 +177,27 @@ def create_theme_nodes(
                     old_name,
                 )
 
+        # Cross-tag collision safety net: draft/approved themes from other tags
+        other_tag_names = set()
+        for n in get_nodes_by_type_and_tag("theme", None, db_path=db_path):
+            if n.get("tag") != tag and n.get("status") in ("draft", "approved"):
+                other_tag_names.add(n["name"])
+
         for theme in themes:
             unique_name = make_unique_name(
                 theme.theme_name, used_names, entity_type="theme"
             )
+
+            # Cross-tag collision safety net: only check OTHER tags
+            if unique_name in other_tag_names:
+                qualified = f"{unique_name} [{tag}]"
+                logger.warning(
+                    "Cross-tag theme name collision '%s' resolved to '%s'",
+                    unique_name,
+                    qualified,
+                )
+                unique_name = make_unique_name(qualified, other_tag_names)
+
             used_names.add(unique_name)
 
             data_json = _build_data_json(theme)
@@ -152,7 +212,7 @@ def create_theme_nodes(
             )
             node_ids.append(node_id)
 
-            prev_id = existing_draft_themes.get(theme.theme_name)
+            prev_id = occupied.get(theme.theme_name)
             if prev_id is not None:
                 create_edge(
                     source_id=prev_id,
@@ -168,6 +228,14 @@ def create_theme_nodes(
                     logger.error(
                         "Invalid code_id '%s' in theme '%s'; skipping edge",
                         code_id_str,
+                        theme.theme_name,
+                    )
+                    continue
+                if _code_has_existing_theme(code_id, db_path=db_path):
+                    logger.warning(
+                        "Code %d already belongs to another theme; "
+                        "skipping composed-of edge from theme '%s'",
+                        code_id,
                         theme.theme_name,
                     )
                     continue

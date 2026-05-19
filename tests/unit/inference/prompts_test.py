@@ -65,9 +65,8 @@ class TestPromptTemplates(unittest.TestCase):
             [
                 "code_name",
                 "definition",
-                "supporting_quote",
                 "related_existing_codes",
-                "exemplar_id",
+                "exemplar_ids",
             ],
         )
         # Verify wrapper object structure in system prompt
@@ -105,7 +104,7 @@ class TestPromptTemplates(unittest.TestCase):
         self.assert_no_unrendered_placeholders(bundle.user)
         self.assert_contains_required_keys(
             bundle.system,
-            ["code_name", "definition", "supporting_quote", "exemplar_id"],
+            ["code_name", "definition", "exemplar_ids"],
         )
 
     # -- theme_inference.j2 ------------------------------------------------

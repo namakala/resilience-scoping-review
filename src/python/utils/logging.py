@@ -1,5 +1,6 @@
 """Centralized structured logging with JSON formatting and sensitive data filtering."""
 
+import contextlib
 import json
 import logging
 import os
@@ -8,7 +9,7 @@ import sys
 from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Iterator
 
 # Sensitive data patterns to redact (case-insensitive, word boundaries).
 # Ordered from most-specific to least-specific to avoid partial matches.
@@ -197,3 +198,45 @@ def get_logger(name: str) -> logging.Logger:
     logger.addHandler(console_handler)
 
     return logger
+
+
+@contextlib.contextmanager
+def suppress_stderr_logging() -> Iterator[None]:
+    """Temporarily suppress all stderr logging handlers.
+
+    Removes every ``StreamHandler`` whose stream is ``sys.stderr``
+    (or ``sys.__stderr__``) from the root logger and all named loggers.
+    Restores them on exit.  Intended for wrapping TUI sessions where
+    raw stderr output would corrupt Textual's alternate screen.
+    """
+    stashed: list[tuple[logging.Logger, logging.Handler]] = []
+
+    def _suppress() -> None:
+        nonlocal stashed
+        for logger_name in list(logging.root.manager.loggerDict):
+            logger = logging.getLogger(logger_name)
+            for handler in list(logger.handlers):
+                if isinstance(handler, logging.StreamHandler) and handler.stream in (
+                    sys.stderr,
+                    sys.__stderr__,
+                ):
+                    stashed.append((logger, handler))
+                    logger.removeHandler(handler)
+        for handler in list(logging.root.handlers):
+            if isinstance(handler, logging.StreamHandler) and handler.stream in (
+                sys.stderr,
+                sys.__stderr__,
+            ):
+                stashed.append((logging.root, handler))
+                logging.root.removeHandler(handler)
+
+    def _restore() -> None:
+        for logger, handler in stashed:
+            logger.addHandler(handler)
+        stashed.clear()
+
+    _suppress()
+    try:
+        yield
+    finally:
+        _restore()

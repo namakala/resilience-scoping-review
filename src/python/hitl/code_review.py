@@ -2,8 +2,13 @@
 
 Entry point ``review_codes`` iterates pending codes and dispatches
 to display, prompt, and action handler modules.
+
+.. deprecated::
+    Use :class:`hitl.tui.AnalystTUI` instead. This module is kept for
+    backward compatibility with the questionary-based review flow.
 """
 
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -21,6 +26,12 @@ from .prompts_codes import show_more_context
 from .queries_codes import get_neighbors_code as get_neighbors
 from .queries_codes import get_pending_codes
 from .shared import console
+
+warnings.warn(
+    "code_review.py is deprecated. Use hitl.tui.AnalystTUI instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["review_codes"]
 

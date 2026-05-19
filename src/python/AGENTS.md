@@ -1,7 +1,7 @@
 ---
 title: "Orchestration Layer"
 description: "Coordinates workflow stages, state management, and layer integration"
-updated_at: "2026-05-11"
+updated_at: "2026-05-16"
 ---
 
 # Python Orchestration Layer
@@ -15,7 +15,7 @@ Glue system components together. Manage workflow progression, checkpoint state, 
 ## Core Responsibilities
 
 - Parse command-line arguments and load configuration
-- Initialize Hamilton DAG for dependency orchestration
+- Dispatch pipeline stages sequentially via runner
 - Load immutable artifacts (exemplars, keywords, tag ontology)
 - Drive workflow state machine through 10 stages
 - Persist and restore session state for resumability
@@ -46,11 +46,9 @@ Workflow state tracks: current stage, dirty flags per ontology branch (which tag
 
 Dirty-state propagation (ADR-007) ensures only affected branches recompute after user edits. For example, editing a code invalidates its theme and any interpretation containing that theme.
 
-## DAG Orchestration
+## Sequential Dispatch
 
-Hamilton DAG encodes dependencies between computational nodes. Inputs: exemplars, keywords, ontology. Outputs: codes, themes, interpretations. Each node is a pure function; Hamilton determines execution order and caching behavior. DAG does not manage persistence or validation — those are delegated.
-
-DAG construction takes a configuration object and returns executable object. Stages pass dataframes between nodes lazily where possible.
+Pipeline runs as a linear sequence of 10 stages in `runner.run_pipeline()`. Each stage dispatches directly to a service module (loaders, embedders, inference services, HITL coordinator, export). No DAG framework. Tag-level dirty flags gate theme inference: `runner._run_stage_infer_themes()` iterates `state.dirty_flags` and calls `infer_themes(con, tag=tag)` only for dirty tags. Clean tags get zero LLM calls.
 
 ## Error Handling
 
@@ -66,11 +64,11 @@ Delegates to layers:
 - HITL review (`@src/python/hitl/AGENTS.md`): interactive CLI prompts, user action capture
 - Persistence (`@src/python/persistence/AGENTS.md`): artifact loading and state checkpointing
 - Graph database (`@src/python/graph/AGENTS.md`): node and edge CRUD operations
-- Pipeline definition (`@src/python/pipeline/AGENTS.md`): Hamilton node function definitions and DAG wiring
+- Runner dispatch (`@src/python/orchestration/AGENTS.md`): sequential stage loop with tag-level dirty-flag gating
 
 ## Testing
 
-Unit tests cover config parsing, state transitions, artifact loading, and DAG node construction. Integration tests cover end-to-end workflow with mocked LLM responses, state persistence across restarts, and HITL interaction flows.
+Unit tests cover config parsing, stage transitions, artifact loading, and runner dispatch. Integration tests cover end-to-end pipeline with mocked LLM responses, state persistence across restarts, and HITL interaction flows.
 
 ## References
 

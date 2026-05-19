@@ -17,9 +17,9 @@ import networkx as nx
 from .constraints import (
     CONSTRAINT_CODE_MULTI_THEME,
     CONSTRAINT_CYCLE_AFTER_MERGE,
+    CONSTRAINT_INVALID_MERGE_TARGET,
     CONSTRAINT_MIN_CODES,
     CONSTRAINT_NONCONTIGUOUS_SPAN,
-    CONSTRAINT_TAG_MISMATCH,
     CONSTRAINT_THEME_MULTI_INTERP,
     CONSTRAINT_UNKNOWN_TAG,
     ConstraintError,
@@ -28,6 +28,7 @@ from .contiguity import _missing_intermediates, is_contiguous_subtree
 
 __all__ = [
     "validate_code_approval",
+    "validate_merge_target_status",
     "validate_theme_approval",
     "validate_theme_interpretation",
     "validate_interpretation_contiguity",
@@ -60,7 +61,7 @@ def validate_theme_approval(
     theme_id: int,
     graph: nx.DiGraph,
 ) -> None:
-    """Rule 2: theme has >= 2 codes, all sharing the same parent tag."""
+    """Rule 2: theme has >= 2 codes (themes may span multiple tags)."""
     code_ids: list[int] = []
     for src, tgt, data in graph.edges(data=True):
         if data.get("type") != "composed-of":
@@ -77,39 +78,25 @@ def validate_theme_approval(
             f"at least 2 are required.",
         )
 
-    tags: set[str] = set()
-    for cid in code_ids:
-        tag = graph.nodes[cid].get("tag")
-        if tag is not None:
-            tags.add(tag)
-
-    if len(tags) > 1:
-        theme_name = graph.nodes[theme_id].get("name", str(theme_id))
-        raise ConstraintError(
-            CONSTRAINT_TAG_MISMATCH,
-            f"Theme '{theme_name}' contains codes from multiple tags: "
-            f"{sorted(tags)}. All codes must belong to the same tag.",
-        )
-
 
 def validate_theme_interpretation(
     theme_id: int,
     graph: nx.DiGraph,
 ) -> None:
-    """Rule 3: theme belongs to at most one approved interpretation."""
+    """Rule 3: theme belongs to at most one non-merged interpretation."""
     for src, tgt, data in graph.edges(data=True):
         if data.get("type") != "spans":
             continue
         if tgt != theme_id:
             continue
         interp_status = graph.nodes[src].get("status", "")
-        if interp_status == "approved":
+        if interp_status not in ("merged", "rejected"):
             interp_name = graph.nodes[src].get("name", str(src))
             raise ConstraintError(
                 CONSTRAINT_THEME_MULTI_INTERP,
-                f"Theme '{theme_id}' is already spanned by approved "
-                f"interpretation '{interp_name}'. A theme can belong to "
-                f"at most one interpretation.",
+                f"Theme '{theme_id}' is already spanned by "
+                f"interpretation '{interp_name}' (status={interp_status}). "
+                f"A theme can belong to at most one interpretation.",
             )
 
 
@@ -139,6 +126,20 @@ def validate_tag_exists(tag: str, tag_dag: nx.DiGraph) -> None:
             CONSTRAINT_UNKNOWN_TAG,
             f"Tag '{tag}' does not exist in the ontology. "
             f"Assign a valid tag from the ontology before proceeding.",
+        )
+
+
+VALID_MERGE_TARGET_STATUSES = frozenset({"draft", "approved", "pending"})
+
+
+def validate_merge_target_status(target_status: str) -> None:
+    """Rule 7: merge target must be in draft, approved, or pending state."""
+    if target_status not in VALID_MERGE_TARGET_STATUSES:
+        raise ConstraintError(
+            CONSTRAINT_INVALID_MERGE_TARGET,
+            f"Cannot merge into an entity with status '{target_status}'. "
+            f"Target must be one of: "
+            f"{', '.join(sorted(VALID_MERGE_TARGET_STATUSES))}.",
         )
 
 

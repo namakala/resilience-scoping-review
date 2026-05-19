@@ -1,7 +1,7 @@
 ---
 title: "Project Agentic Documentation Index"
 description: "Entry point for agentic documentation across all system layers and modules"
-updated_at: "2026-05-13"
+updated_at: "2026-05-18"
 ---
 
 # Local-First Qualitative Thematic Analysis
@@ -54,13 +54,17 @@ Exemplars CSV: `id,document,tag,content`. Tag ontology CSV: `tag,description,n_c
 
 ## Constraints
 
-One code → one theme. One theme → one interpretation. Themes aggregate codes within same tag only. Interpretations may span multiple tags. Tag ontology is a DAG.
+One exemplar → one code. One code → one theme. One theme → one interpretation. Themes aggregate codes within same tag only. Interpretations may span multiple tags. Tag ontology is a DAG. All constraints are enforced at write time — violations produce logged warnings and skip the offending entity.
 
 See `@src/python/ontology/AGENTS.md` for validation rules.
 
 ## Quick Reference
 
-Entry point: `python analyze.py --data data/raw/data.csv --tags data/raw/tags.csv`.
+Entry point: `python analyze.py [global-opts] <command> [sub-opts]`.
+Commands: `ingest` (load CSV data), `run [--all|--type]` (pipeline stages with HITL), `review` (HITL TUI).
+No subcommand defaults to review (prompts to run if no artifacts exist).
+Global options: `--data PATH`, `--tags PATH`, `--env FILE`, `--resume`.
+Config: `.env` + optional `--env FILE` override. Precedence: CLI > --env > .env > defaults.
 Stages: load → embed → index → infer_codes → review_codes → infer_themes → review_themes → infer_interpretations → review_interpretations → export.
 Environment: mamba env from `environment.yml`, also local environment for secrets such as `GROQ_API_KEY`.
 

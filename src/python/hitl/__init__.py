@@ -9,6 +9,7 @@ from .code_review_actions import (
     handle_reject,
 )
 from .code_review_merge import handle_merge
+from .code_review_split import handle_split_code_regroup
 from .interpretation_review import review_interpretations
 from .interpretation_review_actions import (
     handle_approve_interpretation,
@@ -16,7 +17,10 @@ from .interpretation_review_actions import (
     handle_edit_interpretation,
     handle_reject_interpretation,
 )
-from .interpretation_review_split import handle_split_interpretation
+from .interpretation_review_split import (
+    handle_split_interpretation,
+    handle_split_interpretation_regroup,
+)
 from .invalidation import (
     invalidate_code_embedding,
     invalidate_interpretation_embedding,
@@ -30,6 +34,7 @@ from .theme_review_actions import (
     handle_reject_theme,
 )
 from .theme_review_merge import handle_merge_themes
+from .theme_review_split import handle_split_theme_regroup
 from .user_action_log import log_user_action
 
 __all__ = [
@@ -51,6 +56,9 @@ __all__ = [
     "handle_reject_interpretation",
     "handle_defer_interpretation",
     "handle_split_interpretation",
+    "handle_split_interpretation_regroup",
+    "handle_split_code_regroup",
+    "handle_split_theme_regroup",
     "approve_interpretation",
     "log_user_action",
     "invalidate_code_embedding",

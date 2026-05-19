@@ -1,7 +1,7 @@
 ---
 title: "Inference & LLM Layer"
 description: "Groq batch inference: prompts, parsing, batching, retry, status tracking, and code inference service"
-updated_at: "2026-05-15"
+updated_at: "2026-05-16"
 ---
 
 # Inference & LLM Layer
@@ -10,12 +10,17 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 ## Module Map
 
-- `batching.py` — `group_by_tag(items, N)` → `list[Batch]`; `group_items_by_tag(items)` → `dict[str, list]`
+- `batching.py` — `group_by_tag(items, N)` → `list[Batch]`; `group_items_by_tag(items)` → `dict[str, list]`; `group_by_similarity(tag, clusters, misc)` → `list[Batch]`
+- `exemplar_clustering.py` — `compute_pairwise_similarity()`, `cluster_by_similarity()` threshold-based transitivity clustering for similarity batching
 - `code_inference.py` — `infer_codes(con, tag)` → `list[CodeInference]`
 - `code_node_creation.py` — `create_code_nodes(con, codes)` → `list[int]`
 - `exemplar_node_creation.py` — `ensure_exemplar_nodes(con, ids, tag)` → `dict[str, int]`
+- `theme_code_loading.py` — `load_approved_codes(tag)`, `_load_exemplar_content_map(ids)`. Loads codes with exemplar content from Parquet.
+- `theme_inference.py` — `infer_themes(con, tag)` → `list[ThemeInference]`
 - `theme_node_reinfer.py` — `load_existing_draft_themes()`, `rename_node_raw()`
 - `theme_name_utils.py` — `make_unique_theme_name()`, `check_duplicate_theme_names()`
+- `theme_loading_for_interpretation.py` — `load_approved_themes(tag)`, loads themes with constituent code details and exemplar content.
+- `interpretation_synthesis.py` — `synthesize_interpretations(con)` → `list[InterpretationInference]`
 - `prompts.py` + `templates/` — Jinja2 rendering (code/theme/interpretation)
 - `parsing.py` — fence stripping, JSON parse, Pydantic validation
 - `retry.py` — network retry, rate-limit sleep, token-limit batch splitting
@@ -29,8 +34,15 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 ## Infrastructure
 
-- **Retry:** Network errors → exponential backoff. 429 → 60s sleep. Token limit → split batch in half, retry recursively.
-- **Batching:** `group_by_tag(items, max_per_batch)`. Items need `.tag` + `.id`. Deterministic by tag then id.
+- **Retry:** Network errors + HTTP 400 (JSON validation failures) → exponential backoff. 429 → 60s sleep. Token limit → split batch in half, retry recursively.
+- **Batching:** `group_by_tag(items, max_per_batch)` for fixed-size grouping.
+  `group_by_similarity(tag, clusters, misc)` wraps similarity-clustered groups
+  into batches with a final misc batch. Items need `.tag` + `.id`.
+  Deterministic by tag then id.
+- **Clustering:** `exemplar_clustering.py` provides `compute_pairwise_similarity`
+  (embedding cosine matrix) and `cluster_by_similarity` (threshold-based
+  transitivity via Union-Find). Each cluster is one LLM batch with a single
+  abstract code. The user configures the threshold via `EXEMPLAR_SIMILARITY_THRESHOLD` (default 0.6).
 - **Token tracking:** `TokenTracker` records per-call usage, aggregates stage/session totals, writes JSON log, warns on cost threshold.
 
 ## Prompts
@@ -46,7 +58,15 @@ Batch LLM inference, prompt templating, structured output parsing, and increment
 
 ## Services
 
-**`code_inference.py`:** Load pending exemplars → `group_by_tag(15)` → `run_batches(con, batches, _process_code_batch, STAGE_CODE)`. Per batch: fetch tag context + existing codes → load fewshot → `infer_batch_with_retry(render_fn, temperature=code_temperature())` → `parse_code_response` → dedup by exemplar_id → validate missing/extra IDs → `mark_success`/`mark_failure`. Returns `list[CodeInference]`.
+**`code_inference.py`:** Load pending exemplars → similarity-based clustering
+(threshold `EXEMPLAR_SIMILARITY_THRESHOLD`, default 0.6, min cluster size 5) →
+`run_batches(con, batches, _process_code_batch, STAGE_CODE)`. Each cluster
+acts as a single batch producing one abstract code via LLM. Leftover
+exemplars form a single misc batch. Per batch: fetch tag context + existing
+codes → load fewshot → `infer_batch_with_retry(render_fn, temperature=code_temperature())`
+- `parse_code_response` (parses `exemplar_ids` array, expands to individual objects) → dedup by
+exemplar_id → validate missing/extra IDs → `mark_success`/`mark_failure`.
+Returns `list[CodeInference]`.
 
 **`interpretation_synthesis.py`:** Ready tags → `group_ready_tags_into_spans` → load approved themes per span → `run_batches(con, batches, _process_interpretation_span, STAGE_INTERPRETATION)`. Per span: build prompt context (tag hierarchy, ontology subtree, themes by tag) via `interpretation_span_grouping.py` pure functions → load fewshot → `infer_batch_with_retry(temperature=interpretation_temperature())` → `parse_interpretation_response` → `dedup_interpretation_names` + `flag_overlapping_themes` + `validate_theme_ids_exist` → `mark_success` per theme. Returns `list[InterpretationInference]`.
 

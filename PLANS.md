@@ -92,13 +92,13 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 
 ## Phase 10 — Orchestration Layer (58–64)
 
-- [ ] @docs/plan/58-cli-entrypoint.md
-- [ ] @docs/plan/59-state-machine-implementation.md
-- [ ] @docs/plan/60-stage-transition-driver.md
-- [ ] @docs/plan/61-hitl-coordination.md
-- [ ] @docs/plan/62-export-formatter.md
-- [ ] @docs/plan/63-error-recovery-handler.md
-- [ ] @docs/plan/64-session-resume-logic.md
+- [x] @docs/plan/58-cli-entrypoint.md (click-based CLI, 3 subcommands: ingest/run/review, 33 tests pass)
+- [x] @docs/plan/59-state-machine-implementation.md
+- [x] @docs/plan/60-stage-transition-driver.md (runner.py + generate→run refactor; 22 tests pass)
+- [x] @docs/plan/61-hitl-coordination.md
+- [x] @docs/plan/62-export-formatter.md
+- [x] @docs/plan/63-error-recovery-handler.md
+- [x] @docs/plan/64-session-resume-logic.md
 
 ## Phase 11 — Integration & System Completion (65–70)
 
@@ -112,6 +112,11 @@ Simple checklist. Each item is a link to a detailed feature file. When a feature
 ## Phase 12 — Few-Shot Enhancement (71)
 
 - [ ] @docs/plan/71-dynamic-fewshot-retrieval.md
+
+## Post-Phase Refinements
+
+- [x] Iterative multi-group split: three backend handlers converted from two-group to N-group (`groups: list[list[int]]`); SplitModal shows round_number + remaining count; TUI recursively shows modals until all items assigned (2026-05-17)
+- [x] Standalone ``export`` subcommand: ``python analyze.py export`` writes JSON/MD/CSV with connection and completion pre-checks; replaces pipeline stage 10 format (2026-05-18)
 
 ---
 
