@@ -1,105 +1,267 @@
+# Resilience Scoping Review and Thematic Analysis Pipeline
 
+A local-first, ontology-guided pipeline for qualitative thematic analysis.
+It turns a corpus of literature excerpts tagged against a hierarchical
+ontology into validated **codes → themes → interpretations**, with a
+human-in-the-loop review at every stage.
 
-# Getting started
+The pipeline runs entirely on your machine (works on 8 GB RAM laptops),
+uses LLM inference (Groq) for constrained coding, and combines semantic
+embeddings, BM25 lexical search, and ontology structure for retrieval.
+Only inference calls require network access; everything else is local.
 
-Most of the works in this repository, especially the `R` scripts, should
-be directly reproducible. You’ll need
-[`git`](https://git-scm.com/downloads),
-[`R`](https://www.r-project.org/),
-[`quarto`](https://quarto.org/docs/download/), and more conveniently
-[RStudio IDE](https://posit.co/downloads/) installed and running well in
-your system. You simply need to fork/clone this repository using RStudio
-by following [this tutorial, start right away from
-`Step 2`](https://book.cds101.com/using-rstudio-server-to-clone-a-github-repo-as-a-new-project.html#step---2).
-Using terminal in linux/MacOS, you can issue the following command:
+---
 
-``` bash
-quarto tools install tinytex
+## Quick start
+
+### 1. Prerequisites
+
+- [git](https://git-scm.com/downloads)
+- [mamba](https://mamba.readthedocs.io/) or conda/miniconda
+- A [Groq API key](https://console.groq.com/keys) (free tier is enough
+  for this corpus)
+
+### 2. Clone and create the environment
+
+```bash
+git clone https://github.com/namakala/resilience-scoping-review && cd resilience-scoping-review
+mamba env create -f environment.yaml   # creates the `qda` environment
+mamba activate qda
 ```
 
-This command will install `tinytex` in your path, which is required to
-compile quarto documents as latex/pdf. Afterwards, in your RStudio
-command line, you can copy paste the following code to setup your
-working directory:
+### 3. Configure secrets
 
-``` r
-install.packages("renv") # Only need to run this step if `renv` is not installed
+```bash
+cp .env.example .env
+# edit .env and set GROQ_API_KEY=<your key>
 ```
 
-This step will install `renv` package, which will help you set up the
-`R` environment. Please note that `renv` helps tracking, versioning, and
-updating packages I used throughout the analysis.
+The defaults in `.env` are correct for this repository. You only need
+to fill in the API key. All options are documented in `.env.example`.
 
-``` r
-renv::restore()
+### 4. Run the analysis
+
+```bash
+python analyze.py ingest    # load data/raw CSV files into the local session
+python analyze.py run       # run all stages; stop at each review prompt
+python analyze.py export    # write results to data/output/
 ```
 
-This step will read `renv.lock` file and install required packages to
-your local machine. When all packages loaded properly (make sure there’s
-no error at all), you *have to* restart your R session. At this point,
-you need to export the data as `data.csv` and place it within the
-`data/raw` directory. The directory structure *must* look like this:
+`run` performs inference and then pauses for review at each stage.
+At the final review, approved artifacts are finalized; the exported
+results land in:
 
-``` bash
-data
-├── ...
-├── raw
-│   └── data.csv
-└── ...
+- `data/output/results.json`: machine-readable (interpretations, themes, codes, evidence)
+- `data/output/results.md`: human-readable narrative report
+- `data/output/results.csv`: tabular export
+
+Resume anytime: the pipeline saves checkpoints, so re-running the same
+command picks up where you left off. Use `--no-resume` to start fresh.
+
+---
+
+## What's this all about?
+
+The input is a set of **exemplars**: short excerpts from the literature,
+each tagged with a node from a hierarchical **tag ontology**
+(e.g. `Problem.Cause`, `Problem.Impact.Mechanism`). The pipeline
+iteratively abstracts upward:
+
+```
+exemplars ──→ codes ──→ themes ──→ interpretations
+   (evidence)  (per exemplar)  (per tag)   (across tags)
 ```
 
-Then, you should be able to proceed with:
+Stage flow (governed by a state machine, resumed from checkpoints):
 
-``` r
-targets::tar_make()
+```mermaid
+flowchart LR
+    A[ingest: load CSV → Parquet] --> B[embed: vector embeddings]
+    B --> C[index: BM25 + ontology graph]
+    C --> D[infer codes] --> E[review codes]
+    E --> F[infer themes] --> G[review themes]
+    G --> H[infer interpretations] --> I[review interpretations]
+    I --> J[export JSON / MD / CSV]
 ```
 
-This step will read `_targets.R` file, where I systematically draft all
-of the analysis steps. Once it’s done running, you will find the
-rendered document (either in `html` or `pdf`) inside the `draft`
-directory.
+Design principles (full rationale in `@ADR.md`):
 
-# What’s this all about?
+- **Graph-centric (ADR-004)**: codes, themes, and interpretations are
+  graph nodes with explicit edges, so lineage is always traceable.
+- **Hybrid retrieval (ADR-006)**: BM25 lexical + embedding cosine +
+  ontology proximity, fused into a ranking used as LLM context.
+- **Incremental evolution (ADR-007)**: a dirty-state mechanism
+  recomputes only the ontology branches affected by your edits; clean
+  tags cost zero LLM calls on re-runs.
+- **Human in the loop (ADR-011)**: nothing is final until you approve,
+  edit, merge, or reject it in the review UI.
 
-This is the functional pipeline for conducting statistical analysis. The
-complete flow can be viewed in the following `mermaid` diagram:
+---
 
-``` mermaid
-graph LR
-  style Legend fill:#FFFFFF00,stroke:#000000;
-  style Graph fill:#FFFFFF00,stroke:#000000;
-  subgraph Legend
-    direction LR
-    x2db1ec7a48f65a9b([""Outdated""]):::outdated --- xb6630624a7b3aa0f([""Dispatched""]):::dispatched
-    xb6630624a7b3aa0f([""Dispatched""]):::dispatched --- xf1522833a4d242c5([""Up to date""]):::uptodate
-    xf1522833a4d242c5([""Up to date""]):::uptodate --- xd03d7c7dd2ddda2b([""Stem""]):::none
-    xd03d7c7dd2ddda2b([""Stem""]):::none --- xeb2d7cac8a1ce544>""Function""]:::none
-    xeb2d7cac8a1ce544>""Function""]:::none --- xbecb13963f49e50b{{""Object""}}:::none
-  end
-  subgraph Graph
-    direction LR
-    xe58bddd751ff431b(["fpath"]):::outdated --> xb24e8ba9befc2f2c(["tbl"]):::outdated
-    x18b26034ab3a95e2>"readData"]:::uptodate --> xb24e8ba9befc2f2c(["tbl"]):::outdated
-    xc11069275cfeb620(["readme"]):::dispatched --> xc11069275cfeb620(["readme"]):::dispatched
-    x07bf962581a33ad1{{"funs"}}:::uptodate --> x07bf962581a33ad1{{"funs"}}:::uptodate
-    x2f12837377761a1b{{"pkgs"}}:::uptodate --> x2f12837377761a1b{{"pkgs"}}:::uptodate
-    x026e3308cd8be8b9{{"pkgs_load"}}:::uptodate --> x026e3308cd8be8b9{{"pkgs_load"}}:::uptodate
-    x4d3ec24f81457d7f{{"seed"}}:::uptodate --> x4d3ec24f81457d7f{{"seed"}}:::uptodate
-    xccc3e27231fd6e5d>"dedup"]:::uptodate --> xccc3e27231fd6e5d>"dedup"]:::uptodate
-  end
-  classDef outdated stroke:#000000,color:#000000,fill:#78B7C5;
-  classDef dispatched stroke:#000000,color:#000000,fill:#DC863B;
-  classDef uptodate stroke:#000000,color:#ffffff,fill:#354823;
-  classDef none stroke:#000000,color:#000000,fill:#94a4ac;
-  linkStyle 0 stroke-width:0px;
-  linkStyle 1 stroke-width:0px;
-  linkStyle 2 stroke-width:0px;
-  linkStyle 3 stroke-width:0px;
-  linkStyle 4 stroke-width:0px;
-  linkStyle 7 stroke-width:0px;
-  linkStyle 8 stroke-width:0px;
-  linkStyle 9 stroke-width:0px;
-  linkStyle 10 stroke-width:0px;
-  linkStyle 11 stroke-width:0px;
-  linkStyle 12 stroke-width:0px;
+## Input data
+
+After `ingest`, exemplars are converted to Parquet and content-hashed so
+changes are detected on re-ingest.
+
+**`data/raw/data.csv`**: exemplars (one row per excerpt):
+
+```csv
+id,document,tag,content
+7548609,D-01-resilience-stress-latinx-immigrants.md,Problem.Cause,"Individuals in minority positions experience multiple adverse conditions"
 ```
+
+| column   | meaning                                              |
+|----------|------------------------------------------------------|
+| `id`     | unique excerpt identifier                            |
+| `document` | source document filename                          |
+| `tag`    | ontology node for this excerpt (`dot`-separated)     |
+| `content`| the excerpt text                                     |
+
+**`data/raw/tags.csv`**: tag ontology (hierarchical namespace):
+
+```csv
+tag,description,n_contents
+Problem,Arising issues related to psychological health and mental well-being.,0
+Problem.Cause,Potential cause of the identified problem.,22
+```
+
+| column        | meaning                                  |
+|---------------|------------------------------------------|
+| `tag`         | full dotted path (`Parent.Child`)        |
+| `description` | semantic definition used as LLM context  |
+| `n_contents`  | exemplar count (reconciled at ingest)    |
+
+---
+
+## CLI reference
+
+All commands take global options first, e.g.
+`python analyze.py --data my.csv --tags my-tags.csv run --type code`.
+
+```
+python analyze.py [GLOBAL OPTIONS] COMMAND [ARGS]
+
+Commands:
+  ingest     Load CSV data into the DuckDB session (→ Parquet)
+  run        Run pipeline stages with HITL validation
+  export     Export approved codes, themes, interpretations
+  benchmark  Compare machine output against human-coded benchmarks
+```
+
+**Global options**
+
+| option | meaning |
+|--------|---------|
+| `--data FILE` | exemplars CSV (overrides defaults) |
+| `--tags FILE` | tags CSV (overrides defaults) |
+| `--env FILE`  | custom `.env` file (overrides default) |
+| `--resume / --no-resume` | resume from last checkpoint (default: resume) |
+| `--force-resume` | ignore config version mismatch and resume |
+
+**`run` options**
+
+| option | meaning |
+|--------|---------|
+| `--type code\|theme\|interpretation` | run only these stages (repeatable) |
+| `--all` | run all stages (default) |
+| `--limit N` | process only the N tags with fewest exemplars (0 = all) |
+| `--force` | hard-delete existing artifacts before re-inferring (requires `--type`) |
+| `--tui / --no-tui` | force TUI or plain CLI review mode |
+| `--quiet` / `--verbose` | output verbosity |
+| `--dry-run` | validate config without executing |
+
+**`benchmark` options**
+
+| option | meaning |
+|--------|---------|
+| `--source FILE` | human-coder benchmark CSV (repeatable, required) |
+| `--output FILE` | benchmark report path (JSON) |
+| `--bootstrap N` | bootstrap iterations for confidence intervals (0 = skip) |
+
+No subcommand defaults to the review TUI. Running the CLI with no
+command and no existing artifacts prompts you to run the pipeline first.
+
+---
+
+## Environment configuration
+
+Configuration comes from `.env` (see `.env.example` for the full
+catalog). Precedence: CLI flags > `--env FILE` > `.env` > defaults.
+
+Key variables:
+
+| variable | default | purpose |
+|----------|---------|---------|
+| `GROQ_API_KEY` | - | **required**; LLM inference provider |
+| `DEFAULT_MODEL` | `openai/gpt-oss-120b` | LLM model for all stages |
+| `CODE_MODEL` / `THEME_MODEL` / `INTERPRETATION_MODEL` | fall back to `DEFAULT_MODEL` | per-stage model overrides |
+| `CODE_TEMPERATURE` | `0.3` | stage temperatures (`THEME_` 0.4, `INTERPRETATION_` 0.5) |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | local sentence-transformer |
+| `BATCH_SIZE` | `15` | exemplars per Groq call |
+| `SIMILARITY_SCORE_THRESHOLD` | `0.8` | auto-assign exemplars to existing codes above this score |
+| `DATA_PATH` / `TAGS_PATH` | `data/raw/{data,tags}.csv` | input paths |
+| `EXPORT_OUTPUT_PATH` | `data/output` | results directory |
+
+Embedding models are cached locally (default
+`~/.cache/huggingface/hub`): first run downloads the MiniLM model once;
+set `HF_HUB_OFFLINE=1` afterward to skip network checks.
+
+---
+
+## Reproducibility & iterative work
+
+- **Resume**: sessions persist checkpoints in a DuckDB session table.
+  Re-running after an interruption continues from the last finished
+  stage.
+- **Dirty-state propagation**: approving/editing an artifact marks only
+  its ontology branch dirty; downstream stages recompute just those
+  branches. This keeps iterative coding cheap on later passes.
+- **Force re-inference**: `run --type code --force` hard-deletes
+  existing codes before re-inferring, when you want a clean slate.
+- **Change detection**: re-ingesting a modified CSV detects content
+  changes via hashes and prompts before overwriting.
+
+Cost tracking is built in: per-stage token usage and estimated USD cost
+are logged (`data/output/token_usage.log`); set `MAX_STAGE_COST_USD`
+to warn above a budget.
+
+---
+
+## Project layout
+
+```
+analyze.py                 CLI entry point
+environment.yaml           mamba environment spec (`qda` env)
+src/python/
+  orchestration/           CLI, state machine, runner, export
+  ontology/                tag DAG, traversal caches, constraints
+  semantic/                embeddings, BM25, hybrid retrieval
+  inference/               Groq batching, prompts, structured parsing
+  hitl/                    CLI/TUI review, mutations, undo/redo
+  graph/                   low-level node/edge CRUD
+  persistence/             DuckDB schema, Parquet, caching
+data/raw/                  inputs (data.csv, tags.csv)
+data/processed/            Parquet artifacts, embeddings, DuckDB
+data/output/               results + logs
+docs/                      ADRs, feature plans, methods, results
+tests/                     unit + integration tests
+```
+
+---
+
+## Documentation
+
+- `@ADR.md`: architecture decision records (graph-centric, hybrid
+  retrieval, incremental evolution, HITL, …)
+- `@AGENTS.md`: agentic documentation index for the system
+- `docs/plan/`: per-feature specifications and implementation status
+  (`@PLANS.md`)
+- `docs/methods-thematic-analysis/`: method write-ups behind this pipeline
+- `docs/results-thematic-analysis/`, `docs/results-knowledge-graph/`,
+  `docs/results-benchmark/`: current and draft results
+
+## Legacy R pipeline
+
+The earlier `R`/`targets`/quarto pipeline for statistical analysis is
+still described in `README.qmd` and reproduced via
+`renv::restore()` + `targets::tar_make()`.
